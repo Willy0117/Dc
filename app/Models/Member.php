@@ -25,9 +25,14 @@ class Member extends Model
     {
         return $this->belongsTo(User::class);
     }
-   // Organization とのリレーション
+    // Organization とのリレーション
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+    // Pdffile とのリレーション
+    public function pdfUploads()
+    {
+        return $this->hasMany(PdfUpload::class);
     }
 }

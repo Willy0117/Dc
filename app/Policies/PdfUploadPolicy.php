@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\PdfUpload;
+use App\Models\User;
+use Illuminate\Auth\Access\Response;
+
+class PdfUploadPolicy
+{
+    /**
+     * Determine whether the user can view any models.
+     */
+    public function viewAny(User $user): bool
+    {
+        return false;
+    }
+
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, PdfUpload $pdfUpload): bool
+    {
+        // 管理者判定
+        $adminRoles = ['super_admin', 'admin', 'examiner', 'renewal_examiner'];
+        return in_array($user->role, $adminRoles) || $user->id === $pdf->member_id;
+    }
+    
+    public function thumbnail(User $user, PdfUpload $pdf)
+    {
+        $adminRoles = ['super_admin', 'admin', 'examiner', 'renewal_examiner'];
+        return in_array($user->role, $adminRoles) || $user->id === $pdf->member_id;
+    }
+    /**
+     * Determine whether the user can create models.
+     */
+    public function create(User $user): bool
+    {
+        return false;
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, PdfUpload $pdfUpload): bool
+    {
+        return false;
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, PdfUpload $pdfUpload): bool
+    {
+        return false;
+    }
+
+    /**
+     * Determine whether the user can restore the model.
+     */
+    public function restore(User $user, PdfUpload $pdfUpload): bool
+    {
+        return false;
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     */
+    public function forceDelete(User $user, PdfUpload $pdfUpload): bool
+    {
+        return false;
+    }
+}

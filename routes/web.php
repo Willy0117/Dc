@@ -12,6 +12,12 @@ use App\Http\Controllers\Profile\MemberController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Profile\OrganizationController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
+use App\Http\Controllers\PdfUploadController;
+use App\Http\Controllers\Admin\PdfUploadController as AdminPdfUploadController;
+
+Route::middleware(['auth', 'verified'])->group(function () {
+});
+
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -19,6 +25,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::middleware(['auth', 'admin'])->get('/dashboard', fn() => inertia('Admin/Dashboard'))->name('dashboard');
+
+    Route::get('/pdf-uploads', [AdminPdfUploadController::class, 'index'])->name('admin.pdf_uploads.index');
+    Route::post('/pdf-uploads/{pdf}/approve', [AdminPdfUploadController::class, 'approve'])->name('admin.pdf_uploads.approve');
+    Route::post('/pdf-uploads/{pdf}/reject', [AdminPdfUploadController::class, 'reject'])->name('admin.pdf_uploads.reject');
+    Route::get('/pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('admin.pdf_uploads.view');
+    Route::get('/pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('admin.pdf_uploads.thumbnail');
 
     // 管理画面で一覧表示
     Route::get('/rehab-applications', [RehabApplicationController::class, 'index'])
@@ -46,6 +58,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Organizations 
     Route::get('/profile/organization', [OrganizationController::class, 'edit'])->name('profile.organization.edit');
     Route::put('/profile/organization', [OrganizationController::class, 'update'])->name('profile.organization.update');
+
+    Route::get('/pdf-uploads', [PdfUploadController::class, 'index'])->name('pdf_uploads.index');
+    Route::post('/pdf-uploads', [PdfUploadController::class, 'store'])->name('pdf_uploads.store');
+    Route::post('/pdf-uploads/{pdfUpload}', [PdfUploadController::class, 'update'])->name('pdf_uploads.update');
+   // PDFを会員が閲覧
+    Route::get('/pdf-uploads/{pdf}/view', [PdfUploadController::class, 'view'])->name('pdf_uploads.view');
+    // サムネイルを返す
+    Route::get('/pdf-uploads/{pdf}/thumbnail', [PdfUploadController::class, 'thumbnail'])->name('pdf_uploads.thumbnail');
 
     // 権限割当フォーム（GET）
     Route::get('permissions/{permission}/assign', [\App\Http\Controllers\PermissionController::class, 'assign'])

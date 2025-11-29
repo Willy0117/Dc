@@ -154,7 +154,27 @@ const showAccessControl = computed(() => {
               </Link>
             </div>
           </transition>
-        </div>                
+        </div>
+        <div class="mt-2">
+          <button @click="toggleSubMenu('pdf')" class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 mt-2">
+            <div class="flex items-center">
+              <DocumentIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('PDF Uploads') }}</span>
+            </div>
+            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='pdf'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <transition name="slide-fade">
+            <div v-show="openSubMenu==='pdf' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <!-- PDF Uploads一覧ページ -->
+              <Link :href="route('pdf_uploads.index')" class="flex items-center py-2 px-2 rounded hover:bg-gray-100">
+                {{ t('Upload PDF') }}
+              </Link>
+            </div>
+          </transition>
+        </div>                        
         <!-- Profile サブメニュー -->
         <div class="mt-2">
           <button @click="toggleSubMenu('profile')"

@@ -69,11 +69,6 @@
       </header>
       <!-- コンテンツ -->
       <main class="flex-1 p-6">
-        <template>
-          <div>
-            <FlashMessage />
-          </div>
-        </template>
         <slot />
       </main>
     </div>

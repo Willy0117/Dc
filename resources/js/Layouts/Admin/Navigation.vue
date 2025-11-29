@@ -131,12 +131,7 @@ const showAccessControl = computed(() => {
           <HomeIcon class="w-5 h-5"/>
           <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
         </Link>
-        <Link :href="route('temperatures.index')"
-              class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-              :class="isActive('temperatures.index') ? 'bg-gray-300 font-semibold' : ''">
-          <CubeIcon class="w-5 h-5"/>
-          <span v-if="!collapsed" class="ml-2">{{ t('temperatures') }}</span>
-        </Link>        
+      
         <!-- 献立関連メニュー -->
         <button @click="toggleSubMenu('menus')"
                 class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors mt-2">
@@ -171,7 +166,27 @@ const showAccessControl = computed(() => {
               {{ t('excel_menu_import') }}
             </Link>
           </div>
-        </transition>        
+        </transition>
+        <div class="mt-2">
+          <button @click="toggleSubMenu('pdf_uploads')" class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 mt-2">
+            <div class="flex items-center">
+              <CubeIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('pdf_uploads_admin') }}</span>
+            </div>
+            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='pdf_uploads'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <transition name="slide-fade">
+            <div v-show="openSubMenu==='pdf_uploads' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <Link :href="route('admin.pdf_uploads.index')" class="flex items-center py-2 px-2 rounded hover:bg-gray-100">
+                {{ t('uploaded_pdfs') }}
+              </Link>
+            </div>
+          </transition>
+        </div>
+                     
         <!-- Profile サブメニュー -->
         <div class="mt-2">
           <button @click="toggleSubMenu('profile')"

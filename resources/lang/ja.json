@@ -176,6 +176,9 @@
   "registration_number": "適格請求書番号",
   "organization_created": "新しい組織を登録しました。",
   "organization_updated": "組織情報を更新しました。",
-  "organization_shared_confirmation": "この組織は複数のメンバーに共有されています。本当に更新してよいですか？"
+  "organization_shared_confirmation": "この組織は複数のメンバーに共有されています。本当に更新してよいですか？",
+  "conference": "学術集会関連",
+  "seminar": "講習会関連",
+  "journal": "学術論文関連"
 }
 
