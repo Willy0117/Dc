@@ -39,6 +39,7 @@ const { t, locale } = useI18n()
 // レスポンシブ判定
 const isMobile = ref(false)
 const handleResize = () => { isMobile.value = window.innerWidth < 1024 }
+
 onMounted(() => {
   handleResize()
   window.addEventListener('resize', handleResize)
@@ -131,47 +132,29 @@ const showAccessControl = computed(() => {
           <HomeIcon class="w-5 h-5"/>
           <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
         </Link>
-        <Link :href="route('temperatures.index')"
-              class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-              :class="isActive('temperatures.index') ? 'bg-gray-300 font-semibold' : ''">
-          <CubeIcon class="w-5 h-5"/>
-          <span v-if="!collapsed" class="ml-2">{{ t('temperatures') }}</span>
-        </Link>        
-        <!-- 献立関連メニュー -->
-        <button @click="toggleSubMenu('menus')"
-                class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors mt-2">
-          <div class="flex items-center">
-            <CubeIcon class="w-5 h-5"/> <!-- 適宜アイコン変更 -->
-            <span v-if="!collapsed" class="ml-2">{{ t('menus') }}</span>
-          </div>
-          <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='menus'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-        <transition name="slide-fade">
-          <div v-show="openSubMenu==='menus' && !collapsed" class="pl-6 mt-1 space-y-1">
-            <Link :href="route('menus.index')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('menus.index') ? 'bg-gray-200 font-semibold' : ''">
-              <CubeIcon class="w-4 h-4 mr-1"/>
-              {{ t('menu_list') }}
-            </Link>
 
-            <Link :href="route('menus.weekly')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('menus.weekly') ? 'bg-gray-200 font-semibold' : ''">
-              <CubeIcon class="w-4 h-4 mr-1"/>
-              {{ t('weekly_menu') }}
-            </Link>
-            
-            <Link :href="route('menus.import')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('menus.import') ? 'bg-gray-200 font-semibold' : ''">
-              <ArrowRightOnRectangleIcon class="w-4 h-4 mr-1"/>
-              {{ t('excel_menu_import') }}
-            </Link>
-          </div>
-        </transition>        
+        <div class="mt-2">
+          <button @click="toggleSubMenu('rehab')" class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 mt-2">
+            <div class="flex items-center">
+              <CubeIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('Instructor Application') }}</span>
+            </div>
+            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='rehab'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <transition name="slide-fade">
+            <div v-show="openSubMenu==='rehab' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <Link :href="route('rehab.create')" class="flex items-center py-2 px-2 rounded hover:bg-gray-100">
+                {{ t('Application Form') }}
+              </Link>
+              <Link :href="route('rehab.files.edit')" class="flex items-center py-2 px-2 rounded hover:bg-gray-100">
+                {{ t('Upload PDF') }}
+              </Link>
+            </div>
+          </transition>
+        </div>                
         <!-- Profile サブメニュー -->
         <div class="mt-2">
           <button @click="toggleSubMenu('profile')"
@@ -190,8 +173,23 @@ const showAccessControl = computed(() => {
                     class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
                     :class="isActive('profile.show') ? 'bg-gray-200 font-semibold' : ''">
                 <UserIcon class="w-4 h-4 mr-1"/>
-                Profile Settings
+                {{ t('profile_setting') }}
               </Link>
+              <!-- 会員情報編集メニュー -->
+              <Link :href="route('profile.member.edit')"
+                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                    :class="isActive('profile.member.edit') ? 'bg-gray-200 font-semibold' : ''">
+                <UserIcon class="w-4 h-4 mr-1"/>
+                {{ t('edit_member_info') }}
+              </Link>              
+              <!-- 会員情報編集メニュー -->
+              <Link :href="route('profile.organization.edit')"
+                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                    :class="isActive('profile.organization.edit') ? 'bg-gray-200 font-semibold' : ''">
+                <UserIcon class="w-4 h-4 mr-1"/>
+                {{ t('edit_organization_info') }}
+              </Link>
+
               <Link v-if="hasApiFeatures" :href="route('api-tokens.index')"
                     class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
                     :class="isActive('api-tokens.index') ? 'bg-gray-200 font-semibold' : ''">

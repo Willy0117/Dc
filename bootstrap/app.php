@@ -16,8 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\SetLocale::class,
+            \App\Http\Middleware\AdminOnly::class,
         ]);
-
+        
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminOnly::class,
+        ]);
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -6,9 +6,31 @@ use Inertia\Inertia;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SetLocaleController;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\RehabApplicationController;
+use App\Http\Controllers\Profile\MemberController;
+use App\Http\Controllers\Admin\MemberController as AdminMemberController;
+use App\Http\Controllers\Profile\OrganizationController;
+use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::middleware(['auth', 'admin'])->get('/dashboard', fn() => inertia('Admin/Dashboard'))->name('dashboard');
+
+    // 管理画面で一覧表示
+    Route::get('/rehab-applications', [RehabApplicationController::class, 'index'])
+        ->name('admin.rehab.index');
+    Route::post('/rehab-applications/{application}/reject', [RehabApplicationController::class, 'reject'])
+        ->name('rehab.reject');
+    Route::post('/rehab-applications/{application}/approve', [RehabApplicationController::class, 'approve'])
+        ->name('rehab.approve');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    //Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('users', \App\Http\Controllers\UserController::class);
     Route::post('users/bulk-delete', [\App\Http\Controllers\UserController::class, 'bulkDelete'])->name('users.bulkDelete');
@@ -18,6 +40,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Role
     Route::resource('roles', \App\Http\Controllers\RoleController::class);
     Route::post('roles/bulk-delete', [\App\Http\Controllers\RoleController::class, 'bulkDelete'])->name('roles.bulkDelete');
+    // Members 
+    Route::get('/profile/member', [MemberController::class, 'edit'])->name('profile.member.edit');
+    Route::put('/profile/member', [MemberController::class, 'update'])->name('profile.member.update');
+    // Organizations 
+    Route::get('/profile/organization', [OrganizationController::class, 'edit'])->name('profile.organization.edit');
+    Route::put('/profile/organization', [OrganizationController::class, 'update'])->name('profile.organization.update');
 
     // 権限割当フォーム（GET）
     Route::get('permissions/{permission}/assign', [\App\Http\Controllers\PermissionController::class, 'assign'])
@@ -32,12 +60,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('permissions/bulk-delete', [\App\Http\Controllers\PermissionController::class, 'bulkDelete'])->name('permissions.bulkDelete');
 
     Route::resource('temperatures', \App\Http\Controllers\TemperatureController::class);
+    // ----------------------------------------
+    // ユーザー向け
+    // ----------------------------------------
+
+    // 自己申告フォーム
+    Route::get('/rehab-apply', [RehabApplicationController::class, 'create'])
+        ->name('rehab.create');
+
+    // 自己申告フォーム保存
+    Route::post('/rehab-apply', [RehabApplicationController::class, 'store'])
+        ->name('rehab.store');
+
+    // PDFアップロード画面
+    Route::get('/rehab-apply/files', [RehabApplicationController::class, 'editFiles'])
+        ->name('rehab.files.edit');
+
+    // PDF個別アップロード
+    Route::post('/rehab-apply/files', [RehabApplicationController::class, 'uploadPdf'])
+        ->name('rehab.files.upload');
 
     // autocomplete用（Ajax）
     Route::get('/menus/autocomplete', [\App\Http\Controllers\MenuController::class, 'autocomplete']);
     Route::get('/sensors/autocomplete', [\App\Http\Controllers\SensorController::class, 'autocomplete']);
     Route::get('/devices/autocomplete', [\App\Http\Controllers\DeviceController::class, 'autocomplete']);
     Route::get('/operators/autocomplete', [\App\Http\Controllers\OperatorController::class, 'autocomplete']);
+    Route::get('/profile/organizations/autocomplete', [\App\Http\Controllers\Profile\OrganizationController::class, 'autocomplete']);
 
     // Sensor 
     Route::resource('sensors', \App\Http\Controllers\SensorController::class);
@@ -101,7 +149,5 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });

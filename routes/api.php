@@ -9,10 +9,12 @@ use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TemperatureLogController;
 use App\Http\Controllers\Api\ProcessController;
+use App\Http\Controllers\RehabApplicationController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
 // 認証なし
 Route::prefix('v1')->group(function () {
 

@@ -44,7 +44,10 @@ const props = defineProps({
   fetchUrl: String
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits([
+  'update:modelValue',
+  'select'
+])
 
 const search = ref(props.modelValue ?? '')
 const options = ref([])
@@ -60,6 +63,7 @@ const onInput = async () => {
 
 const select = (item) => {
   emit('update:modelValue', item.id)
+  emit('selected', item)
   search.value = item.label
   showDropdown.value = false
   activeIndex.value = -1
@@ -87,6 +91,7 @@ const onKeyDown = (e) => {
     if (activeIndex.value >= 0) select(options.value[activeIndex.value])
   }
 }
+
 </script>
 
 

@@ -67,9 +67,13 @@
           </button>
         </div>
       </header>
-
       <!-- コンテンツ -->
       <main class="flex-1 p-6">
+        <template>
+          <div>
+            <FlashMessage />
+          </div>
+        </template>
         <slot />
       </main>
     </div>
@@ -82,6 +86,7 @@ import { router, usePage } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { ArrowRightOnRectangleIcon, GlobeAltIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
+import FlashMessage from '@/Components/FlashMessage.vue'
 
 const { props } = usePage()
 const user = props.auth.user

@@ -10,5 +10,21 @@ export default defineConfig({
         }),
         vue(),
     ],
+    build: {
+        minify: false,
+        reportCompressedSize: false,
+        sourcemap: true,
+        rollupOptions: {
+        // 不要な chunk 分割を抑える
+        output: {
+            manualChunks: undefined,
+        },
+        },
+    },
+    server: {
+        watch: {
+        ignored: ['**/vendor/**', '**/node_modules/**'],
+        },
+    },    
 });
 
