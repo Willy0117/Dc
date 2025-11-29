@@ -26,11 +26,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware(['auth', 'admin'])->get('/dashboard', fn() => inertia('Admin/Dashboard'))->name('dashboard');
 
-    Route::get('/pdf-uploads', [AdminPdfUploadController::class, 'index'])->name('admin.pdf_uploads.index');
-    Route::post('/pdf-uploads/{pdf}/approve', [AdminPdfUploadController::class, 'approve'])->name('admin.pdf_uploads.approve');
-    Route::post('/pdf-uploads/{pdf}/reject', [AdminPdfUploadController::class, 'reject'])->name('admin.pdf_uploads.reject');
-    Route::get('/pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('admin.pdf_uploads.view');
-    Route::get('/pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('admin.pdf_uploads.thumbnail');
+    Route::get('/pdf-uploads', [AdminPdfUploadController::class, 'index'])->name('pdf_uploads.index');
+    Route::post('/pdf-uploads/{pdf}/approve', [AdminPdfUploadController::class, 'approve'])->name('pdf_uploads.approve');
+    Route::post('/pdf-uploads/{pdf}/reject', [AdminPdfUploadController::class, 'reject'])->name('pdf_uploads.reject');
+    Route::get('/pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('pdf_uploads.view');
+    Route::get('/pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('pdf_uploads.thumbnail');
 
     // 管理画面で一覧表示
     Route::get('/rehab-applications', [RehabApplicationController::class, 'index'])

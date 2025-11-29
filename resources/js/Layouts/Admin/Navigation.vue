@@ -167,6 +167,9 @@ const showAccessControl = computed(() => {
             </Link>
           </div>
         </transition>
+
+
+
         <div class="mt-2">
           <button @click="toggleSubMenu('pdf_uploads')" class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 mt-2">
             <div class="flex items-center">
