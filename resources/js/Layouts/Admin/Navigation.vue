@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
+import { Icon } from '@iconify/vue'
 
 // Heroicons
 import {
@@ -112,7 +113,7 @@ const showAccessControl = computed(() => {
 
 
 <template>
-  <div class="flex min-h-screen bg-gray-100">
+  <div class="flex min-h-screen bg-gray-100 text-sm">
 
     <!-- サイドバー -->
     <aside v-if="!isMobile" :class="['bg-gray-50 text-gray-800 shadow-lg h-full flex flex-col transition-all duration-300 z-50 overflow-hidden', collapsed ? 'w-16' : 'w-64']">
@@ -182,9 +183,10 @@ const showAccessControl = computed(() => {
           </button>
 
           <transition name="slide-fade">
-            <div v-show="openSubMenu==='pdf_uploads' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <div v-if="openSubMenu==='pdf_uploads' && !collapsed" class="pl-6 mt-1 space-y-1">
               <Link :href="route('admin.pdf_uploads.index')" class="flex items-center py-2 px-2 rounded hover:bg-gray-100">
-                {{ t('uploaded_pdfs') }}
+                <Icon icon="mdi:file-pdf-box" width="22" class="text-red-600" />
+                <span v-if="!collapsed" class="ml-2">{{ t('uploaded_pdfs') }}</span>
               </Link>
             </div>
           </transition>
@@ -283,31 +285,29 @@ const showAccessControl = computed(() => {
           </button>
           <transition name="slide-fade">
             <div v-show="openSubMenu==='masters' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link :href="route('devices.index')"
+              <Link :href="route('admin.credit-categories.index')"
                     class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('devices.index') ? 'bg-gray-200 font-semibold' : ''">
+                    :class="isActive('admin.credit-categories.index') ? 'bg-gray-200 font-semibold' : ''">
                 <CubeIcon class="w-4 h-4 mr-1"/>
-                {{ t('devices') }}
+                {{ t('category') }}
               </Link>
-
-              <Link :href="route('operators.index')"
+              <Link :href="route('admin.credit-conferences.index')"
                     class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('operators.index') ? 'bg-gray-200 font-semibold' : ''">
-                <UsersIcon class="w-4 h-4 mr-1"/>
-                {{ t('operators') }}
+                    :class="isActive('admin.credit-conferences.index') ? 'bg-gray-200 font-semibold' : ''">
+                <CubeIcon class="w-4 h-4 mr-1"/>
+                {{ t('conference') }}
               </Link>
-
-              <Link :href="route('sensors.index')"
+              <Link :href="route('admin.credit-roles.index')"
                     class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('sensors.index') ? 'bg-gray-200 font-semibold' : ''">
-                <BeakerIcon class="w-4 h-4 mr-1"/>
-                {{ t('sensors') }}
+                    :class="isActive('admin.credit-roles.index') ? 'bg-gray-200 font-semibold' : ''">
+                <CubeIcon class="w-4 h-4 mr-1"/>
+                {{ t('role') }}
               </Link>
-              <Link :href="route('processes.index')"
+              <Link :href="route('admin.credits.index')"
                     class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('processes.index') ? 'bg-gray-200 font-semibold' : ''">
-                <BeakerIcon class="w-4 h-4 mr-1"/>
-                {{ t('processes') }}
+                    :class="isActive('admin.credits.index') ? 'bg-gray-200 font-semibold' : ''">
+                <CubeIcon class="w-4 h-4 mr-1"/>
+                {{ t('credit') }}
               </Link>
             </div>
           </transition>          

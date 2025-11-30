@@ -11,7 +11,7 @@ class PdfUploadController extends Controller
     // PDFアップロード一覧
     public function index()
     {
-        $uploads = PdfUpload::latest()->get();
+        $uploads = PdfUpload::with('member')->latest()->get();
 
         return inertia('Admin/PdfUploads/Index', [
             'uploads' => $uploads,

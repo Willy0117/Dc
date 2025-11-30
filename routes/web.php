@@ -14,6 +14,11 @@ use App\Http\Controllers\Profile\OrganizationController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\PdfUploadController;
 use App\Http\Controllers\Admin\PdfUploadController as AdminPdfUploadController;
+use App\Http\Controllers\Admin\CreditCategoryController;
+use App\Http\Controllers\Admin\CreditConferenceController;
+use App\Http\Controllers\Admin\CreditRoleController;
+use App\Http\Controllers\Admin\CreditController;
+
 
 Route::middleware(['auth', 'verified'])->group(function () {
 });
@@ -39,6 +44,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         ->name('rehab.reject');
     Route::post('/rehab-applications/{application}/approve', [RehabApplicationController::class, 'approve'])
         ->name('rehab.approve');
+    Route::resource('credit-categories', CreditCategoryController::class);
+    Route::resource('credit-conferences', CreditConferenceController::class);
+    Route::resource('credit-roles', CreditRoleController::class);
+    Route::resource('credits', CreditController::class);       
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
