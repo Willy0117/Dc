@@ -11,7 +11,13 @@ class PdfUploadController extends Controller
     // PDFアップロード一覧
     public function index()
     {
-        $uploads = PdfUpload::with('member')->latest()->get();
+        // member, creditCategory, creditConference, creditRole をまとめてロード
+        $uploads = PdfUpload::with([
+            'member:id,name',
+            'creditCategory:id,name',
+            'creditConference:id,name',
+            'creditRole:id,role'
+        ])->latest()->get();
 
         return inertia('Admin/PdfUploads/Index', [
             'uploads' => $uploads,
@@ -21,9 +27,6 @@ class PdfUploadController extends Controller
     public function approve(PdfUpload $pdf)
     {
         $pdf->status = 'approved';
-
-        // 承認時に単位を反映（仮に1単位）
-        $pdf->unit = $this->calculateUnit($pdf);
         $pdf->save();
 
         return back()->with('success', __('PDF approved successfully.'));
@@ -38,27 +41,10 @@ class PdfUploadController extends Controller
 
         $pdf->status = 'rejected';
         $pdf->rejection_message = $request->rejection_message;
-        $pdf->unit = 0; // 差し戻しは単位なし
+        $pdf->points = 0; // 差し戻しは単位なし
         $pdf->save();
 
         return back()->with('success', __('PDF rejected.'));
-    }
-
-    /**
-     * 単位計算（例: カテゴリごとに単位を決める）
-     */
-    protected function calculateUnit(PdfUpload $pdf)
-    {
-        switch($pdf->category) {
-            case 'conference':
-                return 2;
-            case 'seminar':
-                return 1;
-            case 'journal':
-                return 3;
-            default:
-                return 0;
-        }
     }
 
     // PDF閲覧（管理者もprivateフォルダ参照）

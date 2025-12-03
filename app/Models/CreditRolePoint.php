@@ -5,16 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Credit extends Model
+class CreditRolePoint extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'credit_category_id',
-        'credit_conference_id',
-        'credit_role_id',
-        'credit',
-    ];
+    protected $fillable = ['credit_category_id', 'credit_conference_id', 'name', 'points'];
 
     public function category()
     {
@@ -25,10 +20,4 @@ class Credit extends Model
     {
         return $this->belongsTo(CreditConference::class, 'credit_conference_id');
     }
-
-    public function role()
-    {
-        return $this->belongsTo(CreditRole::class, 'credit_role_id');
-    }
 }
-

@@ -3,51 +3,87 @@
 namespace App\Http\Controllers;
 
 use App\Models\PdfUpload;
+use App\Models\CreditCategory;
+use App\Models\CreditConference;
+use App\Models\CreditRolePoint;
+use App\Models\Member;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Imagick;
 
 class PdfUploadController extends Controller
 {
-    // 会員のアップロード一覧
     public function index()
     {
-        $uploads = PdfUpload::where('member_id', Auth::id())
-            ->latest()
-            ->get();
+        $user = Auth::user();
+        $member = Member::where('user_id', $user->id)->first();
 
-        return inertia('PdfUploads/Index', [
-            'uploads' => $uploads
+        // アップロード一覧
+        $uploads = PdfUpload::with(['creditCategory', 'creditConference', 'creditRole'])
+            ->where('member_id', $member->id)
+            ->latest()
+            ->get()
+            ->map(fn($u) => [
+                'id' => $u->id,
+                'credit_category_name' => $u->creditCategory?->name,
+                'credit_conference_name' => $u->creditConference?->name,
+                'role_name' => $u->creditRole?->role,
+                'points' => $u->point,
+                'status' => $u->status,
+                'thumbnail_path' => $u->thumbnail_path,
+                'rejection_message' => $u->rejection_message,
+            ]);
+
+        // 全カテゴリー
+        $creditCategories = CreditCategory::all();
+
+        // 全学術集会・論文・セミナー等
+        $conferences = CreditConference::all();
+
+        // 全 roles
+        $roles = CreditRolePoint::all()->map(fn($r) => [
+            'id' => $r->id,
+            'name' => $r->role,
+            'points' => $r->points,
+            'credit_category_id' => $r->credit_category_id,
+            'credit_conference_id' => $r->credit_conference_id,
         ]);
+
+        return inertia('PdfUploads/Index', compact('uploads', 'creditCategories', 'conferences', 'roles'));
     }
-    /**
-     * 会員のPDFアップロード
-     */
+
     public function store(Request $request)
     {
         $request->validate([
             'file' => 'required|mimes:pdf|max:10240',
-            'category' => 'required|in:conference,seminar,journal',
-            'role' => 'required|string|max:255',
-            'organization_name' => 'required|string|max:255',
+            'credit_category_id' => 'required|exists:credit_categories,id',
+            'credit_conference_id' => 'required|exists:credit_conferences,id',
+            'role_id' => 'required|exists:credit_role_points,id',
+            'session' => 'nullable|string|max:50',
         ]);
 
-        // private/pdf_uploads に保存
+        $user = Auth::user();
+        $member = Member::where('user_id', $user->id)->first();
+
         if (!Storage::disk('private')->exists('pdf_uploads')) {
             Storage::disk('private')->makeDirectory('pdf_uploads');
         }
+
         $path = $request->file('file')->store('pdf_uploads', 'private');
 
-        // DB作成
+        // role_id でポイントを取得
+        $role = CreditRolePoint::find($request->role_id);
+        $points = $role ? $role->points : 0;
+
         $upload = PdfUpload::create([
-            'member_id' => Auth::id(),
+            'member_id' => $member->id,
             'file_path' => $path,
-            'category' => $request->category,
-            'role' => $request->role,
-            'organization_name' => $request->organization_name,
+            'credit_category_id' => $request->credit_category_id,
+            'credit_conference_id' => $request->credit_conference_id,
+            'credit_role_id' => $request->role_id,
+            'session' => $request->session ?? '',
+            'points' => $points,
             'status' => 'pending',
-            'unit' => 0,
         ]);
 
         // サムネイル生成
@@ -77,27 +113,15 @@ class PdfUploadController extends Controller
 
     public function view(PdfUpload $pdf)
     {
-        //$this->authorize('view', $pdf);
-
         $filePath = storage_path('app/private/' . $pdf->file_path);
-        if (!file_exists($filePath)) {
-            abort(404);
-        }
-
+        if (!file_exists($filePath)) abort(404);
         return response()->file($filePath);
     }
 
     public function thumbnail(PdfUpload $pdf)
     {
-        //$this->authorize('view', $pdf);
-
         $thumbPath = storage_path('app/private/' . $pdf->thumbnail_path);
-        if (!file_exists($thumbPath)) {
-            abort(404);
-        }
-
+        if (!file_exists($thumbPath)) abort(404);
         return response()->file($thumbPath);
     }
 }
-
-

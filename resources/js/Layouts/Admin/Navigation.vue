@@ -168,8 +168,38 @@ const showAccessControl = computed(() => {
             </Link>
           </div>
         </transition>
+        <!-- Instructor Member サブメニュー -->
+        <div class="mt-2">
+          <button @click="toggleSubMenu('instructorMember')"
+                  class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors">
+            <div class="flex items-center">
+              <UserIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">指導士更新管理</span>
+            </div>
+            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='instructorMember'}"
+                class="w-4 h-4 transform transition-transform duration-200"
+                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
 
+          <transition name="slide-fade">
+            <div v-show="openSubMenu==='instructorMember' && !collapsed" class="pl-6 mt-1 space-y-1">
 
+              <!-- 指導士会員一覧 -->
+              <Link :href="route('admin.instructorMember.index')"
+                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                    :class="isActive('admin.instructorMember.index') ? 'bg-gray-200 font-semibold' : ''">
+                <UserIcon class="w-4 h-4 mr-1"/>
+                会員一覧
+              </Link>
+
+              <!-- ここに他のサブメニュー追加も可能 -->
+              <!-- 例：過去更新履歴、PDF承認ダッシュボード等 -->
+              
+            </div>
+          </transition>
+        </div>
 
         <div class="mt-2">
           <button @click="toggleSubMenu('pdf_uploads')" class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 mt-2">

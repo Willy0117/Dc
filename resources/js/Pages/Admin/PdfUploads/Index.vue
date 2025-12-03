@@ -43,18 +43,17 @@
         <thead>
           <tr class="bg-gray-200">
             <th class="px-3 py-2">{{ t('member_name') }}</th>
-            <th class="px-3 py-2">{{ t('email') }}</th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('organization_name')">
-              {{ t('organization_name') }}
-              <span v-if="form.sort==='organization_name'">{{ form.direction==='asc'?'▲':'▼' }}</span>
+            <th class="px-3 py-2 cursor-pointer" @click="sortBy('credit_category')">
+              {{ t('credit_category') }}
+              <span v-if="form.sort==='credit_category'">{{ form.direction==='asc'?'▲':'▼' }}</span>
             </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('role')">
-              {{ t('role') }}
-              <span v-if="form.sort==='role'">{{ form.direction==='asc'?'▲':'▼' }}</span>
+            <th class="px-3 py-2 cursor-pointer" @click="sortBy('credit_canfarence')">
+              {{ t('credit_canfarence') }}
+              <span v-if="form.sort==='credit_confarence'">{{ form.direction==='asc'?'▲':'▼' }}</span>
             </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('category')">
-              {{ t('category') }}
-              <span v-if="form.sort==='category'">{{ form.direction==='asc'?'▲':'▼' }}</span>
+            <th class="px-3 py-2 cursor-pointer" @click="sortBy('credit_role')">
+              {{ t('credit_role') }}
+              <span v-if="form.sort==='credit_role'">{{ form.direction==='asc'?'▲':'▼' }}</span>
             </th>
             <th class="px-3 py-2">{{ t('thumbnail') }}</th>
             <th class="px-3 py-2">{{ t('pdf') }}</th>
@@ -66,10 +65,9 @@
         <tbody>
           <tr v-for="upload in uploads" :key="upload.id" class="odd:bg-white even:bg-gray-100">
             <td>{{ upload.member ? upload.member.name : 'Unknown' }}</td>
-            <td>{{ upload.member ? upload.member.email : '-' }}</td>
-            <td class="px-3 py-2">{{ upload.organization_name }}</td>
-            <td class="px-3 py-2">{{ upload.role }}</td>
-            <td class="px-3 py-2">{{ upload.category }}</td>
+            <td class="px-3 py-2">{{ upload.credit_category ? upload.credit_category.name : '' }}</td>
+            <td class="px-3 py-2">{{ upload.credit_conference ? upload.credit_conference.name : '' }}</td>
+            <td class="px-3 py-2">{{ upload.credit_role ? upload.credit_role.role : '' }}</td>
             <td class="px-3 py-2">
               <img
                 v-if="upload.thumbnail_path"
@@ -170,6 +168,7 @@ import dayjs from 'dayjs'
 const props = defineProps({
   uploads: Object
 })
+console.log(props.uploads)
 
 const { t } = useI18n()
 

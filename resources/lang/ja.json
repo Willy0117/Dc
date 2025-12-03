@@ -180,11 +180,15 @@
   "conference": "学術集会関連",
   "seminar": "講習会関連",
   "journal": "学術論文関連",
-   "credits": "単位",
+  "credits": "単位",
   "create_credit": "単位作成",
   "edit_credit": "単位編集",
   "category": "カテゴリー",
   "credit": "単位数",
+  "credit_conference": "学術名",
+  "credit_category": "カテゴリー",
+  "credit_role": "単位取得名",
+  "credit_points": "単位数",
   "delete_confirm": "削除してもよろしいですか？",
   "create": "作成"
 }

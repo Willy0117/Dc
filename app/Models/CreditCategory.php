@@ -11,14 +11,15 @@ class CreditCategory extends Model
 
     protected $fillable = ['name'];
 
-    public function credits()
-    {
-        return $this->hasMany(Credit::class, 'credit_category_id');
-    }
-    
     public function conferences()
     {
-        return $this->hasMany(CreditConference::class);
+        return $this->hasMany(CreditConference::class, 'credit_category_id');
+    }
+
+    public function roles()
+    {
+        return $this->hasMany(CreditRolePoint::class, 'credit_category_id');
     }
 }
+
 

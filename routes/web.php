@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\CreditCategoryController;
 use App\Http\Controllers\Admin\CreditConferenceController;
 use App\Http\Controllers\Admin\CreditRoleController;
 use App\Http\Controllers\Admin\CreditController;
+use App\Http\Controllers\Admin\InstructorMemberController;
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -36,7 +37,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/pdf-uploads/{pdf}/reject', [AdminPdfUploadController::class, 'reject'])->name('pdf_uploads.reject');
     Route::get('/pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('pdf_uploads.view');
     Route::get('/pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('pdf_uploads.thumbnail');
+    // 指導士会員一覧
+    Route::get('instructorMember', [InstructorMemberController::class, 'index'])
+        ->name('instructorMember.index');
 
+    // 指導士会員詳細（PDF一覧）
+    Route::get('instructorMember/{member}', [InstructorMemberController::class, 'show'])
+        ->name('instructorMember.show');
+
+    // PDF承認 / Reject
+    Route::post('pdf/{upload}/approve', [PdfUploadController::class, 'approve'])
+        ->name('pdf.approve');
+
+    Route::post('pdf/{upload}/reject', [PdfUploadController::class, 'reject'])
+            ->name('pdf.reject');
     // 管理画面で一覧表示
     Route::get('/rehab-applications', [RehabApplicationController::class, 'index'])
         ->name('admin.rehab.index');

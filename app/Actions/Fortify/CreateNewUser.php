@@ -9,6 +9,7 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
 use Spatie\Permission\Models\Role;
 use App\Models\Member;
+use App\Models\Organization;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -33,19 +34,18 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
         ]);
-        // ★ ここで members を自動作成 ★
-        Member::create([
-            'user_id' => $user->id,
-            'member_code' => 'M' . str_pad($user->id, 6, '0', STR_PAD_LEFT), // 例: M000001
-        ]);
-        // Organization を空で作成（後で編集可能）
+        
         $org = Organization::create([
             'name' => '',           // 空
             'billing_name' => '',   // 空
         ]);
-        // Member に organization_id をセット（1対1）
-        $member->organization_id = $org->id;
-        $member->save();
+
+        $member = Member::create([
+            'user_id' => $user->id,
+            'member_code' => 'M' . str_pad($user->id, 6, '0', STR_PAD_LEFT), // 例: M000001
+            'organization_id' => $org->id,
+            'name' => $user->name ?? '',
+        ]);
 
         // デフォルトロール付与
         $user->assignRole('member');
