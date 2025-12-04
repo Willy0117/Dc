@@ -38,6 +38,8 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const props = defineProps({ categories: Array })
 
+console.log(props)
+
 const destroy = (id) => {
   if (confirm(t('delete_confirm'))) {
     router.delete(route('admin.credit-categories.destroy', id))

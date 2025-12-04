@@ -170,13 +170,13 @@ const showAccessControl = computed(() => {
         </transition>
         <!-- Instructor Member サブメニュー -->
         <div class="mt-2">
-          <button @click="toggleSubMenu('instructorMember')"
+          <button @click="toggleSubMenu('instructorMembers')"
                   class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors">
             <div class="flex items-center">
               <UserIcon class="w-5 h-5"/>
               <span v-if="!collapsed" class="ml-2">指導士更新管理</span>
             </div>
-            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='instructorMember'}"
+            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='instructorMembers'}"
                 class="w-4 h-4 transform transition-transform duration-200"
                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -184,12 +184,12 @@ const showAccessControl = computed(() => {
           </button>
 
           <transition name="slide-fade">
-            <div v-show="openSubMenu==='instructorMember' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <div v-show="openSubMenu==='instructorMembers' && !collapsed" class="pl-6 mt-1 space-y-1">
 
               <!-- 指導士会員一覧 -->
-              <Link :href="route('admin.instructorMember.index')"
+              <Link :href="route('admin.instructorMembers.index')"
                     class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('admin.instructorMember.index') ? 'bg-gray-200 font-semibold' : ''">
+                    :class="isActive('admin.instructorMembers.index') ? 'bg-gray-200 font-semibold' : ''">
                 <UserIcon class="w-4 h-4 mr-1"/>
                 会員一覧
               </Link>

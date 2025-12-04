@@ -19,7 +19,7 @@ use App\Http\Controllers\Admin\CreditConferenceController;
 use App\Http\Controllers\Admin\CreditRoleController;
 use App\Http\Controllers\Admin\CreditController;
 use App\Http\Controllers\Admin\InstructorMemberController;
-
+use App\Http\Controllers\Admin\InstructorUpdateCycleController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
 });
@@ -38,13 +38,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('pdf_uploads.view');
     Route::get('/pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('pdf_uploads.thumbnail');
     // 指導士会員一覧
-    Route::get('instructorMember', [InstructorMemberController::class, 'index'])
-        ->name('instructorMember.index');
+    Route::get('instructorMembers', [InstructorMemberController::class, 'index'])
+        ->name('instructorMembers.index');
 
     // 指導士会員詳細（PDF一覧）
-    Route::get('instructorMember/{member}', [InstructorMemberController::class, 'show'])
-        ->name('instructorMember.show');
-
+    Route::get('instructorMembers/{member}', [InstructorMemberController::class, 'show'])
+        ->name('instructorMembers.show');
+    // インストラクター更新サイクルの審査結果送信
+    Route::post('instructorUpdateCycles/{cycle}/review',[InstructorUpdateCycleController::class, 'review']
+        )->name('instructorUpdateCycles.review');
     // PDF承認 / Reject
     Route::post('pdf/{upload}/approve', [PdfUploadController::class, 'approve'])
         ->name('pdf.approve');

@@ -190,6 +190,23 @@
   "credit_role": "単位取得名",
   "credit_points": "単位数",
   "delete_confirm": "削除してもよろしいですか？",
-  "create": "作成"
+  "create": "作成",
+  "instructor": "指導士更新管理",
+  "update_period": "更新期間",
+  "total_points": "単位合計",
+  "conference_count": "学術集会",
+  "status": "ステータス",
+  "details": "詳細",
+  "before_update": "更新前",
+  "updated": "更新済",
+  "no_update": "更新しない",
+  "pdf_list": "のPDF一覧",
+  "points": "ポイント",
+  "pdf": "PDF",
+  "action": "操作",
+  "view": "表示",
+  "approve": "承認",
+  "reject": "却下",
+  "enter_reject_reason": "却下理由を入力してください"
 }
 

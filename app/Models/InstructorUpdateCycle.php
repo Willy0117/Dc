@@ -11,6 +11,7 @@ class InstructorUpdateCycle extends Model
         'start_date',
         'end_date',
         'status',
+        'reason',
     ];
 
     public function member()

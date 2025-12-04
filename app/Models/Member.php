@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Traits\HasRoles;
 
 class Member extends Model
 {
+    use HasRoles;
     use HasFactory;
 
     protected $fillable = [
@@ -48,11 +50,6 @@ class Member extends Model
         return $this->hasOne(InstructorUpdateCycle::class)
             ->where('start_date', '<=', $today)
             ->where('end_date', '>=', $today);
-    }
-
-    public function pdfUploads()
-    {
-        return $this->hasMany(PdfUpload::class);
     }
 
     /**

@@ -1,8 +1,13 @@
 <template>
   <AppLayout :title="`${member.name} - ${t('instructor_details')}`">
     <template #header>{{ member.name }}</template>
-
     <div class="p-6 space-y-4">
+      <button
+        @click="backToIndex"
+        class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+      >
+        ← {{ t('back') }}
+      </button>
       <!-- 会員情報 -->
       <div class="border rounded p-4">
         <div><strong>{{ t('name') }}:</strong> {{ member.name }}</div>
@@ -65,31 +70,42 @@
 </template>
 
 <script setup>
-import AppLayout from '@/Layouts/Admin/AppLayout.vue'
-import { usePage, Link } from '@inertiajs/vue3'
-import { useI18n } from 'vue-i18n'
 import { ref } from 'vue'
+import AppLayout from '@/Layouts/Admin/AppLayout.vue'
+import { usePage, router, Link } from '@inertiajs/vue3'
+import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
-const props = usePage().props.value
 
-// 会員情報
-const member = props.member
+// props の取り出し方法が間違っていた
+const props = usePage()
+console.log(props);
 
-// 更新サイクル
+const member = props.props.member
+const uploads = props.props.uploads
+const filters = props.props.filters
+
+// update cycle が無い場合に備えて
 const cycle = member.update_cycles?.[0] || {
   start_date: '-',
   end_date: '-',
   total_points: 0,
-  conference_count: 0,
+  conference_count: 0
 }
 
-// PDF 一覧
-const uploads = member.pdf_uploads?.map(u => ({
+// Vue で扱いやすく成形
+const uploadList = uploads.map(u => ({
   ...u,
   credit_conference_name: u.credit_conference?.name || '',
   category_name: u.credit_category?.name || '',
-  role_name: u.credit_role?.role || '',
-})) || []
-</script>
+  role_name: u.credit_role?.role || ''
+}))
 
+function backToIndex() {
+  console.log(props.filters?.page ?? 1)
+  router.get(route('admin.instructorMembers.index'), {
+    search: props.filters?.search ?? '',
+    page: props.filters?.page ?? 1,
+  })
+}
+</script>
