@@ -20,50 +20,64 @@ use App\Http\Controllers\Admin\CreditRoleController;
 use App\Http\Controllers\Admin\CreditController;
 use App\Http\Controllers\Admin\InstructorMemberController;
 use App\Http\Controllers\Admin\InstructorUpdateCycleController;
-
-Route::middleware(['auth', 'verified'])->group(function () {
-});
-
+use App\Http\Controllers\MemberController as MemberRegController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::middleware(['auth', 'admin'])->get('/dashboard', fn() => inertia('Admin/Dashboard'))->name('dashboard');
+    /**
+     * -------------------------------
+     * ① 管理者ログイン（guest のみ）
+     * -------------------------------
+     */
+    Route::middleware('guest')->group(function () {
+        Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [AuthController::class, 'login']);
+    });
 
-    Route::get('/pdf-uploads', [AdminPdfUploadController::class, 'index'])->name('pdf_uploads.index');
-    Route::post('/pdf-uploads/{pdf}/approve', [AdminPdfUploadController::class, 'approve'])->name('pdf_uploads.approve');
-    Route::post('/pdf-uploads/{pdf}/reject', [AdminPdfUploadController::class, 'reject'])->name('pdf_uploads.reject');
-    Route::get('/pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('pdf_uploads.view');
-    Route::get('/pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('pdf_uploads.thumbnail');
-    // 指導士会員一覧
-    Route::get('instructorMembers', [InstructorMemberController::class, 'index'])
-        ->name('instructorMembers.index');
 
-    // 指導士会員詳細（PDF一覧）
-    Route::get('instructorMembers/{member}', [InstructorMemberController::class, 'show'])
-        ->name('instructorMembers.show');
-    // インストラクター更新サイクルの審査結果送信
-    Route::post('instructorUpdateCycles/{cycle}/review',[InstructorUpdateCycleController::class, 'review']
-        )->name('instructorUpdateCycles.review');
-    // PDF承認 / Reject
-    Route::post('pdf/{upload}/approve', [PdfUploadController::class, 'approve'])
-        ->name('pdf.approve');
+    /**
+     * -------------------------------
+     * ② 認証後（auth）＋ロール（admin/super_admin）
+     * -------------------------------
+     */
+    Route::middleware(['auth', 'role:admin|super_admin'])->group(function () {
 
-    Route::post('pdf/{upload}/reject', [PdfUploadController::class, 'reject'])
-            ->name('pdf.reject');
-    // 管理画面で一覧表示
-    Route::get('/rehab-applications', [RehabApplicationController::class, 'index'])
-        ->name('admin.rehab.index');
-    Route::post('/rehab-applications/{application}/reject', [RehabApplicationController::class, 'reject'])
-        ->name('rehab.reject');
-    Route::post('/rehab-applications/{application}/approve', [RehabApplicationController::class, 'approve'])
-        ->name('rehab.approve');
-    Route::resource('credit-categories', CreditCategoryController::class);
-    Route::resource('credit-conferences', CreditConferenceController::class);
-    Route::resource('credit-roles', CreditRoleController::class);
-    Route::resource('credits', CreditController::class);       
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+        // ダッシュボード
+        Route::get('/dashboard', fn() => inertia('Admin/Dashboard'))->name('dashboard');
+
+        // PDF uploads
+        Route::get('/pdf-uploads', [AdminPdfUploadController::class, 'index'])->name('pdf_uploads.index');
+        Route::post('/pdf-uploads/{pdf}/approve', [AdminPdfUploadController::class, 'approve'])->name('pdf_uploads.approve');
+        Route::post('/pdf-uploads/{pdf}/reject', [AdminPdfUploadController::class, 'reject'])->name('pdf_uploads.reject');
+        Route::get('/pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('pdf_uploads.view');
+        Route::get('/pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('pdf_uploads.thumbnail');
+
+        // 指導士会員一覧
+        Route::get('/instructorMembers', [InstructorMemberController::class, 'index'])->name('instructorMembers.index');
+
+        // 指導士詳細
+        Route::get('/instructorMembers/{member}', [InstructorMemberController::class, 'show'])->name('instructorMembers.show');
+
+        // 更新サイクル審査
+        Route::post('/instructorUpdateCycles/{cycle}/review', [InstructorUpdateCycleController::class, 'review'])->name('instructorUpdateCycles.review');
+
+        // PDF approve/reject (管理用)
+        Route::post('/pdf/{upload}/approve', [PdfUploadController::class, 'approve'])->name('pdf.approve');
+        Route::post('/pdf/{upload}/reject', [PdfUploadController::class, 'reject'])->name('pdf.reject');
+
+        // リハビリ申請管理
+        Route::get('/rehab-applications', [RehabApplicationController::class, 'index'])->name('rehab.index');
+        Route::post('/rehab-applications/{application}/reject', [RehabApplicationController::class, 'reject'])->name('rehab.reject');
+        Route::post('/rehab-applications/{application}/approve', [RehabApplicationController::class, 'approve'])->name('rehab.approve');
+
+        // 各種リソース管理
+        Route::resource('credit-categories', CreditCategoryController::class);
+        Route::resource('credit-conferences', CreditConferenceController::class);
+        Route::resource('credit-roles', CreditRoleController::class);
+        Route::resource('credits', CreditController::class);
+    });
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -171,6 +185,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('sensors.checkSerialNumber'); 
 
         // 他の認証が必要なルートもここに追加
+});
+
+Route::prefix('members')->group(function () {
+
+    Route::get('pdf', [MemberRegController::class, 'pdf']);
+
+    Route::get('register/{token}', 
+        [MemberRegController::class, 'showRegistrationForm']
+    )->name('members.register');
+    Route::post('members/agree/{token}', [MemberRegController::class, 'agreeNext'])
+    ->name('members.register.agree');
+    Route::get('register/{token}/register', 
+        [MemberRegController::class, 'showRegisterForm']
+    )->name('members.register.register');
+    Route::post('register/{token}', 
+        [MemberRegController::class, 'completeRegistration']
+    )->name('members.register.complete');
+    // 加盟団体加入で拒否された場合のメッセージ画面
+    Route::get('register/{token}/rejected', [MemberRegController::class, 'showRejectedMessage'])
+        ->name('members.register.rejected');
+
+    Route::get('pdfcreate', [MemberRegController::class, 'pdfCreate'])
+        ->name('members.pdfcreate');
+    Route::post('pdfgenerate', [MemberRegController::class, 'pdfGenerate'])
+        ->name('members.pdfgenerate');
+        
 });
 
 Route::get('/', function () {

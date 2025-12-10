@@ -27,8 +27,6 @@ const applications = props.applications
                     <section id="instructor-applications" class="bg-white shadow sm:rounded-lg p-6 mb-4">
                     <h2 class="text-lg font-semibold mb-4">{{ t('instructor_application_status') }}</h2>
 
-                    <!-- 申込一覧テーブル -->
-                    <RehabApplicationsTable :user="user" />
                     </section>
                 </div>
             </div>

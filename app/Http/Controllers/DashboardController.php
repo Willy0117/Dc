@@ -12,9 +12,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $applications = RehabApplication::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $applications = array();
 
         return Inertia::render('Dashboard', [
             'user' => $user, 

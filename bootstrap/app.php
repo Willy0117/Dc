@@ -16,11 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\SetLocale::class,
-            \App\Http\Middleware\AdminOnly::class,
         ]);
         
+        // ❗ Spatie Permission ミドルウェアを正しく全て登録する
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminOnly::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
         //
     })
