@@ -12,7 +12,7 @@ class OperatorResource extends JsonResource
             'tenant_id' => $this->tenant_id,
             'code' => $this->code,
             'name' => $this->name,
-            'disabled' => $this->disabled,
+            /*'disabled' => $this->disabled,
             'display_order' => $this->display_order,
             /* 2025.11.14 不要データ削除
             'created_at' => $this->created_at,

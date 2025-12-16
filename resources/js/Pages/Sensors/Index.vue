@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    <div class="p-6">
+    <div class="p-6 text-sm">
       <!-- 右側 Drawer -->
       <div v-if="openDrawer" class="fixed inset-0 z-40">
         <!-- 背景オーバーレイ -->
@@ -33,10 +33,10 @@
 
           <div class="p-4 space-y-3">
             <!-- 既存 form をそのまま利用 -->
-            <input v-model="form.code" type="text" placeholder="Code" class="border rounded px-3 py-2 w-full" />
-            <input v-model="form.name" type="text" placeholder="Name" class="border rounded px-3 py-2 w-full" />
-            <input v-model="form.model" type="text" placeholder="Model" class="border rounded px-3 py-2 w-full" />
-            <input v-model="form.serial_number" type="text" placeholder="Serial Number" class="border rounded px-3 py-2 w-full" />
+            <!-- input v-model="form.code" type="text" placeholder="Code" class="border rounded px-3 py-2 w-full" / -->
+            <input v-model="form.name" type="text" :placeholder="t('name')" class="border rounded px-3 py-2 w-full" />
+            <input v-model="form.model" type="text" :placeholder="t('model')" class="border rounded px-3 py-2 w-full" />
+            <input v-model="form.serial_number" type="text" :placeholder="t('serial number')" class="border rounded px-3 py-2 w-full" />
 
             <div class="flex justify-end space-x-2 mt-4">
               <button @click="submitSearch(); openDrawer = false"
@@ -56,7 +56,11 @@
 
         <!-- per_page + add -->
         <div class="flex items-center gap-2">
-          <select v-model.number="form.per_page" @change="submitSearch" class="border rounded px-3 py-2 h-10">
+          <select
+            v-model.number="form.per_page"
+            @change="submitSearch"
+            class="border rounded px-3 py-2 w-16 h-10"
+          >
             <option v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</option>
           </select>
 
@@ -88,10 +92,10 @@
               <input type="checkbox" :checked="selectAll" @change="toggleSelectAll($event.target.checked)" />
             </th>
             <th v-if="isSuperAdmin">{{ t('tenant') }}</th>            
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('code')">
+            <!-- th class="px-3 py-2 cursor-pointer" @click="sortBy('code')">
               {{ t('code') }}
               <span v-if="form.sort==='code'">{{ form.direction==='asc'?'▲':'▼' }}</span>
-            </th>
+            </th -->
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('name')">
               {{ t('name') }}
               <span v-if="form.sort==='name'">{{ form.direction==='asc'?'▲':'▼' }}</span>
@@ -119,7 +123,7 @@
             <td v-if="isSuperAdmin">
               {{ tenants.find(t => t.id === sensor.tenant_id)?.name || '-' }}
             </td>            
-            <td class="px-3 py-2">{{ sensor.code }}</td>
+            <!-- td class="px-3 py-2">{{ sensor.code }}</td -->
             <td class="px-3 py-2">{{ sensor.name }}</td>
             <td class="px-3 py-2">{{ sensor.model }}</td>
             <td class="px-3 py-2">{{ sensor.serial_number }}</td>

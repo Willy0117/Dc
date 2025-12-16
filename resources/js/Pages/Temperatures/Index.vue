@@ -10,28 +10,28 @@
           <!-- Menu Autocomplete -->
           <Autocomplete
             v-model="form.menu_id"
-            label="Dish Name"
+            :label="t('dish_name')"
             placeholder="Type dish name / serving date"
             fetch-url="/menus/autocomplete"
           />
 
           <Autocomplete
             v-model="form.sensor_id"
-            label="Sensor"
+            :label="t('sensor')"
             placeholder="Select sensor"
             fetch-url="/sensors/autocomplete"
           />
 
           <Autocomplete
             v-model="form.device_id"
-            label="Device"
+            :label="t('device')"
             placeholder="Select device"
             fetch-url="/devices/autocomplete"
           />
 
           <Autocomplete
             v-model="form.operator_id"
-            label="Operator"
+            :label="t('operator')"
             placeholder="Select operator / type for search"
             fetch-url="/operators/autocomplete"
           />
@@ -91,7 +91,16 @@
               <option value="cooking">{{ t('cooking_date') }}</option>
             </select>
           </div>
- 
+          <div>
+            <label class="block text-sm font-medium mb-1">{{ t('page') }}</label>
+            <select
+              v-model.number="form.per_page"
+              @change="submitSearch"
+              class="border rounded px-3 py-2 w-16 h-10"
+            >
+              <option v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</option>
+            </select>
+          </div>
         <!-- 検索ボタンを右端 -->
           <button @click="submitSearch" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
             {{ t('search') }}
@@ -106,8 +115,14 @@
               {{ t('dish_name') }}
               <span v-if="form.sort==='menu_id'">{{ form.direction==='asc'?'▲':'▼' }}</span>
             </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('menu_id')">
+            <th
+              class="px-3 py-2 cursor-pointer"
+              @click="toggleDateSort"
+            >
               {{ form.date_type === 'serving' ? t('serving_date') : t('cooking_date') }}
+              <span v-if="form.sort === 'menu_date'">
+                {{ form.direction === 'asc' ? '▲' : '▼' }}
+              </span>
             </th>
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('sensor_id')">
               {{ t('sensor') }}
@@ -200,6 +215,21 @@ const form = reactive({
   date_to: props.filters.date_to || '',
   date_type: props.filters.date_type || 'serving'
 })
+// persistQueryに各検索項目を追加
+const persistQuery = () => ({
+  menu_id: form.menu_id || '',
+  sensor_id: form.sensor_id || '',
+  device_id: form.device_id || '',
+  operator_id: form.operator_id || '',
+  handy_no: form.filters.handy_no || '',
+  date_from: form.filters.date_from || '',
+  date_to: form.filters.date_to || '',
+  date_type: form.date_type || 'serving',
+  per_page: form.per_page,
+  sort_by: form.sort,
+  sort_dir: form.direction,
+  page: props.sensors.current_page
+})
 
 const startItem = computed(() => props.logs.per_page * (props.logs.current_page - 1) + 1)
 const endItem = computed(() => Math.min(props.logs.per_page * props.logs.current_page, props.logs.total))
@@ -208,6 +238,11 @@ const endItem = computed(() => Math.min(props.logs.per_page * props.logs.current
 const submitSearch = () => { router.get(route('temperatures.index'), {...form,page:1}, {preserveState:true}) }
 const goPage = (page) => { router.get(route('temperatures.index'), {...form,page}, {preserveState:true}) }
 
+const toggleDateSort = () => {
+  form.sort = 'menu_date'
+  form.direction = form.direction === 'asc' ? 'desc' : 'asc'
+  submitSearch()
+}
 // Sort
 const sortBy = (field) => {
   if (form.sort===field) form.direction=form.direction==='asc'?'desc':'asc'

@@ -42,7 +42,7 @@ class SensorController extends Controller
         $query->orderBy($sortBy, $sortDir);
 
         // ページあたり件数
-        $perPage = intval($request->input('per_page', 10));
+        $perPage = intval($request->input('per_page', 20));
 
         $tenants = $user->hasRole('Super Admin') ? Tenant::all() : [];                     
 
@@ -91,7 +91,7 @@ class SensorController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'code' => ['required', 'string', Rule::unique('sensors')],
+            'code' => ['nullable', 'string'],
             'serial_number' => ['required', 'string', Rule::unique('sensors')],
             'name' => ['required', 'string'],
             'model' => ['nullable', 'string'],
@@ -99,8 +99,6 @@ class SensorController extends Controller
             'display_order' => ['required', 'integer'],
             'tenant_id' => ['nullable', 'exists:tenants,id'], 
         ], [
-            'code.required' => __('validation.required', ['attribute' => __('Code')]),
-            'code.unique' => __('validation.unique', ['attribute' => __('Code')]),
             'serial_number.required' => __('validation.required', ['attribute' => __('Serial Number')]),
             'serial_number.unique' => __('validation.unique', ['attribute' => __('Serial Number')]),
             'name.required' => __('validation.required', ['attribute' => __('Name')]),
@@ -136,7 +134,7 @@ class SensorController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'code' => ['required', 'string', Rule::unique('sensors')->ignore($sensor->id)],
+            'code' => ['nullable', 'string'],
             'serial_number' => ['required', 'string', Rule::unique('sensors')->ignore($sensor->id)],
             'name' => ['required', 'string'],
             'model' => ['nullable', 'string'],
@@ -144,8 +142,6 @@ class SensorController extends Controller
             'display_order' => ['required', 'integer'],
             'tenant_id' => ['nullable', 'exists:tenants,id'], // 追加
         ], [
-            'code.required' => __('validation.required', ['attribute' => __('Code')]),
-            'code.unique' => __('validation.unique', ['attribute' => __('Code')]),
             'serial_number.required' => __('validation.required', ['attribute' => __('Serial Number')]),
             'serial_number.unique' => __('validation.unique', ['attribute' => __('Serial Number')]),
             'name.required' => __('validation.required', ['attribute' => __('Name')]),

@@ -72,14 +72,15 @@
             </option>
           </select>
         </div>
-
+        <input type="hidden" v-model="form.redirect_to" />
         <!-- ボタン -->
         <div class="flex space-x-2">
           <button @click="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
             {{ t('save') }}
           </button>
           <button
-            @click="router.get(route('menus.index', filters), {}, { preserveState: true })"
+            type="button"
+            @click="router.get(form.redirect_to || route('menus.index'))"
             class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
           >
             {{ t('cancel') }}
@@ -103,7 +104,8 @@ const props = defineProps({
   filters: Object,
   tenants: Array,      // Super Admin のみ
   user: Object,
-  menu: Object // 編集対象
+  menu: Object, // 編集対象
+  redirect_to: String,
 })
 
 const isSuperAdmin = computed(() =>
@@ -111,6 +113,7 @@ const isSuperAdmin = computed(() =>
 )
 
 const form = reactive({
+  id: props.menu.id,
   dish_name: props.menu.dish_name,
   serving_date: props.menu.serving_date ? props.menu.serving_date.slice(0, 10) : '',
   serving_time: props.menu.serving_time,
@@ -118,7 +121,8 @@ const form = reactive({
   materials: props.menu.materials,
   tenant_id: props.menu
   ? props.menu.tenant_id
-  : (isSuperAdmin.value ? null : props.user?.tenant_id ?? null)
+  : (isSuperAdmin.value ? null : props.user?.tenant_id ?? null),
+  redirect_to: props.redirect_to,
 })
 
 const errors = reactive({
@@ -126,10 +130,14 @@ const errors = reactive({
 })
 
 const submit = () => {
-  router.put(route('menus.update', props.menu.id), form, {
-    preserveState: true,
-    onSuccess: () => router.get(route('menus.index', props.filters)),
-    onError: (errs) => Object.assign(errors, errs)
-  })
-}
+  router.put(
+    route('menus.update', { menu: props.menu.id }),
+    form,
+    {
+      preserveState: true,
+      onSuccess: () => router.get(form.redirect_to || route('menus.index')),
+      onError: (errs) => Object.assign(errors, errs),
+    }
+  );
+};
 </script>

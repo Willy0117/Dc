@@ -40,7 +40,7 @@ class SensorController extends Controller
         $query = Sensor::where('tenant_id', $request->tenant_id)->where('disabled', 1);
 
         if ($request->q) {
-            $query->where('name', 'like', "%{$request->q}%");
+            $query->where('model', 'like', "%{$request->q}%");
         }
 
         if ($request->sort) {

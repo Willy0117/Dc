@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Helpers\ApiResponse;
 use App\Http\Resources\DeviceResource;
 use Illuminate\Validation\ValidationException;
+use App\Http\Resources\ProcessResource;
 
 class DeviceController extends Controller
 {

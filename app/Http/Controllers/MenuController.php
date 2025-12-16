@@ -77,6 +77,7 @@ class MenuController extends Controller
                 'cooking_date_from', 'cooking_date_to',
                 'dish_name', 'process', 'per_page', 'sort_by', 'sort_dir'
             ]),
+            'redirect_to' => '',
         ]);
     }
 
@@ -103,6 +104,9 @@ class MenuController extends Controller
             'menu' => $menu, // コピー元のデータを渡す
             'tenants' => $tenants,
             'user' => $user, // Vue 側で判定に必要
+            'redirect_to' => $request->query(
+                'redirect_to',
+                route('menus.index')),
         ]);
     }
 
@@ -129,12 +133,22 @@ class MenuController extends Controller
             : $user->tenant_id;
 
         Menu::create($validated);
+
+        $redirectTo = $request->input('redirect_to');
+
+        if ($redirectTo) {
+            // weekly など明示的な戻り先が指定されている場合
+            return redirect($redirectTo)
+                ->with('success', __('menu has been updated.'));
+        }
+
+        // 従来どおり：通常一覧 + filters
         return redirect()->route('menus.index', $request->only([
-                'serving_date_from', 'serving_date_to',
-                'cooking_date_from', 'cooking_date_to',
-                'dish_name', 'process', 'equipment_name', 'measurement_device',
-                'per_page', 'sort_by', 'sort_dir','page'
-            ]))->with('success', __('menu has been created.'));
+            'serving_date_from', 'serving_date_to',
+            'cooking_date_from', 'cooking_date_to',
+            'dish_name', 'process', 'equipment_name', 'measurement_device',
+            'per_page', 'sort_by', 'sort_dir', 'page',
+        ]))->with('success', __('menu has been updated.'));
     }
 
     public function edit(Request $request, Menu $menu)
@@ -152,6 +166,9 @@ class MenuController extends Controller
                 'cooking_date_from', 'cooking_date_to',
                 'dish_name', 'process', 'per_page', 'sort_by', 'sort_dir','page'
             ]),
+            'redirect_to' => $request->query(
+                'redirect_to',
+                route('menus.index')),
         ]);
     }
 
@@ -179,10 +196,20 @@ class MenuController extends Controller
 
         $menu->update($validated);
 
+        $redirectTo = $request->input('redirect_to');
+
+        if ($redirectTo) {
+            // weekly など明示的な戻り先が指定されている場合
+            return redirect($redirectTo)
+                ->with('success', __('menu has been updated.'));
+        }
+
+        // 従来どおり：通常一覧 + filters
         return redirect()->route('menus.index', $request->only([
             'serving_date_from', 'serving_date_to',
             'cooking_date_from', 'cooking_date_to',
-            'dish_name', 'process', 'per_page', 'sort_by', 'sort_dir', 'page'
+            'dish_name', 'process',
+            'per_page', 'sort_by', 'sort_dir', 'page',
         ]))->with('success', __('menu has been updated.'));
     }
 
@@ -401,6 +428,7 @@ class MenuController extends Controller
             'menuData' => $menus,
             'servingTimes' => $servingTimes,
             'weekStart' => $startDate->toDateString(),
+            'redirect_to' => route('menus.weekly', ['weekStart' => $startDate->toDateString()]),
         ]);
     }
     

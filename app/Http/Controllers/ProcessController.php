@@ -31,7 +31,7 @@ class ProcessController extends Controller
         $query->orderBy($sortBy, $sortDir);
 
         // ページあたり件数
-        $perPage = intval($request->input('per_page', 10));
+        $perPage = intval($request->input('per_page', 20));
 
 
         $processes = Process::query()

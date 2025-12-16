@@ -8,6 +8,10 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 
 const props = defineProps({
     user: Object,
@@ -78,11 +82,11 @@ const clearPhotoFileInput = () => {
 <template>
     <FormSection @submitted="updateProfileInformation">
         <template #title>
-            Profile Information
+            {{ t('profile information') }}
         </template>
 
         <template #description>
-            Update your account's profile information and email address.
+            {{ t('update your accounts profile information and email address.') }}
         </template>
 
         <template #form>
@@ -130,7 +134,7 @@ const clearPhotoFileInput = () => {
 
             <!-- Name -->
             <div class="col-span-6 sm:col-span-4">
-                <InputLabel for="name" value="Name" />
+                <InputLabel for="name" :value="t('name')" />
                 <TextInput
                     id="name"
                     v-model="form.name"
@@ -144,7 +148,7 @@ const clearPhotoFileInput = () => {
 
             <!-- Email -->
             <div class="col-span-6 sm:col-span-4">
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" :value="t('email')" />
                 <TextInput
                     id="email"
                     v-model="form.email"
@@ -157,7 +161,7 @@ const clearPhotoFileInput = () => {
 
                 <div v-if="$page.props.jetstream.hasEmailVerification && user.email_verified_at === null">
                     <p class="text-sm mt-2">
-                        Your email address is unverified.
+                        {{ t('your email address is unverified.') }}
 
                         <Link
                             :href="route('verification.send')"
@@ -166,12 +170,12 @@ const clearPhotoFileInput = () => {
                             class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                             @click.prevent="sendEmailVerification"
                         >
-                            Click here to re-send the verification email.
+                            {{ t('click here to re-send the verification email.') }}
                         </Link>
                     </p>
 
                     <div v-show="verificationLinkSent" class="mt-2 font-medium text-sm text-green-600">
-                        A new verification link has been sent to your email address.
+                        {{ t('a new verification link has been sent to your email address.') }}
                     </div>
                 </div>
             </div>

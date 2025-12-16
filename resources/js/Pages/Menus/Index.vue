@@ -20,12 +20,21 @@
         </div>
 
         <div class="p-4 space-y-3">
-          <input v-model="form.dish_name" type="text" :placeholder="t('dish_name')" class="border rounded px-3 py-2 w-full" />
-          <input v-model="form.serving_date_from" type="date" :placeholder="t('serving_date_from')" class="border rounded px-3 py-2 w-full" />
-          <input v-model="form.serving_date_to" type="date" :placeholder="t('serving_date_to')" class="border rounded px-3 py-2 w-full" />
+          <div>
+            <label class="block mb-1">{{ t('dish_name') }}</label>
+            <input v-model="form.dish_name" type="text" :placeholder="t('dish_name')" class="border rounded px-3 py-2 w-full" />
+          </div>
+          <div>
+            <label class="block mb-1">{{ t('serving_date') }}</label>
+            <input v-model="form.serving_date_from" type="date" :placeholder="t('serving_date_from')" class="border rounded px-3 py-2 w-full" />
+            <input v-model="form.serving_date_to" type="date" :placeholder="t('serving_date_to')" class="border rounded px-3 py-2 w-full" />
+          </div>
           <input v-model="form.serving_time" type="time" :placeholder="t('serving_time')" class="border rounded px-3 py-2 w-full" />
-          <input v-model="form.cooking_date_from" type="date" :placeholder="t('cooking_date_from')" class="border rounded px-3 py-2 w-full" />
-          <input v-model="form.cooking_date_to" type="date" :placeholder="t('cooking_date_to')" class="border rounded px-3 py-2 w-full" />
+          <div>
+            <label class="block mb-1">{{ t('cooking_date') }}</label>
+            <input v-model="form.cooking_date_from" type="date" :placeholder="t('cooking_date_from')" class="border rounded px-3 py-2 w-full" />
+            <input v-model="form.cooking_date_to" type="date" :placeholder="t('cooking_date_to')" class="border rounded px-3 py-2 w-full" />
+          </div>
           <textarea v-model="form.materials" :placeholder="t('materials')" class="border rounded px-3 py-2 w-full"></textarea>
 
           <div class="flex justify-end space-x-2 mt-4">
@@ -42,7 +51,11 @@
       <div class="flex flex-wrap md:flex-nowrap md:justify-between mb-4 items-center gap-2">
         <!-- per_page + add -->
         <div class="flex items-center gap-2">
-          <select v-model.number="form.per_page" @change="submitSearch" class="border rounded px-3 py-2 h-10">
+          <select
+            v-model.number="form.per_page"
+            @change="submitSearch"
+            class="border rounded px-3 py-2 w-16 h-10"
+          >
             <option v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</option>
           </select>
 
@@ -62,14 +75,17 @@
       </div>
 
       <!-- 献立テーブル -->
-      <table class="min-w-full table-auto border-collapse border border-gray-300">
+      <table class="min-w-full table-auto border-collapse border border-gray-300 text-sm">
         <thead>
           <tr class="bg-gray-200">
             <th class="px-3 py-2">
               <input type="checkbox" :checked="selectAll" @change="toggleSelectAll($event.target.checked)" />
             </th>
-            <th v-if="isSuperAdmin">{{ t('tenant') }}</th>            
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('dish_name')">{{ t('dish_name') }}</th>
+            <th v-if="isSuperAdmin">{{ t('tenant') }}</th> 
+            <th class="px-3 py-2 cursor-pointer" @click="sortBy('dish_name')">
+              {{ t('dish_name') }}
+              <span v-if="form.sort==='dish_name'">{{ form.direction==='asc'?'▲':'▼' }}</span>
+            </th>
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('serving_date')">{{ t('serving_date') }}</th>
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('serving_time')">{{ t('serving_time') }}</th>
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('cooking_date')">{{ t('cooking_date') }}</th>

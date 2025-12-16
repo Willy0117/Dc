@@ -81,14 +81,15 @@
             </option>
           </select>
         </div>
-
+        <input type="hidden" v-model="form.redirect_to" />
         <!-- ボタン -->
         <div class="flex space-x-2">
           <button @click="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
             {{ t('save') }}
           </button>
           <button
-            @click="router.get(route('menus.index', filters), {}, { preserveState: true })"
+            type="button"
+            @click="router.get(form.redirect_to || route('menus.index', filters))"
             class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
           >
             {{ t('cancel') }}
@@ -111,7 +112,8 @@ const props = defineProps({
   filters: Object,
   tenants: Array,      // Super Admin のみ
   user: Object,
-  menu: Object // コピー用に渡される場合
+  menu: Object, // コピー用に渡される場合
+  redirect_to: String,
 })
 
 const isSuperAdmin = computed(() =>
@@ -126,7 +128,8 @@ const form = reactive({
   materials: props.menu?.materials ?? '',
   tenant_id: props.menu
   ? props.menu.tenant_id
-  : (isSuperAdmin.value ? null : props.user?.tenant_id ?? null)
+  : (isSuperAdmin.value ? null : props.user?.tenant_id ?? null),
+  redirect_to: props.redirect_to,
 })
 
 const errors = reactive({
@@ -147,7 +150,12 @@ onMounted(() => {
 const submit = () => {
   router.post(route('menus.store'), form, {
     preserveState: true,
-    onSuccess: () => router.get(route('menus.index', props.filters)),
+    onSuccess: () => {
+      // redirect_to があればそこへ、なければ menus.index
+      if (form.redirect_to) {
+        router.get(form.redirect_to)
+      }
+    },
     onError: (errs) => Object.assign(errors, errs)
   })
 }

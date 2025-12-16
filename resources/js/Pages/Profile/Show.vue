@@ -6,6 +6,9 @@ import SectionBorder from '@/Components/SectionBorder.vue';
 import TwoFactorAuthenticationForm from '@/Pages/Profile/Partials/TwoFactorAuthenticationForm.vue';
 import UpdatePasswordForm from '@/Pages/Profile/Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfileInformationForm.vue';
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps({
     confirmsTwoFactorAuthentication: Boolean,
@@ -46,11 +49,12 @@ defineProps({
 
                 <LogoutOtherBrowserSessionsForm :sessions="sessions" class="mt-10 sm:mt-0" />
 
-                <template v-if="$page.props.jetstream.hasAccountDeletionFeatures">
+                <!--template v-if="$page.props.jetstream.hasAccountDeletionFeatures">
                     <SectionBorder />
 
                     <DeleteUserForm class="mt-10 sm:mt-0" />
-                </template>
+                </template -->
+
             </div>
         </div>
     </AppLayout>

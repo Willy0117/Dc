@@ -1,8 +1,20 @@
 <template>
   <AppLayout>
     <template #header>{{ t('user_list') }}</template>
-
-    <div class="p-6">
+    <!-- 検索トリガーボタン -->
+    <div dir="rtl">
+      <div class="relative size-4">
+        <div class="absolute start-0 top-0 size-14">
+          <button
+            @click="openDrawer = true"
+            class="p-2 rounded hover:bg-gray-200 flex items-center justify-center"
+          >
+            <MagnifyingGlassIcon class="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="p-6 text-sm">
       <!-- 検索フォーム Drawer -->
       <div v-if="openDrawer" class="fixed inset-0 z-40">
         <div class="absolute inset-0 bg-black bg-opacity-30" @click="openDrawer = false"></div>
@@ -16,11 +28,27 @@
           </div>
 
           <div class="p-4 space-y-3">
-            <input v-model="form.code" type="text" placeholder="Code" class="border rounded px-3 py-2 w-full" />
-            <input v-model="form.name" type="text" placeholder="Name" class="border rounded px-3 py-2 w-full" />
-            <input v-model="form.email" type="text" placeholder="Email" class="border rounded px-3 py-2 w-full" />
-            <input v-model="form.tenant_id" type="number" placeholder="Tenant ID" class="border rounded px-3 py-2 w-full" />
-
+            <!--input v-model="form.code" type="text" :placeholder="t('code')" class="border rounded px-3 py-2 w-full" / -->
+            <input v-model="form.name" type="text" :placeholder="t('name')" class="border rounded px-3 py-2 w-full" />
+            <input v-model="form.email" type="text" :placeholder="t('email')" class="border rounded px-3 py-2 w-full" />
+            <!--input v-model="form.tenant_id" type="number" :placeholder="t('tenant')" class="border rounded px-3 py-2 w-full" / -->
+            <!-- Super Admin のときだけ表示 -->
+            <div v-if="tenants && tenants.length">
+              <select
+                v-model.number="form.tenant_id"
+                class="border rounded px-3 py-2 w-full"
+              >
+                <option :value="0"></option>
+                <option
+                  v-for="tenant in tenants"
+                  :key="tenant.id"
+                  :value="tenant.id"
+                >
+                  {{ tenant.name }}
+                </option>
+              </select>
+            </div>
+          
             <div class="flex justify-end space-x-2 mt-4">
               <button @click="submitSearch(); openDrawer = false"
                       class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
@@ -35,10 +63,14 @@
         </aside>
       </div>       
 
-      <div class="flex flex-wrap md:flex-nowrap md:justify-between mb-4 items-center gap-2">
+      <div class="flex flex-wrap md:flex-nowrap md:justify-between mb-4 items-center gap-2 text-sm">
         <!-- per_page + add -->
         <div class="flex items-center gap-2">
-          <select v-model.number="form.per_page" @change="submitSearch" class="border rounded px-3 py-2 h-10">
+          <select
+            v-model.number="form.per_page"
+            @change="submitSearch"
+            class="border rounded px-3 py-2 w-16 h-10"
+          >
             <option v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</option>
           </select>
 
@@ -69,10 +101,10 @@
             <th class="px-3 py-2">
               <input type="checkbox" :checked="selectAll" @change="toggleSelectAll($event.target.checked)" />
             </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('code')">
+            <!--th class="px-3 py-2 cursor-pointer" @click="sortBy('code')">
               {{ t('code') }}
               <span v-if="form.sort==='code'">{{ form.direction==='asc'?'▲':'▼' }}</span>
-            </th>
+            </th -->
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('name')">
               {{ t('name') }}
               <span v-if="form.sort==='name'">{{ form.direction==='asc'?'▲':'▼' }}</span>
@@ -99,10 +131,10 @@
             <td class="px-3 py-2">
               <input type="checkbox" :value="user.id" v-model="selectedIds" />
             </td>
-            <td class="px-3 py-2">{{ user.code }}</td>
+            <!-- td class="px-3 py-2">{{ user.code }}</td -->
             <td class="px-3 py-2">{{ user.name }}</td>
             <td class="px-3 py-2">{{ user.email }}</td>
-            <td class="px-3 py-2">{{ user.tenant_id }}</td>
+            <td class="px-3 py-2">{{ user.tenant?.name || '-' }}</td>
             <td class="px-3 py-2">{{ user.roles?.[0]?.name ?? '-' }}</td>
             <td class="px-3 py-2">{{ user.updated_at ? dayjs(user.updated_at).format('YYYY/MM/DD HH:mm:ss') : '' }}</td>
             <td class="px-3 py-2 text-center flex justify-center space-x-1">
@@ -130,33 +162,37 @@
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import { Link, router } from '@inertiajs/vue3'
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
-import { PlusIcon, PencilIcon, TrashIcon, DocumentDuplicateIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, PencilIcon, TrashIcon, DocumentDuplicateIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   users: Object,
-  filters: Object
+  filters: Object,
+  tenants: Object
 })
 
 const { t } = useI18n()
 const openDrawer = ref(false)
+
 const form = reactive({
-  code: props.filters.code || '',
-  name: props.filters.name || '',
-  email: props.filters.email || '',
-  tenant_id: props.filters.tenant_id || '',
-  per_page: props.filters.per_page || 20,
-  sort: props.filters.sort || 'id',
-  direction: props.filters.direction || 'asc'
+   code: props.filters.code || '',
+   name: props.filters.name || '',
+   email: props.filters.email || '',
+   tenant_id: props.filters.tenant_id ? Number(props.filters.tenant_id) : 0,
+   per_page: props.filters.per_page || 20,
+   sort: props.filters.sort || 'id',
+   direction: props.filters.direction || 'asc'
 })
+
 const selectedIds = ref([])
 
 const toggleSelectAll = (checked) => {
   selectedIds.value = checked ? props.users.data.map(u => u.id) : []
 }
 const resetSelectedIds = () => { selectedIds.value = [] }
+
 const selectAll = computed({
   get() { return selectedIds.value.length === props.users.data.length }
 })

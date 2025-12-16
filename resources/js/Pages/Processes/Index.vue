@@ -33,7 +33,7 @@
 
           <div class="p-4 space-y-3">
             <!-- 既存 form をそのまま利用 -->
-            <input v-model="form.name" type="text" placeholder="Name" class="border rounded px-3 py-2 w-full" />
+            <input v-model="form.name" type="text" :placeholder="t('name')" class="border rounded px-3 py-2 w-full" />
 
             <div class="flex justify-end space-x-2 mt-4">
               <button @click="submitSearch(); openDrawer = false"
@@ -53,7 +53,11 @@
 
         <!-- per_page + add -->
         <div class="flex items-center gap-2">
-          <select v-model.number="form.per_page" @change="submitSearch" class="border rounded px-3 py-2 h-10">
+          <select
+            v-model.number="form.per_page"
+            @change="submitSearch"
+            class="border rounded px-3 py-2 w-16 h-10"
+          >
             <option v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</option>
           </select>
 

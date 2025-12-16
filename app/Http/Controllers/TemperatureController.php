@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Process;
+use App\Models\Menu;
 
 class TemperatureController extends Controller
 {
@@ -53,19 +54,66 @@ class TemperatureController extends Controller
                 $query->whereHas('menu', fn($q) => $q->where('cooking_date', '<=', $dateTo));
             }
         }
-        // ソート
-        $sortBy = $request->input('sort_by', 'id');
-        $sortDir = $request->input('sort_dir', 'asc');
-        $query->orderBy($sortBy, $sortDir);
 
+        $sort = $request->query('sort', 'updated_at');
+        $dir  = $request->query('direction') === 'asc' ? 'asc' : 'desc';
 
+        if ($sort === 'menu_date') {
+
+            $dateType = $request->query('date_type', 'serving');
+
+            if ($dateType === 'cooking') {
+                // 調理日 → 献立日 → 配膳時刻
+                $query->orderBy(
+                    Menu::select('cooking_date')
+                        ->whereColumn('menus.id', 'temperature_logs.menu_id'),
+                    $dir
+                )->orderBy(
+                    Menu::select('serving_date')
+                        ->whereColumn('menus.id', 'temperature_logs.menu_id'),
+                    'asc'
+                );
+            } else {
+                // 献立日 → 配膳時刻
+                $query->orderBy(
+                    Menu::select('serving_date')
+                        ->whereColumn('menus.id', 'temperature_logs.menu_id'),
+                    $dir
+                );
+            }
+
+            // 共通：配膳時刻 → ログの時系列
+            $query->orderBy(
+                Menu::select('serving_time')
+                    ->whereColumn('menus.id', 'temperature_logs.menu_id'),
+                'asc'
+            )->orderBy(
+                'temperature_logs.updated_at',
+                'asc'
+            );
+        } else {
+
+            $allowed = [
+                'menu_id',
+                'device_id',
+                'sensor_id',
+                'operator_id',
+                'handy_no',
+                'updated_at',
+            ];
+
+            if (! in_array($sort, $allowed)) {
+                $sort = 'updated_at';
+            }
+
+            $query->orderBy($sort, $dir);
+        }
         // ページネーション
         $perPage = intval($request->input('per_page', 20));
 
         $tenants = $user->hasRole('Super Admin') ? Tenant::all() : [];
 
         $logs = $query->with(['menu', 'sensor', 'device', 'operator']) // ← 献立情報をロード
-            ->orderBy('created_at', 'desc')
             ->paginate($perPage)
             ->withQueryString();
 

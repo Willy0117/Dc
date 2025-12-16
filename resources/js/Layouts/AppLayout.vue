@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen bg-gray-100">
+  <div class="flex min-h-screen bg-gray-100 w-full">
     <!-- 左メニュー -->
     <Navigation />
 

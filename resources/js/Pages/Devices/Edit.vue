@@ -29,7 +29,6 @@
        <div>
           <label class="block">{{ t('process') }}</label>
           <select v-model="form.process_id" class="mt-1 block w-full">
-            <option value="">{{ t('please_select') }}</option>
             <option v-for="p in processes" :key="p.id" :value="p.id">
               {{ p.name }}
             </option>
@@ -166,7 +165,15 @@ const errors = reactive({
 watch(() => form.code, async (newCode) => {
   if (!newCode) { errors.code = ''; return }
   try {
-    const response = await axios.post(route('devices.checkCode'), { code: newCode, id: props.device.id })
+    const response = await axios.post(
+      route('devices.checkCode'),
+      { code: newCode, id: props.device.id },
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
     errors.code = response.data.exists ? t('code_already_exists') : ''
   } catch (e) {
     console.error(e)

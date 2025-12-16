@@ -2,6 +2,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\ProcessResource;
 
 class DeviceResource extends JsonResource
 {
@@ -10,16 +11,10 @@ class DeviceResource extends JsonResource
         return [
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
-            'code' => $this->code,
+            /*'code' => $this->code,*/
             'name' => $this->name,
-            'process' => $this->process,
+            'process' => ProcessResource::make($this->process),
             'measurement' => $this->measurement,
-            'disabled' => $this->disabled,
-            'display_order' => $this->display_order,
-            /* 2025.11.14 不要データ削除
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            */
         ];
     }
 }

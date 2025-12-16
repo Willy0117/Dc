@@ -6,12 +6,11 @@
       <div class="p-6 space-y-4">
         <div class="flex justify-between items-center">
           <Link
-            :href="route('menus.create')"
+            :href="route('menus.create', { redirect_to })"
             class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
           >
             ＋ {{ t('add_menu') }}
           </Link>
-
           <div class="inline-flex border rounded overflow-hidden">
             <!-- 前の週ボタン -->
             <button
@@ -63,13 +62,13 @@
               <td v-for="date in weekDays" :key="date + '-' + time" class="border px-2 py-2 align-top">
                 <div v-if="menuData[date] && menuData[date][time]">
                     <div v-for="menu in menuData[date][time]" :key="menu.id" class="mb-1">
-                    <Link
-                        :href="route('menus.edit', menu.id)"
+                      <Link
+                        :href="route('menus.edit', { menu: menu.id, redirect_to: route('menus.weekly', { weekStart }) })"
                         class="text-blue-600 hover:underline block"
                         :title="menu.dish_name"
-                    >
+                      >
                         {{ truncate(menu.dish_name, 20) }}
-                    </Link>
+                      </Link>
                     </div>
                 </div>
                 <div v-else class="text-gray-400 text-center">-</div>
@@ -101,7 +100,12 @@ const { t } = useI18n()
 const props = defineProps({
   menuData: Object,        // { '2025-11-03': { '08:00': [ {id:1,name:'...'} ] } }
   servingTimes: Array,     // ['08:00', '12:00', '18:00']
-  weekStart: String        // '2025-11-03'
+  weekStart: String,        // '2025-11-03'
+  redirect_to: String,
+})
+
+const form = reactive({
+  redirect_to: props.redirect_to, // ← ここ重要
 })
 
 const getMonday = (dateStr) => {

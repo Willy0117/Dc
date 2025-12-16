@@ -28,7 +28,7 @@
         </div>
 
         <div>
-          <label class="block mb-1 font-medium">{{ t('confirm_password') }}</label>
+          <label class="block mb-1 font-medium">{{ t('confirm password') }}</label>
           <input v-model="form.password_confirmation" type="password" class="border rounded px-3 py-2 w-full" />
         </div>
 
@@ -57,8 +57,21 @@
         </div>
 
         <!-- 保存ボタン -->
-        <div class="flex justify-end">
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+        <div class="flex justify-between items-center">
+          <!-- 左：キャンセル -->
+          <button
+            type="button"
+            @click="router.get(route('users.index', persistQuery()))"
+            class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            {{ t('cancel') }}
+          </button>
+
+          <!-- 右：作成/更新 -->
+          <button
+            type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
             {{ user ? t('update') : t('create') }}
           </button>
         </div>
@@ -69,22 +82,35 @@
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { useForm } from '@inertiajs/vue3'
+import { router, useForm } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-// Super Admin 判定
-const isSuperAdmin = computed(() =>
-  Array.isArray(props.user?.roles) && props.user.roles.some(r => r.name.toLowerCase() === 'super admin')
-)
-
 const props = defineProps({
+  auth: { type: Object, default: () => ({}) },
   user: { type: Object, default: () => ({}) },
   roles: { type: Array, default: () => [] },
   tenants: { type: Array, default: () => [] },
-  selected_role: { type: Number, default: null }
+  selected_role: { type: Number, default: null },
+  filters: { type: Object, default: () => ({}) },
+})
+// Super Admin 判定
+const isSuperAdmin = computed(() => {
+  const roles = props.auth.user?.roles || [];
+  return roles.some(role => role.name.toLowerCase() === 'super admin');
+});
+
+const persistQuery = () => ({
+  code: props.filters.code ?? '',
+  name: props.filters.name ?? '',
+  email: props.filters.email ?? '',
+  tenant_id: props.filters.tenant_id ?? '',
+  per_page: props.filters.per_page ?? 20,
+  sort_by: props.filters.sort_by ?? 'id',
+  sort_dir: props.filters.sort_dir ?? 'asc',
+  page: props.filters.page ?? 1,
 })
 
 const form = useForm({
@@ -99,16 +125,15 @@ const form = useForm({
 const errors = form.errors
 
 const submit = () => {
-  console.log('送信データ:', form);
-  if (props.user?.id) {
-    form.put(route('users.update', props.user.id), {
-      onError: (e) => console.log(e)
-    })
-  } else {
-    form.post(route('users.store'), {
-      onError: (e) => console.log(e)
-    })
-  }
+  const method = props.user?.id ? 'put' : 'post';
+  const url = props.user?.id ? route('users.update', props.user.id) : route('users.store');
+
+  form[method](url, {
+    onSuccess: () => {
+      router.get(route('users.index'), props.filters, { preserveState: true });
+    },
+    onError: (e) => console.log(e)
+  });
 }
 
 </script>

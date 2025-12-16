@@ -18,10 +18,17 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with('roles');
+        $query = User::with(['roles','tenant']);
 
-        // テナント絞り込み（Super Admin は全件表示）
-        if (! $request->user()->hasRole('Super Admin')) {
+        $tenantId = $request->input('tenant_id');
+
+        if ($request->user()->hasRole('Super Admin')) {
+            // Super Admin → tenant_id が指定されていれば絞り込み
+            if (!empty($tenantId)) {
+                $query->where('tenant_id', $tenantId);
+            }
+        } else {
+            // Super Admin 以外 → 常に自分の tenant_id で固定
             $query->where('tenant_id', $request->user()->tenant_id);
         }
 
@@ -51,14 +58,18 @@ class UserController extends Controller
         } else {
             $query->orderBy($sortBy, $sortDir);
         }
-
+        // Super Admin の場合のみテナント一覧を取得
+        $tenants = $request->user()->hasRole('Super Admin') 
+            ? Tenant::orderBy('name')->get(['id', 'name'])
+            : collect(); // その他のユーザーは空配列
         // ページあたり件数
         $perPage = intval($request->input('per_page', 10));
         $users = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('Users/Index', [
             'users' => $users,
-            'filters' => $request->only(['name', 'email', 'role', 'per_page', 'sort_by', 'sort_dir']),
+            'filters' => request()->only(['code', 'name', 'email', 'tenant_id', 'per_page', 'sort_by', 'sort_dir', 'page']),
+            'tenants' => $tenants,
         ]);
     }
 
@@ -88,6 +99,7 @@ class UserController extends Controller
             'roles' => $roles,
             'selected_role' => null,
             'tenants' => $availableTenants,
+            'filters' => request()->only(['code', 'name', 'email', 'tenant_id', 'per_page', 'sort_by', 'sort_dir', 'page']),
         ]);
     }
 
@@ -151,6 +163,7 @@ class UserController extends Controller
             'roles' => $roles,
             'selected_role' => $user->roles->first()?->id,
             'tenants' => $availableTenants,
+            'filters' => request()->only(['code', 'name', 'email', 'tenant_id', 'per_page', 'sort_by', 'sort_dir', 'page']),
         ]);
     }
 
