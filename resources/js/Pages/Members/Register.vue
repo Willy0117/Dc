@@ -172,7 +172,7 @@ const form = ref({
 });
 
 // エラー
-//const errors = props.errors || {};
+const errors = props.errors || {};
 
 // PDF input ref
 const historyCertificateInput = ref(null);

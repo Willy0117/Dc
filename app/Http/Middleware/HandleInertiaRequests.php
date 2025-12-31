@@ -41,7 +41,12 @@ class HandleInertiaRequests extends Middleware
                     ? $request->user()->load(['roles', 'permissions'])
                     : null,
             ],
-            // 他の共有データ...
+
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error'   => fn () => $request->session()->get('error'),
+            ],
         ]);
-      }
+    }
+
 }

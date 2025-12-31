@@ -59,13 +59,32 @@ class MemberController extends Controller
     }
  
     // Apuls Pdf Create
-    public function pdfCreate(Request $request)
+    public function pdfCreate()
     {
-        return Inertia::render('Members/PdfCreate');
+        $form = session('member_form', [
+            'company_furigana' => 'クーネット',
+            'representative_furigana' => '',
+            'company_name' => '',
+            'representative' => '',
+            'address_zip' => '',
+            'address' => '',
+            'tel' => '',
+            'bank_name' => '',
+            'branch_name' => '',
+            'account_type' => '普通',
+            'account_no' => '',
+            'account_kana' => '',
+            'account_name' => '',
+        ]);
+
+        return Inertia::render('Members/PdfCreate', [
+            'form' => $form
+        ]);
     }
     // Apuls Pdf Generate
     public function pdfGenerate(Request $request)
     {
+
         $data = $request->validate([
             'company_furigana'=> 'required|string',
             'representative_furigana'=> 'required|string',
@@ -81,9 +100,11 @@ class MemberController extends Controller
             'account_kana'   => 'required|string',
             'account_name' => 'required|string',
         ]);
+        // セッションに保存
+        session(['member_form' => $data]);
+
                 // FPDI + TCPDF
         $pdf = new Fpdi();
-
         // ページ追加
         $pdf->AddPage();
 
@@ -92,17 +113,19 @@ class MemberController extends Controller
         $pageCount = $pdf->setSourceFile($templatePath);
         $tpl = $pdf->importPage(1);
         $pdf->useTemplate($tpl);
+        //$pdf->useTemplate($tpl, 0, 0, 0, 0, true);
 
 
         // TCPDF同梱の日本語フォント
-        $pdf->SetFont('kozminproregular', '', 12); // もしくは cid0jp
+        $pdf->AddFont('kozminproregular', '', 'kozminproregular.php', true);
+        $pdf->SetFont('kozminproregular', '', 12);
 
         // ---- 1) 契約者名（フリガナ）
         $pdf->SetXY(50, 65);
         $pdf->Write(8, $data['company_furigana']);
 
         // ---- 2) 契約者名（漢字）
-        $pdf->SetXY(50, 75);
+        $pdf->SetXY(50, 80);
         $pdf->Write(8, $data['company_name']);
 
         // ---- 3) zip code
@@ -144,6 +167,7 @@ class MemberController extends Controller
         // ---- 10) 口座名義（漢字）
         $pdf->SetXY(35, 190);
         $pdf->Write(8, $data['account_name']);
+
         // 保存先ファイル名
         $output = 'generated/bank-info-' . time() . '.pdf';
         $file_path = storage_path('app/public/' . $output);
@@ -162,6 +186,13 @@ class MemberController extends Controller
         ]);    
     }
 
+    public function pdfPreview(Request $request)
+    {
+        return Inertia::render('Members/PdfPreview', [
+            'pdfUrl' => $request->query('pdfUrl'),
+        ]);
+    }
+
     public function showRejectedMessage($token)
     {
         return Inertia::render('Members/Rejected', [
@@ -169,7 +200,11 @@ class MemberController extends Controller
             'message' => '大変申し訳ありませんが、当団体への加盟はお受け出来かねます。',
         ]);
     }
-    
+
+    public function bank()
+    {
+        return Inertia::render('Members/Bank');
+    }
     
     public function pdf()
     {
@@ -259,12 +294,6 @@ return response()->file($file_path, [
     'Content-Type' => 'application/pdf'
 ]);
     }
-                  /*       
-        $output = 'generated/bank-info-' . time() . '.pdf';
-        Storage::disk('public')->put($output, $pdf->Output('S'));
-            // 出力
-    return response($pdf->Output('example.pdf', 'S'))
-        ->header('Content-Type', 'application/pdf');
-    }*/
+
 }
 

@@ -52,6 +52,13 @@
 
   "two factor authentication": "二要素認証",
   "two factor instruction": "二要素認証を有効にしてアカウントのセキュリティを強化します。",
+  
+  "select_bank": "銀行選択",
+  "bank_selection": "銀行選択",
+  "bank_category": "金融機関種類",
+  "bank_name": "銀行名",
+  "branch_name": "支店名",
+  "confirm": "'決定",
 
   "menu_list": "献立一覧",
   "add_menu": "献立追加",
@@ -228,6 +235,14 @@
   "view": "表示",
   "approve": "承認",
   "reject": "却下",
-  "enter_reject_reason": "却下理由を入力してください"
+  "enter_reject_reason": "却下理由を入力してください",
+  "mail.verify.subject": "一般社団法人 全国中小建設工事業団体連合会メールアドレス確認",
+  "mail.verify.title": "メールアドレスの確認",
+  "mail.verify.body": "以下のボタンをクリックして、メールアドレスを確認してください。",
+  "mail.verify.button": "メールを確認する",
+  "mail.verify.note": "このリンクは一定時間後に無効になります。",
+  "email.title": "メールアドレス確認のお願い",
+  "email.submit": "メールアドレスを送信",
+  "copyright": "一般社団法人 全国中小建設工事業団体連合会"
 }
 

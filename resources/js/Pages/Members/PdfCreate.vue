@@ -13,25 +13,25 @@
             <div>
               <InputLabel value="会社名（フリガナ）" />
               <TextInput v-model="form.company_furigana" class="w-full" />
-              <InputError :message="errors.company_furigana" />
+              <InputError :message="form.errors.company_furigana" />
             </div>
 
             <div>
               <InputLabel value="会社名" />
               <TextInput v-model="form.company_name" class="w-full" />
-              <InputError :message="errors.company_name" />
+              <InputError :message="form.errors.company_name" />
             </div>
 
             <div>
               <InputLabel value="所在地 郵便番号" />
               <TextInput v-model="form.address_zip" class="w-full" placeholder="000-0000" />
-              <InputError :message="errors.address_zip" />
+              <InputError :message="form.errors.address_zip" />
             </div>
 
             <div>
               <InputLabel value="所在地 住所" />
               <TextInput v-model="form.address" class="w-full" />
-              <InputError :message="errors.address" />
+              <InputError :message="form.errors.address" />
             </div>
           </div>
 
@@ -42,38 +42,47 @@
             <div>
               <InputLabel value="代表者名（フリガナ）" />
               <TextInput v-model="form.representative_furigana" class="w-full" />
-              <InputError :message="errors.representative_furigana" />
+              <InputError :message="form.errors.representative_furigana" />
             </div>
 
             <div>
               <InputLabel value="代表者名" />
               <TextInput v-model="form.representative" class="w-full" />
-              <InputError :message="errors.representative" />
+              <InputError :message="form.errors.representative" />
             </div>
 
             <div>
               <InputLabel value="郵送先 郵便番号" />
               <TextInput v-model="form.post_zip" class="w-full" placeholder="000-0000" />
-              <InputError :message="errors.post_zip" />
+              <InputError :message="form.errors.post_zip" />
             </div>
 
             <div>
               <InputLabel value="郵送先 住所" />
               <TextInput v-model="form.post_address" class="w-full" />
-              <InputError :message="errors.post_address" />
+              <InputError :message="form.errors.post_address" />
             </div>
 
             <div>
               <InputLabel value="TEL" />
               <TextInput v-model="form.tel" class="w-full" />
-              <InputError :message="errors.tel" />
+              <InputError :message="form.errors.tel" />
             </div>
         </div>
+    <div class="p-6">
+      <BankSelect v-model="selectedBankInfo" />
+
+      <pre class="mt-4 bg-gray-100 p-2">
+        {{ selectedBankInfo }}
+      </pre>
+    </div>
+
+
 <div class="flex items-center gap-4">
   <div class="flex-1">
     <InputLabel value="銀行名" />
     <TextInput v-model="form.bank_name" class="w-full" />
-    <InputError :message="errors.bank_name" />
+    <InputError :message="form.errors.bank_name" />
   </div>
 
   <div class="w-64">
@@ -85,7 +94,7 @@
       <option value="信用組合">信用組合</option>
       <option value="農業協同組合">農業協同組合</option>
     </select>
-    <InputError :message="errors.bank_type" />
+    <InputError :message="form.errors.bank_type" />
   </div>
 </div>
 <!--
@@ -98,7 +107,7 @@
         <div>
             <InputLabel value="支店名" />
             <TextInput v-model="form.branch_name" class="w-full" />
-            <InputError :message="errors.branch_name" />
+            <InputError :message="form.errors.branch_name" />
         </div>
 
         <div>
@@ -112,17 +121,17 @@
         <div>
             <InputLabel value="口座番号" />
             <TextInput v-model="form.account_no" class="w-full" />
-            <InputError :message="errors.account_no" />
+            <InputError :message="form.errors.account_no" />
         </div>
         <div>
             <InputLabel value="口座名義（フリガナ）" />
             <TextInput v-model="form.account_kana" class="w-full" />
-            <InputError :message="errors.account_kana" />
+            <InputError :message="form.errors.account_kana" />
         </div>
         <div>
             <InputLabel value="口座名義" />
             <TextInput v-model="form.account_name" class="w-full" />
-            <InputError :message="errors.account_name" />
+            <InputError :message="form.errors.account_name" />
         </div>
 
       <button
@@ -148,43 +157,92 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { Link, router, useForm,usePage } from '@inertiajs/vue3'
+import { ref, toRef } from 'vue'
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import axios from 'axios'
+import { useZipcode } from '@/composables/useZipcode'
+import BankSelect from '@/Components/BankSelect.vue';
 
-const form = ref({
-  company_furigana: '',
-  representative_furigana: '',
-  company_name: '',
-  representative: '',
-  address_zip: '',
-  address: '',
-  post_zip: '',
-  post_address: '',
-  tel: '',
-  bank_name: '',
-  branch_name: '',
-  account_type : '普通',
-  account_no : '',
-  account_kana : '',
-  account_name : '',
+const page = usePage()
+
+console.log(page.props) // ← ここで form が見える
+
+const form = useForm({
+  company_furigana: page.props.form?.company_furigana ?? '',
+  representative_furigana: page.props.form?.representative_furigana ?? '',
+  company_name: page.props.form?.company_name ?? '',
+  representative: page.props.form?.representative ?? '',
+  address_zip: page.props.form?.address_zip ?? '',
+  address: page.props.form?.address ?? '',
+  tel: page.props.form?.tel ?? '',
+  bank_name: page.props.form?.bank_name ?? '',
+  branch_name: page.props.form?.branch_name ?? '',
+  account_type: page.props.form?.account_type ?? '普通',
+  account_no: page.props.form?.account_no ?? '',
+  account_kana: page.props.form?.account_kana ?? '',
+  account_name: page.props.form?.account_name ?? '',
 })
+
+
+const selectedBankInfo = ref({});
+
 const errors = ref({});
 
 const submit = async () => {
-    console.log(form)
+  errors.value = {}
+
+  // 必須チェック
+  const requiredFields = [
+    'company_furigana', 'representative_furigana', 'company_name', 'representative',
+    'address_zip', 'address', 'post_zip', 'post_address', 'tel',
+    'bank_name', 'branch_name', 'bank_type', 'account_type',
+    'account_no', 'account_kana', 'account_name'
+  ]
+
+  requiredFields.forEach(field => {
+    if (!form[field] || form[field].trim() === '') {
+      errors.value[field] = '必須項目です'
+    }
+  })
+
+  // エラーがある場合は送信せず return
+  if (Object.keys(errors.value).length > 0) {
+    console.log('入力エラー:', errors.value)
+    return
+  }
+
+  // 必要なキーだけを抜き出して送信
+  const payload = { ...form }
+  
   try {
-    const res = await axios.post('/members/pdfgenerate', form.value)
+    const res = await axios.post('/members/pdfgenerate', payload)
     console.log('PDF 作成成功', res.data)
     if (res.data.url) {
-        window.open(res.data.url, '_blank');   // ← PDF を表示
+        router.get(route('members.pdf.preview'), {
+          pdfUrl: res.data.url,
+        })
     }
   } catch (e) {
+    if (e.response && e.response.status === 422) {
+      console.log(e.response.data.errors);
+    }
     console.error('PDF 作成失敗', e)
   }
 }
+
+useZipcode(
+  toRef(form, 'post_zip'),
+  toRef(form, 'post_address')
+)
+
+useZipcode(
+  toRef(form, 'address_zip'),
+  toRef(form, 'address')
+)
+
 </script>

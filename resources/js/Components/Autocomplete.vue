@@ -35,13 +35,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: [String, Number],
   label: String,
   placeholder: String,
-  fetchUrl: String
+  fetchUrl: String,
+  extraParams: { type: Object, default: () => ({}) }
 })
 
 const emit = defineEmits([
@@ -53,13 +54,44 @@ const search = ref(props.modelValue ?? '')
 const options = ref([])
 const showDropdown = ref(false)
 const activeIndex = ref(-1)
-
+/*
 const onInput = async () => {
   if (!props.fetchUrl) return
   const res = await fetch(`${props.fetchUrl}?q=${encodeURIComponent(search.value)}`)
   options.value = await res.json()
   activeIndex.value = -1
 }
+*/
+const onInput = async () => {
+  if (!props.fetchUrl) return
+
+  const params = new URLSearchParams()
+  params.append('q', search.value)
+
+  if (props.extraParams?.category !== undefined) {
+    params.append('category', props.extraParams.category)
+  }
+  if (props.extraParams?.bank_code !== undefined) {
+    params.append('bank_code', props.extraParams.bank_code)
+  }
+
+  const res = await fetch(`${props.fetchUrl}?${params.toString()}`)
+  options.value = await res.json()
+  activeIndex.value = -1
+}
+
+watch(
+  () => props.modelValue,
+  (val) => {
+    if (val?.label) {
+      search.value = val.label
+    } else {
+      search.value = ''
+    }
+  },
+  { immediate: true }
+)
+
 
 const select = (item) => {
   emit('update:modelValue', item.id)
