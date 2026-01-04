@@ -65,6 +65,13 @@ onMounted(async () => {
 })
 
 const goBack = () => {
-  router.get(route('members.pdfcreate'))
+  router.get(
+    route('members.register.register', { token: page.props.token }),
+    {},
+    {
+      preserveState: true,
+      preserveScroll: true,
+    }
+  )
 }
 </script>

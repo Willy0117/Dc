@@ -37,7 +37,9 @@ class PreRegisterController extends Controller
 
         Mail::to($preUser->email)
             ->send(new PreRegisterMail($preUser));
+        // thans画面
+        return redirect()->route('pre-register.thanks');
 
-        return back()->with('success', '確認メールを送信しました');
+        //return back()->with('success', '確認メールを送信しました');
     }
 }

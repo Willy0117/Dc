@@ -75,6 +75,8 @@ Route::prefix('pre-register')->name('pre-register.')->group(function () {
     Route::post('/pre', [PreRegisterController::class, 'store'])->name('pre');
     // メール確認
     Route::get('/verify/{token}', [EmailVerifyController::class, 'verify'])->name('verify');
+    // メール完了
+    Route::get('/thanks', function () { return inertia('PreRegister/Thanks'); })->name('thanks'); 
 });
 
 
@@ -93,6 +95,16 @@ Route::prefix('members')->group(function () {
     Route::post('register/{token}', 
         [MemberRegController::class, 'completeRegistration']
     )->name('members.register.complete');
+    // 完了画面GET
+    Route::get('members/register/complete', function () {
+        return Inertia::render('Members/Complete', [
+            'success' => session('success'),
+            'member_id' => session('member_id'), // 必要なら
+        ]);
+    })->name('members.complete');
+
+
+
     // 加盟団体加入で拒否された場合のメッセージ画面
     Route::get('register/{token}/rejected', [MemberRegController::class, 'showRejectedMessage'])
         ->name('members.register.rejected');
@@ -108,7 +120,7 @@ Route::prefix('members')->group(function () {
 
     Route::post('pdfgenerate', [MemberRegController::class, 'pdfGenerate'])
         ->name('members.pdfgenerate');    
-    Route::get('pdf-preview', 
+    Route::get('pdf-preview/{token}', 
         [MemberRegController::class, 'pdfPreview']
     )->name('members.pdf.preview');
 

@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use TCPDF_FONTS;
 use setasign\Fpdi\Tcpdf\Fpdi;
+use App\Models\Member;
+use App\Models\PreUser;
+use Imagick;
 
 class MemberController extends Controller
 {
@@ -28,7 +32,7 @@ class MemberController extends Controller
 
         // セッション保存
         session([
-            'agree' => $request->agree_terms,
+            'agree' => $request->agree,
             'affiliate' => $request->affiliate,
             'agree_at'  => now()->toDateTimeString(), // 追加
         ]);
@@ -39,23 +43,162 @@ class MemberController extends Controller
     // 3. Register 入力ページ
     public function showRegisterForm($token)
     {
+        $form = session('member_form', [
+            'agree'     => session('agree', false),
+            'affiliate' => session('affiliate', null),
+            'agree_at'  => session('agree_at', null),
+        ]);        
         return Inertia::render('Members/Register', [
-            'token'        => $token,
-            'agree'  => session('agree_terms'),
-            'affiliate'  => session('affiliate'),
-            'agree_at'   => session('agree_date'), // ← ここ追加
+            'token' => $token,
+            'form'  => $form,
         ]);
     }
 
     // 4. 完了処理（PDF2点）
-    public function completeRegistration(Request $request, $token)
+    public function completeRegistration(Request $request, string $token)
     {
-        $request->validate([
-            'history_certificate' => 'required|mimes:pdf',
-            'bank_transfer_request' => 'required|mimes:pdf',
+        // 仮登録ユーザー取得（email 用）
+        $preUser = PreUser::where('token', $token)->firstOrFail();
+
+        $validated = $request->validate([
+            // member
+            'company_name' => 'required|string',
+            'company_furigana' => 'required|string',
+            'representative' => 'required|string',
+            'representative_furigana' => 'required|string',
+            'address_zip' => 'required|string',
+            'address' => 'required|string',
+            'tel' => 'required|string',
+            'fax' => 'nullable|string',
+            'mobile' => 'nullable|string',
+            'staff' => 'nullable|string',
+
+            // bank
+            'bank_type' => 'required|integer',
+            'bank_name' => 'required|string',
+            'bank_code' => 'nullable|string',
+            'branch_name' => 'required|string',
+            'branch_code' => 'nullable|string',
+            'account_type' => 'required|string',
+            'account_no' => 'required|string',
+            'account_kana' => 'required|string',
+            'account_name' => 'required|string',
+
+            // pdf
+            'history_certificate' => 'required|file|mimes:pdf',
         ]);
 
-        return back()->with('success', '登録が完了しました');
+        $member = null;
+
+        try {
+            DB::transaction(function () use ($validated, $request, $preUser, &$member) {
+
+                // PDF保存（public）
+                $pdfRelativePath = $request->file('history_certificate')
+                    ->store('members/history_certificates', 'public');
+
+                $pdfFullPath = storage_path('app/public/' . $pdfRelativePath);
+
+                // サムネイル保存先
+                $thumbnailRelativePath =
+                    'members/history_certificates/thumbnails/' . basename($pdfRelativePath, '.pdf') . '.png';
+
+                $thumbnailFullPath = storage_path('app/public/' . $thumbnailRelativePath);
+
+                if (!Storage::disk('public')->exists('members/history_certificates/thumbnails')) {
+                    Storage::disk('public')->makeDirectory('members/history_certificates/thumbnails');
+                }
+
+                // thumbnail 生成
+                $imagick = new \Imagick();
+                $imagick->setResolution(150, 150);
+                $imagick->readImage($pdfFullPath . '[0]');
+                $imagick->setImageFormat('png');
+                $imagick->writeImage($thumbnailFullPath);
+                $imagick->clear();
+                $imagick->destroy();
+
+                // members
+                $member = Member::create([
+                    'company_name' => $validated['company_name'],
+                    'company_furigana' => $validated['company_furigana'],
+                    'representative' => $validated['representative'],
+                    'representative_furigana' => $validated['representative_furigana'],
+                    'address_zip' => $validated['address_zip'],
+                    'address' => $validated['address'],
+                    'email' => $preUser->email,
+                    'tel' => $validated['tel'],
+                    'fax' => $validated['fax'] ?? null,
+                    'mobile' => $validated['mobile'] ?? '',
+                    'staff' => $validated['staff'] ?? '',
+                    'agree' => 1,
+                    'affiliate' => 1,
+                    'agreed_at' => now(),
+                    'history_certificate_path' => $pdfRelativePath,
+                    'history_certificate_thumbnail_path' => $thumbnailRelativePath,
+                    'status' => 1,
+                ]);
+
+                // bank_accounts
+                $member->bankAccount()->create([
+                    'bank_type' => $validated['bank_type'],
+                    'bank_name' => $validated['bank_name'],
+                    'bank_code' => $validated['bank_code'] ?? null,
+                    'branch_name' => $validated['branch_name'],
+                    'branch_code' => $validated['branch_code'] ?? null,
+                    'account_type' => $validated['account_type'],
+                    'account_no' => $validated['account_no'],
+                    'account_kana' => $validated['account_kana'],
+                    'account_name' => $validated['account_name'],
+                ]);
+
+                session()->forget(['agree', 'affiliate', 'agree_at']);
+
+                $preUser->update([
+                    'verified_at' => now(),
+                ]);
+            });
+        } catch (\Exception $e) {
+            throw $e;
+            //return back()->withErrors(['error' => '登録処理に失敗しました: ' . $e->getMessage()]);
+        }            
+
+        // 成功時のみ member_id を渡す
+        if (!$member) {
+            return back()->withErrors(['error' => '登録に失敗しました。']);
+        }
+        return redirect()->route('members.complete')
+            ->with('success', 'ご登録ありがとうございました');
+/*
+        return redirect()->route('members.complete')
+            ->with('member_id', $member->id)
+            ->with('success', 'ご登録ありがとうございました');
+*/
+    }
+
+
+    private function generatePdfThumbnail(string $pdfPath): string
+    {
+        $pdfFullPath = Storage::disk('public')->path($pdfPath);
+
+        $imagick = new Imagick();
+        $imagick->setResolution(150, 150);
+        $imagick->readImage($pdfFullPath . '[0]'); // 1ページ目
+        $imagick->setImageFormat('jpg');
+        $imagick->thumbnailImage(300, 0);
+
+        $thumbnailName = pathinfo($pdfPath, PATHINFO_FILENAME) . '.jpg';
+        $thumbnailPath = 'certificates/thumbnail/' . $thumbnailName;
+
+        Storage::disk('public')->put(
+            $thumbnailPath,
+            $imagick->getImageBlob()
+        );
+
+        $imagick->clear();
+        $imagick->destroy();
+
+        return $thumbnailPath;
     }
  
     // Apuls Pdf Create
@@ -84,7 +227,6 @@ class MemberController extends Controller
     // Apuls Pdf Generate
     public function pdfGenerate(Request $request)
     {
-
         $data = $request->validate([
             'company_furigana'=> 'required|string',
             'representative_furigana'=> 'required|string',
@@ -93,6 +235,7 @@ class MemberController extends Controller
             'address_zip'=> 'required|string',
             'address'=> 'required|string',
             'tel'=> 'required|string',
+            'bank_type'    => 'required|integer',
             'bank_name'    => 'required|string',
             'branch_name'  => 'required|string',
             'account_type' => 'required|string',
@@ -100,8 +243,18 @@ class MemberController extends Controller
             'account_kana'   => 'required|string',
             'account_name' => 'required|string',
         ]);
-        // セッションに保存
-        session(['member_form' => $data]);
+
+        // フォーム全体を取得
+        $form = $request->all();
+
+        // agree情報もまとめて保存
+        $form['agree']     = session('agree', false);
+        $form['affiliate'] = session('affiliate', null);
+        $form['agree_at']  = session('agree_at', null);
+
+        // session に保存
+        session(['member_form' => $form]);
+
 
                 // FPDI + TCPDF
         $pdf = new Fpdi();
@@ -186,9 +339,10 @@ class MemberController extends Controller
         ]);    
     }
 
-    public function pdfPreview(Request $request)
+    public function pdfPreview(Request $request,$token)
     {
         return Inertia::render('Members/PdfPreview', [
+            'token'  => $token,
             'pdfUrl' => $request->query('pdfUrl'),
         ]);
     }

@@ -10,71 +10,38 @@ class Member extends Model
 {
     use HasRoles;
     use HasFactory;
+    
+    protected $table = 'members';
 
     protected $fillable = [
-        'user_id',
-        'login_id',    // ログインID
-        'member_code', // 会員ID
-        'name',        // 氏名
-        'postal_code', // 郵便番号
-        'address1',    // 住所1
-        'address2',    // 住所2
-        'phone',       // 電話番号
-        'fax',       // fax
-        'organization_id',
+        'company_name',
+        'company_furigana',
+        'representative',
+        'representative_furigana',
+        'address_zip',
+        'address',
+        'email',
+        'tel',
+        'fax',
+        'mobile',
+        'staff',
+        'agree',
+        'affiliate',
+        'agreed_at',
+        'history_certificate_path',
+        'history_certificate_thumbnail_path',
+        'status',
     ];
 
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-    // Organization とのリレーション
-    public function organization()
-    {
-        return $this->belongsTo(Organization::class);
-    }
-    // Pdffile とのリレーション
-    public function pdfUploads()
-    {
-        return $this->hasMany(PdfUpload::class);
-    }
-    public function updateCycles()
-    {
-        return $this->hasMany(InstructorUpdateCycle::class);
-    }
+    protected $casts = [
+        'agree'     => 'boolean',
+        'affiliate' => 'boolean',
+        'agreed_at' => 'datetime',
+        'verified_at' => 'datetime',
+    ];
 
-    public function currentUpdateCycle()
+    public function bankAccount()
     {
-        $today = now()->toDateString();
-
-        return $this->hasOne(InstructorUpdateCycle::class)
-            ->where('start_date', '<=', $today)
-            ->where('end_date', '>=', $today);
+        return $this->hasOne(BankAccount::class);
     }
-
-    /**
-     * 指定更新サイクル内の単位合計
-     */
-    public function totalPoints($cycle)
-    {
-        if (!$cycle) return 0;
-
-        return $this->pdfUploads()
-            ->whereBetween('created_at', [$cycle->start_date, $cycle->end_date])
-            ->sum('points');
-    }
-
-    /**
-     * 指定更新サイクル内の学術集会参加回数
-     */
-    public function conferenceCount($cycle)
-    {
-        if (!$cycle) return 0;
-
-        return $this->pdfUploads()
-            ->where('category', 'conference')
-            ->whereBetween('created_at', [$cycle->start_date, $cycle->end_date])
-            ->count();
-    }
-
 }

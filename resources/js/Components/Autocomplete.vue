@@ -35,15 +35,18 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 
 const props = defineProps({
   modelValue: [String, Number],
+  initial: { type: String, default: null }, 
   label: String,
   placeholder: String,
   fetchUrl: String,
   extraParams: { type: Object, default: () => ({}) }
 })
+
+console.log(props)
 
 const emit = defineEmits([
   'update:modelValue',
@@ -85,6 +88,8 @@ watch(
   (val) => {
     if (val?.label) {
       search.value = val.label
+    } else if (typeof val === 'string') {
+      search.value = val
     } else {
       search.value = ''
     }
@@ -92,6 +97,14 @@ watch(
   { immediate: true }
 )
 
+// 初期値を反映
+onMounted(() => {
+  if (props.initial) {
+    search.value = props.initial
+  } else if (props.modelValue) {
+    search.value = props.modelValue
+  }
+})
 
 const select = (item) => {
   emit('update:modelValue', item.id)
