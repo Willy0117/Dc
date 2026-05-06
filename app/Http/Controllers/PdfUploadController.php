@@ -7,20 +7,22 @@ use App\Models\CreditCategory;
 use App\Models\CreditConference;
 use App\Models\CreditRolePoint;
 use App\Models\Member;
+use App\Models\AnnualFee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FileService;
+use App\Services\PdfService;
 
 class PdfUploadController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-        $member = Member::where('user_id', $user->id)->first();
 
         // アップロード一覧
         $uploads = PdfUpload::with(['creditCategory', 'creditConference', 'creditRole'])
-            ->where('member_id', $member->id)
+            ->where('member_id', $user->member_id)
             ->latest()
             ->get()
             ->map(fn($u) => [
@@ -52,7 +54,7 @@ class PdfUploadController extends Controller
         return inertia('PdfUploads/Index', compact('uploads', 'creditCategories', 'conferences', 'roles'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, FileService $fileService)
     {
         $request->validate([
             'file' => 'required|mimes:pdf|max:10240',
@@ -63,52 +65,106 @@ class PdfUploadController extends Controller
         ]);
 
         $user = Auth::user();
-        $member = Member::where('user_id', $user->id)->first();
-
-        if (!Storage::disk('private')->exists('pdf_uploads')) {
-            Storage::disk('private')->makeDirectory('pdf_uploads');
-        }
-
-        $path = $request->file('file')->store('pdf_uploads', 'private');
-
-        // role_id でポイントを取得
-        $role = CreditRolePoint::find($request->role_id);
-        $points = $role ? $role->points : 0;
-
-        $upload = PdfUpload::create([
-            'member_id' => $member->id,
-            'file_path' => $path,
-            'credit_category_id' => $request->credit_category_id,
-            'credit_conference_id' => $request->credit_conference_id,
-            'credit_role_id' => $request->role_id,
-            'session' => $request->session ?? '',
-            'points' => $points,
-            'status' => 'pending',
-        ]);
-
+        
         // サムネイル生成
         try {
-            if (!Storage::disk('private')->exists('thumbnails')) {
-                Storage::disk('private')->makeDirectory('thumbnails');
-            }
 
-            $pdfPath = storage_path('app/private/' . $path);
-            $thumbnailPath = storage_path('app/private/thumbnails/' . basename($path, '.pdf') . '.png');
+            [$file_path, $thumbnail_path] =
+                $fileService->storeUploadedFile(
+                    $request->file('file'),
+                    'pdf_uploads'
+                );
 
-            $imagick = new \Imagick();
-            $imagick->setResolution(150, 150);
-            $imagick->readImage($pdfPath . '[0]');
-            $imagick->setImageFormat('png');
-            $imagick->writeImage($thumbnailPath);
-            $imagick->clear();
-            $imagick->destroy();
+            // role_id でポイントを取得
+            $role = CreditRolePoint::find($request->role_id);
+            $points = $role ? $role->points : 0;
 
-            $upload->update(['thumbnail_path' => 'thumbnails/' . basename($path, '.pdf') . '.png']);
+            $upload = PdfUpload::create([
+                'member_id' => $user->member_id,
+                'file_path' => $file_path,
+                'thumbnail_path' => $thumbnail_path,
+                'credit_category_id' => $request->credit_category_id,
+                'credit_conference_id' => $request->credit_conference_id,
+                'credit_role_id' => $request->role_id,
+                'session' => $request->session ?? '',
+                'points' => $points,
+                'status' => 'pending',
+            ]);
+            return back()->with('success', __('PDF uploaded successfully.'));
         } catch (\Exception $e) {
             \Log::error('Thumbnail generation failed: ' . $e->getMessage());
+            return back()->with('error', __('PDF upload failed.'));
         }
+    }
 
-        return back()->with('success', __('PDF uploaded successfully.'));
+
+    public function create() 
+    {
+        $user = Auth::user();
+
+        // アップロード一覧
+        $uploads = PdfUpload::with(['creditCategory', 'creditConference', 'creditRole'])
+            ->where('member_id', $user->member_id)
+            ->latest()
+            ->get()
+            ->map(fn($u) => [
+                'id' => $u->id,
+                'credit_category_name' => $u->creditCategory?->name,
+                'credit_conference_name' => $u->creditConference?->name,
+                'role_name' => $u->creditRole?->role,
+                'points' => $u->points,
+                'status' => $u->status,
+                'thumbnail_path' => $u->thumbnail_path,
+                'rejection_message' => $u->rejection_message,
+            ]);
+
+        $approvedTotal = $uploads
+            ->where('status', 'approved')
+            ->sum('points');
+            
+        $pendingTotal = $uploads
+            ->where('status', 'pending')
+            ->sum('points');
+
+        $total = $uploads->sum('points');
+
+        $fees = AnnualFee::where('member_id', $user->member_id)
+            ->whereBetween('fiscal_year', [now()->year - 4, now()->year])
+            ->get();
+
+        $totalFee = $fees->sum(fn($f) => $f->annual_fee + $f->renewal_fee);
+        $totalPaid = $fees->sum('payment_amount');
+
+        $isFeeOk = $totalFee <= $totalPaid;
+
+        // 全カテゴリー
+        $creditCategories = CreditCategory::all();
+
+        // 全学術集会・論文・セミナー等
+        $conferences = CreditConference::all();
+
+        // 全 roles
+        $roles = CreditRolePoint::all()->map(fn($r) => [
+            'id' => $r->id,
+            'name' => $r->role,
+            'points' => $r->points,
+            'credit_category_id' => $r->credit_category_id,
+            'credit_conference_id' => $r->credit_conference_id,
+        ]);
+
+        return inertia('PdfUploads/Create', [
+            'uploads' => $uploads,
+            'creditCategories' => $creditCategories,
+            'conferences' => $conferences,
+            'roles' => $roles,
+
+            'approvedTotal' => $approvedTotal,
+            'pendingTotal' => $pendingTotal,
+            'total' => $total,
+            'totalFee' => $totalFee,
+            'totalPaid' => $totalPaid,
+            'isFeeOk' => $isFeeOk,
+        ]);
     }
 
     public function view(PdfUpload $pdf)

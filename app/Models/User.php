@@ -13,12 +13,16 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, HasProfilePhoto, Notifiable, TwoFactorAuthenticatable, HasRoles;
+    
+    protected $guard_name = 'web';
 
     protected $fillable = [
+        'username',
         'name',
         'email',
         'password',
         'tenant_id',
+        'organization_id',
     ];
 
     protected $hidden = [
@@ -36,23 +40,32 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
-    
+
     public function member()
     {
-        return $this->hasOne(Member::class);
+        return $this->belongsTo(Member::class);
     }
     // Tenant リレーション
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
     }
-
+    // Organization リレーション
+/*
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+*/
     /**
      * ログインユーザーの tenant_id でフィルターしたロールを取得
      */
     public function tenantRoles()
     {
-        return $this->roles()->where('tenant_id', $this->tenant_id);
+        if ($this->isSuperAdmin()) {
+            return $this->roles();
+        }
+        return $this->roles()->where('roles.tenant_id', $this->tenant_id); 
     }
 
     /**
@@ -60,7 +73,17 @@ class User extends Authenticatable
      */
     public function tenantPermissions()
     {
-        return $this->permissions()->where('tenant_id', $this->tenant_id);
+        if ($this->isSuperAdmin()) {
+            return $this->getAllPermissions();
+        }
+
+        return $this->getAllPermissions()
+            ->where('tenant_id', $this->tenant_id);
+    }
+
+    public function isSuperAdmin()
+    {
+        return $this->hasRole('super_admin');
     }
 }
 

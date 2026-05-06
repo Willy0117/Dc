@@ -21,24 +21,22 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
         // 認証（Jetstreamと同じ）
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (!Auth::guard('admin')->attempt($credentials)) {
             return back()->withErrors(['email' => 'ログイン情報が正しくありません。']);
-        }
-
-        // Spatie で管理者チェック
-        if (! $request->user()->hasRole(['super_admin','admin'])) {
-            Auth::logout();
-            return back()->withErrors(['email' => '管理者権限がありません。']);
         }
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.dashboard'));
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('admin.dashboard');
+
+        //return redirect()->intended(route('admin.dashboard'));
     }
 
     public function logout(Request $request)
     {
-        Auth::guard('web')->logout();
+        Auth::guard('admin')->logout();
 
         // ★ Jetstream の intended URL を削除
         $request->session()->forget('url.intended');

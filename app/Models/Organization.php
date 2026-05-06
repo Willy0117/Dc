@@ -2,30 +2,68 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Organization extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
+        'member_id',
+        'type',
+        'position',
         'name',
-        'billing_name',
-        'billing_postal',
-        'billing_address',
-        'contact_person',
-        'contact_email',
-        'contact_phone',
-        'registration_number',
+        'name_kana',
+        'name_prefix',
+        'name_suffix',
+        'postal_code',
+        'address1',
+        'address2',
+        'address3',
+        'last_name',
+        'first_name',
+        'tel',
+        'mobile',
+        'fax',
+        'email',
+        'allow_text_color',
+        'allow_background_color',
     ];
 
-    // 会員との多対多
-    public function members()
+    /* ===== 表示用 ===== */
+
+    public function getFullNameAttribute()
     {
-        return $this->belongsToMany(Member::class)
-                    ->withPivot('role')
-                    ->withTimestamps();
+        return trim(
+            ($this->name_prefix ?? '') .
+            ($this->name ?? '') .
+            ($this->name_suffix ?? '')
+        );
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(OrganizationDocument::class);
+    }
+
+    public function member()
+    {
+        return $this->belongsTo(Member::class);
+    }
+
+    public function getFullAddressAttribute()
+    {
+        return collect([
+            $this->address1,
+            $this->address2,
+            $this->address3,
+        ])->filter()->implode('');
+    }
+
+    public function getContactNameAttribute()
+    {
+        return collect([
+            $this->last_name,
+            $this->first_name,
+        ])->filter()->implode(' ');
     }
 }
 

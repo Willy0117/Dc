@@ -21,7 +21,8 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with('roles');
+        $query = User::with(['roles', 'member']);
+
         // テナント絞り込み（Super Admin は全件表示）
         if (! $request->user()->hasRole('Super Admin|Admin')) {
             $query->where('tenant_id', $request->user()->tenant_id);
@@ -61,9 +62,11 @@ class UserController extends Controller
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
             'filters' => [
+                'username'  => $request->input('username'),
                 'name'      => $request->input('name'),
                 'email'     => $request->input('email'),
                 'role'      => $request->input('role'),
+                'member_id'  => $request->input('member_id'),
                 'per_page'  => $perPage, // ← ここが重要！
                 'sort_by'   => $request->input('sort_by'),
                 'sort_dir'  => $request->input('sort_dir'),
@@ -111,19 +114,21 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|confirmed|min:8',
-            'role_id' => 'required|exists:roles,id',
-            'tenant_id' => 'nullable|exists:tenants,id',
+            'username' => 'required|stringt|max:20',
+            'member_id' => 'required|integer',
         ]);
 
         // Super Admin は tenant_id を選択可能、tenant_admin は自分の tenant_id に固定
+/*
         $tenantId = $currentUser->hasRole('Super Admin')
             ? $request->tenant_id
             : $currentUser->tenant_id;
-
+*/
         $user = User::create([
+            'username' => $required->username,
+            'member_id' => $required->member_id,
             'name' => $request->name,
             'email' => $request->email,
-            'tenant_id' => $tenantId,
             'password' => Hash::make($request->password),
         ]);
 
@@ -141,6 +146,8 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        $user->load('member');
+
         $currentUser = auth()->user();
 
         $roles = $currentUser->hasRole('Super Admin')
@@ -173,17 +180,19 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => "required|string|email|max:255|unique:users,email,{$user->id}",
-            'password' => 'nullable|string|confirmed|min:8',
-            'role_id' => 'required|exists:roles,id',
-            'tenant_id' => 'nullable|exists:tenants,id',
+            'password' => 'nullable|string|confirmed|min:4',
+            'username' => 'required|string|max:20',
+            'member_id' => 'required|integer',
         ]);
-
+/*
         $tenantId = $currentUser->hasRole('Super Admin')
             ? $validated['tenant_id']
             : $currentUser->tenant_id;
+*/
         $user->name = $request->name;
         $user->email = $request->email;
-        $user->tenant_id = $tenantId;
+        $user->username = $request->username;
+        $user->member_id = $request->member_id;
 
         // パスワードが入力されていれば更新
         if ($request->filled('password')) {
@@ -191,10 +200,6 @@ class UserController extends Controller
         }
 
         $user->save();        
-        if ($request->filled('role_id')) {
-            $role = Role::findOrFail($request->role_id);
-            $user->syncRoles([$role]);
-        }
 
         return redirect()->route('admin.users.index')->with('success', __('User updated successfully.'));
     }

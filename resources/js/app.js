@@ -10,7 +10,12 @@ import { createI18n } from 'vue-i18n';
 import en from '../lang/en.json';
 import ja from '../lang/ja.json';
 
-const messages = { en, ja };
+const messages = {
+    // 完全に純粋な JavaScript オブジェクトに変換
+    en: JSON.parse(JSON.stringify(en)),
+    ja: JSON.parse(JSON.stringify(ja))
+};
+//const messages = { en, ja };
 
 // Laravel セッションなどからデフォルト言語を取得（なければ 'en'）
 const defaultLocale = document.documentElement.lang || 'en';
@@ -20,7 +25,10 @@ const i18n = createI18n({
     locale: defaultLocale,
     fallbackLocale: 'en',
     messages,
+    escapeParameterHtml: true, 
+    warnHtmlMessage: false,
 });
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
@@ -33,7 +41,5 @@ createInertiaApp({
             .use(i18n)
             .mount(el);
     },
-    progress: {
-        color: '#4B5563',
-    },
+    progress: false,
 });

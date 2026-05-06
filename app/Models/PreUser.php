@@ -9,6 +9,7 @@ class PreUser extends Model
     protected $fillable = [
         'email',
         'token',
+        'agent',
         'expires_at',
         'verified_at'
     ];
@@ -35,4 +36,9 @@ class PreUser extends Model
         ]);
     }
 
+    public function isAgent(): bool
+    {
+        return (bool) $this->agent;
+    }
+    
 }

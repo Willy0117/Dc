@@ -1,7 +1,11 @@
 <template>
     <div>
         <!-- 誓約書本文 -->
-        <div class="mt-6 p-4 border rounded bg-gray-50 max-h-96 overflow-y-scroll text-sm leading-relaxed">
+        <div
+            ref="termsBox"
+            @scroll="onScroll"
+            class="mt-6 p-4 border rounded bg-gray-50 max-h-96 overflow-y-scroll text-sm leading-relaxed"
+        >
             <h2 class="font-bold text-lg mb-2">誓約書</h2>
 
             <p>書式 外技第Ⅰ－３号(１)　令和７年１０月１７日（改定）</p>
@@ -65,12 +69,17 @@
                 10．退会した際には、就労管理システムの計画取消申請を速やかに行います。
             </p>
         </div>
+        <!-- 注意文言 -->
+        <p v-if="!scrolledToBottom" class="text-xs text-red-500 mt-2">
+            最後までスクロールするとチェックできます
+        </p>
 
         <!-- チェックボックス -->
         <div class="mt-4 flex items-center">
             <input
                 type="checkbox"
                 :checked="modelValue"
+                :disabled="!scrolledToBottom"
                 @change="$emit('update:modelValue', $event.target.checked)"
                 id="agree_terms"
                 class="mr-2"
@@ -87,10 +96,25 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
     modelValue: Boolean,
     error: String
 });
 
-defineEmits(["update:modelValue"]);
+defineEmits(["update:modelValue"])
+
+const termsBox = ref(null)
+const scrolledToBottom = ref(false)
+
+const onScroll = () => {
+    const el = termsBox.value
+    if (!el) return
+
+    // 最下部判定（誤差対策で -5）
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+        scrolledToBottom.value = true
+    }
+}
 </script>

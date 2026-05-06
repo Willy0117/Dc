@@ -1,425 +1,506 @@
-<script setup>
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
-import { Link, router, usePage } from '@inertiajs/vue3'
-import { useI18n } from 'vue-i18n'
-import { Icon } from '@iconify/vue'
-
-// Heroicons
-import {
-  HomeIcon,
-  UserIcon,
-  ServerIcon,
-  UsersIcon,
-  PlusIcon,
-  BuildingOfficeIcon,
-  TicketIcon,
-  ArrowRightOnRectangleIcon,
-  Cog6ToothIcon,
-  CubeIcon,
-  BeakerIcon,
-  ShieldCheckIcon, // ← 追加
-} from '@heroicons/vue/24/outline'
-
-const { props } = usePage()
-
-// Jetstream props
-const authUser = props.auth.user
-const currentTeam = authUser.current_team
-const currentTeamId = authUser.current_team_id
-const allTeams = authUser.all_teams
-const hasApiFeatures = props.jetstream.hasApiFeatures
-const hasTeamFeatures = props.jetstream.hasTeamFeatures
-const canCreateTeams = props.jetstream.canCreateTeams
-
-// サイドバー状態
-const collapsed = ref(JSON.parse(localStorage.getItem('sidebar-collapsed') ?? 'false'))
-const openSubMenu = ref(null)
-
-const { t, locale } = useI18n()
-
-// レスポンシブ判定
-const isMobile = ref(false)
-const handleResize = () => { isMobile.value = window.innerWidth < 1024 }
-onMounted(() => {
-  handleResize()
-  window.addEventListener('resize', handleResize)
-})
-onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
-
-// トグル
-const toggleCollapse = () => { if (!isMobile.value) collapsed.value = !collapsed.value }
-const toggleSubMenu = (name) => { openSubMenu.value = openSubMenu.value === name ? null : name }
-
-// ページ遷移でサブメニュー閉じる
-watch(() => router.page, () => { openSubMenu.value = null })
-
-// collapsed 状態保存
-watch(collapsed, val => { localStorage.setItem('sidebar-collapsed', JSON.stringify(val)) })
-
-// ヘッダー操作
-const logout = () => { router.post(route('logout')) }
-const switchTeam = (team) => { router.put(route('current-team.update'), { team_id: team.id }) }
-const isActive = (name) => route().current(name)
-
-// ---------------------------
-// Permission helper (Vue側)
-// ---------------------------
-const user = usePage().props.auth.user || null
-
-console.log(user)
-
-const can = (permissionName) => {
-  if (!user) return false
-
-  // permissions を安全に配列化
-  const perms = Array.isArray(user.permissions)
-    ? user.permissions
-    : (user.permissions?.data ?? [])
-  if (perms.length > 0) {
-    return perms.some(p => p.name === permissionName)
-  }
-
-  // role を配列化
-  const roles = Array.isArray(user.roles) ? user.roles : (user.roles?.data ?? [])
-
-  if (roles.length > 0) {
-    // Super Admin は全権限
-    if (roles.some(r => ['super admin', 'super-admin'].includes(r.name.toLowerCase()))) {
-      return true
-    }
-
-    // Tenant Admin は一部権限のみ
-    if (roles.some(r => r.name.toLowerCase().startsWith('tenant_admin'))) {
-      return ['manage roles', 'manage permissions'].includes(permissionName)
-    }
-  }
-
-  return false
-}
-
-// showAccessControl : セクション丸ごと表示判定
-const showAccessControl = computed(() => {
-  if (!user) return false
-
-  // Super Admin は全て表示
-  if (user.roles?.some(r => r.name.toLowerCase() === 'super admin')) {
-    return true
-  }
-
-  // テナント管理者は role / permission のみ表示
-  return can('manage roles') || can('manage permissions')
-})
-</script>
-
-
 <template>
-  <div class="flex min-h-screen bg-gray-100 text-sm">
+  <div class="flex">
+    <!-- モバイル用ハンバーガー -->
+    <button
+      @click="mobileOpen = !mobileOpen"
+      class="lg:hidden p-2 rounded-full hover:bg-gray-200"
+    >
+      <template v-if="mobileOpen">
+        <XMarkIcon class="w-5 h-5 text-gray-600" />
+      </template>
+      <template v-else>
+        <Bars3Icon class="w-5 h-5 text-gray-600" />
+      </template>
+    </button>
 
     <!-- サイドバー -->
-    <aside v-if="!isMobile" :class="['bg-gray-50 text-gray-800 shadow-lg h-full flex flex-col transition-all duration-300 z-50 overflow-hidden', collapsed ? 'w-16' : 'w-64']">
-      <div class="flex justify-end p-2">
-        <button @click="toggleCollapse" class="text-gray-500 hover:text-gray-700">
-          <span v-if="collapsed">➡</span>
-          <span v-else>⬅</span>
+    <aside
+      :class="[
+        'bg-gray-100 h-screen flex flex-col transition-all duration-300 z-50',
+        collapsed ? 'w-16' : 'w-64',
+        mobileOpen ? 'left-0' : '-left-full',
+        'fixed top-0 lg:relative lg:left-0 h-screen'
+      ]"
+    >
+      <!-- PC折りたたみボタン -->
+      <div class="flex justify-end p-2 flex-none lg:flex">
+        <button
+          @click="toggleCollapse"
+          class="p-2 rounded-full hover:bg-gray-200"
+        >
+          <template v-if="collapsed">
+            <Bars3Icon class="w-5 h-5 text-gray-600" />
+          </template>
+          <template v-else>
+            <XMarkIcon class="w-5 h-5 text-gray-600" />
+          </template>
         </button>
       </div>
 
-      <nav class="flex-1 px-2 py-4">
-        <!-- Dashboard -->
-        <Link :href="route('dashboard')"
-              class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-              :class="isActive('dashboard') ? 'bg-gray-300 font-semibold' : ''">
-          <HomeIcon class="w-5 h-5"/>
-          <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
-        </Link>
-      
-        <!-- 献立関連メニュー -->
-        <button @click="toggleSubMenu('menus')"
-                class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors mt-2">
+    <!-- メニュー -->
+    <nav class="flex-1 overflow-y-auto px-2 py-4 text-sm">
+      <!-- Dashboard -->
+      <Link
+        :href="route('admin.dashboard')"
+        class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        :class="isActive('dashboard') ? 'bg-gray-300 font-semibold' : ''"
+      >
+        <HomeIcon class="w-5 h-5"/>
+        <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
+      </Link>
+      <div class="mt-2">
+        <button
+          @click="toggleSubMenu('members')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
           <div class="flex items-center">
-            <CubeIcon class="w-5 h-5"/> <!-- 適宜アイコン変更 -->
-            <span v-if="!collapsed" class="ml-2">{{ t('menus') }}</span>
+            <UsersIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('member') }}</span>
           </div>
-          <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='menus'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'members' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <transition name="slide-fade">
+          <div v-show="openSubMenu === 'members' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link
+              :href="route('admin.members.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+              :class="isActive('admin.members.index') ? 'bg-gray-200 font-semibold' : ''"
+            >
+              <UserIcon class="w-4 h-4 mr-1"/>
+              {{ t('member') }}
+            </Link>
+          </div>
+        </transition>
+      </div> 
+
+      <!-- 指導士資格認定 -->
+      <div class="mt-2">
+        <button
+          @click="toggleSubMenu('member')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
+          <div class="flex items-center">
+            <UsersIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('指導士資格認定') }}</span>
+          </div>
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'member' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
         <transition name="slide-fade">
-          <div v-show="openSubMenu==='menus' && !collapsed" class="pl-6 mt-1 space-y-1">
-            <Link :href="route('menus.index')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('menus.index') ? 'bg-gray-200 font-semibold' : ''">
-              <CubeIcon class="w-4 h-4 mr-1"/>
-              {{ t('menu_list') }}
+          <div v-show="openSubMenu === 'member' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link
+              :href="route('admin.exams.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+              :class="isActive('exams.index') ? 'bg-gray-300 font-semibold' : ''"
+            >
+              <UsersIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('exams.application') }}</span>
+            </Link>
+            <!-- Link
+              :href="route('admin.instructorMembers.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+              :class="isActive('instructorMembers.index') ? 'bg-gray-300 font-semibold' : ''"
+            >
+              <UsersIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('instructors.member') }}</span>
+            </Link -->
+
+          </div>
+        </transition>
+      </div>   
+      <!-- 指導士認定更新 -->
+      <div class="mt-2">
+        <button
+          @click="toggleSubMenu('member')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
+          <div class="flex items-center">
+            <UsersIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('指導士認定更新') }}</span>
+          </div>
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'member' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        <transition name="slide-fade">
+          <div v-show="openSubMenu === 'member' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link
+              :href="route('admin.instructorMembers.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+              :class="isActive('instructorMembers.index') ? 'bg-gray-300 font-semibold' : ''"
+            >
+              <UsersIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('指導士認定更新申請') }}</span>
+            </Link>
+                       <!-- Members -->
+            <Link
+              :href="route('admin.pdf-uploads.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+              :class="isActive('admin.pdf-uploads.index') ? 'bg-gray-300 font-semibold' : ''"
+            >
+              <UsersIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('単位取得申請') }}</span>
             </Link>
 
-            <Link :href="route('menus.weekly')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('menus.weekly') ? 'bg-gray-200 font-semibold' : ''">
-              <CubeIcon class="w-4 h-4 mr-1"/>
-              {{ t('weekly_menu') }}
-            </Link>
-            
-            <Link :href="route('menus.import')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('menus.import') ? 'bg-gray-200 font-semibold' : ''">
-              <ArrowRightOnRectangleIcon class="w-4 h-4 mr-1"/>
-              {{ t('excel_menu_import') }}
+          </div>
+        </transition>
+      </div>          
+
+      <!-- Membes サブメニュー -->
+     
+      <!-- Organizations サブメニュー -->
+      <div class="mt-2">
+        <button
+          @click="toggleSubMenu('organizations')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
+          <div class="flex items-center">
+            <UsersIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('organization') }}</span>
+          </div>
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'organizations' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <transition name="slide-fade">
+          <div v-show="openSubMenu === 'organizations' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link
+              :href="route('admin.organizations.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+              :class="isActive('admin.organizations.index') ? 'bg-gray-200 font-semibold' : ''"
+            >
+              <UserIcon class="w-4 h-4 mr-1"/>
+              {{ t('organization') }}
             </Link>
           </div>
         </transition>
-        <!-- Instructor Member サブメニュー -->
-        <div class="mt-2">
-          <button @click="toggleSubMenu('instructorMembers')"
-                  class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors">
-            <div class="flex items-center">
-              <UserIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">指導士更新管理</span>
-            </div>
-            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='instructorMembers'}"
-                class="w-4 h-4 transform transition-transform duration-200"
-                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-
-          <transition name="slide-fade">
-            <div v-show="openSubMenu==='instructorMembers' && !collapsed" class="pl-6 mt-1 space-y-1">
-
-              <!-- 指導士会員一覧 -->
-              <Link :href="route('admin.instructorMembers.index')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('admin.instructorMembers.index') ? 'bg-gray-200 font-semibold' : ''">
-                <UserIcon class="w-4 h-4 mr-1"/>
-                会員一覧
-              </Link>
-
-              <!-- ここに他のサブメニュー追加も可能 -->
-              <!-- 例：過去更新履歴、PDF承認ダッシュボード等 -->
-              
-            </div>
-          </transition>
-        </div>
-
-        <div class="mt-2">
-          <button @click="toggleSubMenu('pdf_uploads')" class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 mt-2">
-            <div class="flex items-center">
-              <CubeIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('pdf_uploads_admin') }}</span>
-            </div>
-            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='pdf_uploads'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-
-          <transition name="slide-fade">
-            <div v-if="openSubMenu==='pdf_uploads' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link :href="route('admin.pdf_uploads.index')" class="flex items-center py-2 px-2 rounded hover:bg-gray-100">
-                <Icon icon="mdi:file-pdf-box" width="22" class="text-red-600" />
-                <span v-if="!collapsed" class="ml-2">{{ t('uploaded_pdfs') }}</span>
-              </Link>
-            </div>
-          </transition>
-        </div>
-                     
-        <!-- Profile サブメニュー -->
-        <div class="mt-2">
-          <button @click="toggleSubMenu('profile')"
-                  class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors">
-            <div class="flex items-center">
-              <UserIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('profile') }}</span>
-            </div>
-            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='profile'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <transition name="slide-fade">
-            <div v-show="openSubMenu==='profile' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link :href="route('profile.show')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('profile.show') ? 'bg-gray-200 font-semibold' : ''">
-                <UserIcon class="w-4 h-4 mr-1"/>
-                Profile Settings
-              </Link>
-              <Link v-if="hasApiFeatures" :href="route('api-tokens.index')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('api-tokens.index') ? 'bg-gray-200 font-semibold' : ''">
-                <ServerIcon class="w-4 h-4 mr-1"/>
-                API Tokens
-              </Link>
-              <!--button @click="logout" class="flex items-center w-full text-left py-2 px-2 rounded hover:bg-gray-100">
-                <ArrowRightOnRectangleIcon class="w-4 h-4 mr-1"/>
-                Log Out
-              </button -->
-            </div>
-          </transition>
-          <!-- Access Control -->
-          <template v-if="showAccessControl">
-            <button @click="toggleSubMenu('access')"
-                    class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors mt-2">
-              <div class="flex items-center">
-                <ShieldCheckIcon class="w-5 h-5"/>
-                <span v-if="!collapsed" class="ml-2">{{ t('access_control') }}</span>
-              </div>
-              <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='access'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-
-            <transition name="slide-fade">
-              <div v-show="openSubMenu==='access' && !collapsed" class="pl-6 mt-1 space-y-1">
-                <Link
-                  v-if="can('manage tenants')"
-                  :href="route('tenants.index')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('tenants.index') ? 'bg-gray-200 font-semibold' : ''"
-                >
-                  <BuildingOfficeIcon class="w-4 h-4 mr-1"/>
-                  {{ t('tenants') }}
-                </Link>
-
-                <Link
-                  v-if="can('manage roles')"
-                  :href="route('roles.index')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('roles.index') ? 'bg-gray-200 font-semibold' : ''"
-                >
-                  <UsersIcon class="w-4 h-4 mr-1"/>
-                  {{ t('roles') }}
-                </Link>
-
-                <Link
-                  v-if="can('manage permissions')"
-                  :href="route('permissions.index')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                  :class="isActive('permissions.index') ? 'bg-gray-200 font-semibold' : ''"
-                >
-                  <TicketIcon class="w-4 h-4 mr-1"/>
-                  {{ t('permissions') }}
-                </Link>
-              </div>
-            </transition>
-          </template>
-          <!-- ここからマスター系メニュー -->
-
-          <button @click="toggleSubMenu('masters')"
-                  class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors mt-2">
-            <div class="flex items-center">
-              <Cog6ToothIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('masters') }}</span>
-            </div>
-            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='masters'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <transition name="slide-fade">
-            <div v-show="openSubMenu==='masters' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link :href="route('admin.credit-categories.index')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('admin.credit-categories.index') ? 'bg-gray-200 font-semibold' : ''">
-                <CubeIcon class="w-4 h-4 mr-1"/>
-                {{ t('category') }}
-              </Link>
-              <Link :href="route('admin.credit-conferences.index')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('admin.credit-conferences.index') ? 'bg-gray-200 font-semibold' : ''">
-                <CubeIcon class="w-4 h-4 mr-1"/>
-                {{ t('conference') }}
-              </Link>
-              <Link :href="route('admin.credit-roles.index')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('admin.credit-roles.index') ? 'bg-gray-200 font-semibold' : ''">
-                <CubeIcon class="w-4 h-4 mr-1"/>
-                {{ t('role') }}
-              </Link>
-              <Link :href="route('admin.credits.index')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('admin.credits.index') ? 'bg-gray-200 font-semibold' : ''">
-                <CubeIcon class="w-4 h-4 mr-1"/>
-                {{ t('credit') }}
-              </Link>
-            </div>
-          </transition>          
-        </div>
-        <!-- ここからユーザーメニュー（マスターとは独立） -->
-        <div>
-          <button @click="toggleSubMenu('users')"
-                  class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors mt-2">
-            <div class="flex items-center">
-              <UsersIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('user') }}</span>
-            </div>
-            <svg v-if="!collapsed" :class="{'rotate-90': openSubMenu==='users'}" class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-
-          <transition name="slide-fade">
-            <div v-show="openSubMenu==='users' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link :href="route('users.index')"
-                    class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                    :class="isActive('users.index') ? 'bg-gray-200 font-semibold' : ''">
-                <UserIcon class="w-4 h-4 mr-1"/>
-                {{ t('user') }}
-              </Link>
-            </div>
-          </transition>
-        </div>
-        <!-- Teams -->
-        <div v-if="hasTeamFeatures" class="mt-4 border-t border-gray-200 pt-2 text-xs text-gray-400 px-2">Manage Team</div>
-        <div v-if="hasTeamFeatures" class="mt-1 space-y-1">
-          <Link :href="route('teams.show', currentTeam)"
-                class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-                :class="isActive('teams.show') ? 'bg-gray-300 font-semibold' : ''">
-            <UsersIcon class="w-5 h-5"/>
-            <span v-if="!collapsed" class="ml-2">Team Settings</span>
-          </Link>
-          <Link v-if="canCreateTeams" :href="route('teams.create')"
-                class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-                :class="isActive('teams.create') ? 'bg-gray-300 font-semibold' : ''">
-            <PlusIcon class="w-5 h-5"/>
-            <span v-if="!collapsed" class="ml-2">Create Team</span>
-          </Link>
-          <div v-for="team in allTeams" :key="team.id">
-            <form @submit.prevent="switchTeam(team)">
-              <button type="submit" class="flex items-center w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors">
-                <svg v-if="team.id===currentTeamId" class="w-4 h-4 mr-2 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-                <span v-if="!collapsed">{{ team.name }}</span>
-              </button>
-            </form>
+      </div>
+      <div v-if="showAccessControl" class="mt-2">
+        <button
+          @click="toggleSubMenu('annual_fees')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
+          <div class="flex items-center">
+            <DocumentCurrencyYenIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('annual_fees.annual_fee') }}</span>
           </div>
-        </div>
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'annual_fees' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        <transition name="slide-fade">
+          <div v-show="openSubMenu === 'annual_fees' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link :href="route('admin.annual-fees.index')"
+                  class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+                  :class="isActive('admin.annual-fees') ? 'bg-gray-300 font-semibold' : ''">
+              <DocumentCurrencyYenIcon class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">{{ t('annual_fees.annual_fee') }}</span>
+            </Link>
+          </div>
+        </transition>
+      </div>              
 
-      </nav>
-    </aside>
+            <!-- Access Control -->
+      <div v-if="showAccessControl" class="mt-2">
+        <button
+          @click="toggleSubMenu('access')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
+          <div class="flex items-center">
+            <ShieldCheckIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('access_control') }}</span>
+          </div>
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'access' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
 
-    <!-- メイン -->
-    <div class="flex-1 flex flex-col">
-      <header class="bg-white shadow flex items-center justify-between px-4 h-16">
-        <h1 class="text-lg font-semibold">My App</h1>
+        <transition name="slide-fade">
+          <div v-show="openSubMenu === 'access' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link
+              v-if="can('manage tenants')"
+              :href="route('admin.tenants.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+            >
+              <BuildingOfficeIcon class="w-4 h-4 mr-1"/>
+              {{ t('navigations.tenants') }}
+            </Link>
+            <Link
+              v-if="can('manage roles')"
+              :href="route('admin.roles.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+            >
+              <UsersIcon class="w-4 h-4 mr-1"/>
+              {{ t('navigations.roles') }}
+            </Link>
+            <Link
+              v-if="can('manage permissions')"
+              :href="route('admin.permissions.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+            >
+              <TicketIcon class="w-4 h-4 mr-1"/>
+              {{ t('navigations.permissions') }}
+            </Link>
+          </div>
+        </transition>
+      </div>      
+      <!-- Admins サブメニュー -->
+      <div class="mt-2">
+        <button
+          @click="toggleSubMenu('admins')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
+          <div class="flex items-center">
+            <UsersIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('admin') }}</span>
+          </div>
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'admins' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
 
-        <div class="flex items-center space-x-2">
-          <button v-if="isMobile" class="lg:hidden p-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-          </button>
-          <!-- button @click="logout" class="p-2 text-gray-700 hover:text-gray-900">Logout</button -->
-        </div>
-      </header>
+        <transition name="slide-fade">
+          <div v-show="openSubMenu === 'admins' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link
+              :href="route('admin.admins.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+              :class="isActive('admin.admins.index') ? 'bg-gray-200 font-semibold' : ''"
+            >
+              <UserIcon class="w-4 h-4 mr-1"/>
+              {{ t('admin') }}
+            </Link>
+          </div>
+        </transition>
+      </div>
+      <!-- Users サブメニュー -->
+      <div class="mt-2">
+        <button
+          @click="toggleSubMenu('users')"
+          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+        >
+          <div class="flex items-center">
+            <UsersIcon class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">{{ t('user') }}</span>
+          </div>
+          <svg
+            v-if="!collapsed"
+            :class="{ 'rotate-90': openSubMenu === 'users' }"
+            class="w-4 h-4 transform transition-transform duration-200"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
 
-      <main class="p-4">
-        <slot />
-      </main>
-    </div>
-  </div>
+        <transition name="slide-fade">
+          <div v-show="openSubMenu === 'users' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <Link
+              :href="route('admin.users.index')"
+              class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+              :class="isActive('admin.users.index') ? 'bg-gray-200 font-semibold' : ''"
+            >
+              <UserIcon class="w-4 h-4 mr-1"/>
+              {{ t('user') }}
+            </Link>
+          </div>
+        </transition>
+      </div>
 
-  <style>
-    .slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.2s ease; }
-    .slide-fade-enter-from, .slide-fade-leave-to { opacity: 0; max-height: 0; }
-    .slide-fade-enter-to, .slide-fade-leave-from { opacity: 1; max-height: 500px; }
-  </style>
+    </nav>
+  </aside>
+    <!-- モバイルオーバーレイ -->
+  <div
+    v-if="mobileOpen"
+    class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+    @click="mobileOpen = false"
+  ></div>
+ </div>
 </template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue'
+import { Link, usePage } from '@inertiajs/vue3'
+import {
+  HomeIcon, DocumentCurrencyYenIcon,
+  UsersIcon, UserIcon,
+  ShieldCheckIcon,
+  BuildingOfficeIcon,
+  ServerIcon,Bars3Icon, XMarkIcon, ArrowUturnLeftIcon,
+  TicketIcon,UserPlusIcon, UserMinusIcon, ArrowRightIcon
+} from '@heroicons/vue/24/outline'
+
+const page = usePage()
+
+const mobileOpen = ref(false)       // モバイル用の開閉状態
+
+const collapsed = ref(false)
+const openSubMenu = ref(null)
+
+const toggleCollapse = () => (collapsed.value = !collapsed.value)
+//const toggleSubMenu = (menu) => (openSubMenu.value = openSubMenu.value === menu ? null : menu)
+
+const { props } = usePage()
+
+const user = props.auth.admin ?? props.auth.user
+
+// i18n
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
+
+const isActive = (routeName) => false
+const hasApiFeatures = true
+const showAccessControl = true
+const can = (permission) => true
+
+// 例外マッピング
+const groupMap = {
+  tenants: 'access',
+  roles: 'access',
+  permissions: 'access',
+}
+
+// 有効なメニュー（安全対策）
+const validMenus = ['member', 'users', 'access']
+
+// 自動判定
+const detectMenu = () => {
+  const current = route().current()
+  if (!current) return null
+
+  const parts = current.split('.')
+  if (parts.length < 2) return null
+
+  let key = parts[1]
+
+  if (groupMap[key]) {
+    key = groupMap[key]
+  }
+
+  if (validMenus.includes(key)) {
+    return key
+  }
+
+  return null
+}
+
+// 初期化
+onMounted(() => {
+  // localStorage優先
+  const saved = localStorage.getItem('openMenu')
+
+  if (saved) {
+    openSubMenu.value = saved
+  } else {
+    openSubMenu.value = detectMenu()
+  }
+})
+
+// 状態保存
+watch(openSubMenu, (val) => {
+  if (val) {
+    localStorage.setItem('openMenu', val)
+  }
+})
+
+// トグル
+const toggleSubMenu = (menu) => {
+  openSubMenu.value = openSubMenu.value === menu ? null : menu
+}
+/*
+onMounted(() => {
+  if (page.url.startsWith('/admin/member') ) {
+    openSubMenu.value = 'member'
+  }
+  if (page.url.startsWith('/admin/tenants') ||
+      page.url.startsWith('/admin/roles') ||
+      page.url.startsWith('/admin/permissions')) {
+    openSubMenu.value = 'access'
+  }
+  if (page.url.startsWith('/admin/users') ) {
+    openSubMenu.value = 'users'
+  }
+})
+*/
+
+</script>
+
+<style>
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.2s ease;
+}
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.slide-fade-enter-to,
+.slide-fade-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+</style>

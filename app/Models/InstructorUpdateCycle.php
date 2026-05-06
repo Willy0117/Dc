@@ -8,6 +8,8 @@ class InstructorUpdateCycle extends Model
 {
     protected $fillable = [
         'member_id',
+        'instructor_no',
+        'exam_round',
         'start_date',
         'end_date',
         'status',

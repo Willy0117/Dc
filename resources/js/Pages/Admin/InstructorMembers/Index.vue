@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <template #header>
-      {{ t('instructor_members') }}
+      {{ t('instructors.list') }}
     </template>
 
     <div class="p-6">
@@ -27,6 +27,9 @@
       <table class="table-auto w-full border border-gray-300 text-sm">
         <thead>
           <tr class="bg-gray-200">
+            <th class="px-3 py-2">
+              <input type="checkbox" :checked="selectAll" @change="toggleSelectAll($event.target.checked)" />
+            </th>
             <th class="border px-3 py-2">{{ t('name') }}</th>
             <th class="border px-3 py-2">{{ t('update_period') }}</th>
             <th class="border px-3 py-2">{{ t('total_points') }}</th>
@@ -42,6 +45,10 @@
             :key="member.id"
             class="odd:bg-white even:bg-gray-100"
           >
+
+            <td class="px-3 py-2">
+              <input type="checkbox" :value="member.id" v-model="selectedIds" />
+            </td>
             <td class="border px-3 py-2">{{ member.name }}</td>
 
             <!-- 最新更新サイクル -->
@@ -203,6 +210,22 @@ function statusLabel(s) {
     rejected: t('rejected')
   }[s] || '-'
 }
+// 選択削除
+const selectedIds = ref([])
+
+const toggleSelectAll = (checked) => {
+  selectedIds.value = checked ? props.members.data.map(s => s.id) : []
+}
+
+const resetSelectedIds = () => {
+  selectedIds.value = []
+}
+
+const selectAll = computed({
+  get() {
+    return selectedIds.value.length === props.members.data.length
+  }
+})
 
 function statusColor(s) {
   return {

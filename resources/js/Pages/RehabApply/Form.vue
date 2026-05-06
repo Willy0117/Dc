@@ -1,21 +1,17 @@
 <template>
-    <AppLayout title="form.self_report">
-        <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ self_report }}
-            </h2>
-        </template>
+    <AppLayout :title="t('rehabs.self_report')">
+        <template #header>{{ t('rehabs.self_report') }}</template>
 
         <div class="py-12">
             <SelfReportSection v-model="form.self_report" />
 
             <div class="flex justify-end">
-                <button
+                <PrimaryButton 
                     @click="saveSelfReport"
                     class="btn-primary"
                 >
                     {{ t('save') }}
-                </button>
+                </PrimaryButton>
             </div>
         </div>
   </Applayout>
@@ -27,6 +23,10 @@ import { reactive, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 import SelfReportSection from './Components/SelfReportSection.vue'
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Inertia } from '@inertiajs/inertia'
 
 // Inertia props を取得

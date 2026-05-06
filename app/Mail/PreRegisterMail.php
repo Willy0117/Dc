@@ -12,13 +12,15 @@ class PreRegisterMail extends Mailable
     use Queueable, SerializesModels;
 
     public PreUser $preUser;
+    public bool $isAgent;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(PreUser $preUser)
+    public function __construct(PreUser $preUser, bool $isAgent = false)
     {
         $this->preUser = $preUser;
+        $this->isAgent = $isAgent;
     }
 
     /**
@@ -26,13 +28,22 @@ class PreRegisterMail extends Mailable
      */
     public function build()
     {
+        // ★ URL をここで組み立てる
+        $url = route('members.register', [
+            'token' => $this->preUser->token,
+        ]);
+
+        if ($this->isAgent) {
+            $url .= '?agent';
+        }
+
         return $this
             ->subject('全国中小建設工事業団体連合会 メールアドレスの確認')
             ->view('emails.pre_register')
             ->with([
-                'url' => route('members.register', ['token' => $this->preUser->token]),
+                'url'   => $url,
                 'email' => $this->preUser->email,
             ]);
-    }
+    }    
 }
 

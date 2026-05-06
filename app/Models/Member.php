@@ -2,46 +2,86 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Permission\Traits\HasRoles;
 
 class Member extends Model
 {
-    use HasRoles;
-    use HasFactory;
-    
-    protected $table = 'members';
-
     protected $fillable = [
-        'company_name',
-        'company_furigana',
-        'representative',
-        'representative_furigana',
-        'address_zip',
-        'address',
-        'email',
+        'first_name',
+        'last_name',
         'tel',
-        'fax',
+        'status_id',
+        'name',
+        'postal_code',
+        'address1',
+        'address2',
+        'address3',
         'mobile',
-        'staff',
-        'agree',
-        'affiliate',
-        'agreed_at',
-        'history_certificate_path',
-        'history_certificate_thumbnail_path',
-        'status',
+        'fax',
+        'email',
     ];
+    
+    protected $appends = [
+        'full_name',
+        'full_address',
+    ];
+    
+    public function user()
+    {
+        return $this->hasOne(User::class);
+    }
+    public function status()
+    {
+        return $this->belongsTo(Status::class);
+    }
 
-    protected $casts = [
-        'agree'     => 'boolean',
-        'affiliate' => 'boolean',
-        'agreed_at' => 'datetime',
-        'verified_at' => 'datetime',
-    ];
+    public function updateCycles()
+    {
+        return $this->hasMany(InstructorUpdateCycle::class);
+    }
+    
+    public function latestCycle()
+    {
+        return $this->hasOne(InstructorUpdateCycle::class)
+            ->latestOfMany('end_date');
+    }
+
+    public function pdfUploads()
+    {
+        return $this->hasMany(PdfUpload::class);
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(Report::class);
+    }
 
     public function bankAccount()
     {
         return $this->hasOne(BankAccount::class);
     }
+    public function roles()
+    {
+        return $this->hasMany(MemberRole::class);
+    }
+    /* =====================
+     |  表示用ラベル
+     * ===================== */
+    public function getFullNameAttribute()
+    {
+        return collect([
+            $this->last_name,
+            $this->first_name,
+        ])->filter()->implode('');
+    }
+
+    public function getFullAddressAttribute()
+    {
+        return collect([
+            $this->address1,
+            $this->address2,
+            $this->address3,
+        ])->filter()->implode('');
+    }
+
 }

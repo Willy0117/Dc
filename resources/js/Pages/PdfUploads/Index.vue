@@ -2,17 +2,16 @@
   <AppLayout :title="$t('pdf_upload')">
     <template #header>{{ $t('pdf_upload') }}</template>
 
-    <div class="max-w-3xl mx-auto py-6 space-y-6">
+    <div class="mx-auto py-6 space-y-6">
 
       <!-- PDFアップロードフォーム -->
-      <div class="p-4 border rounded bg-gray-50">
+      <div class="p-4 border rounded">
         <h2 class="text-lg font-semibold mb-2">{{ $t('upload_pdf') }}</h2>
 
         <form @submit.prevent="submit" class="space-y-4">
-
           <!-- ファイルドラッグ&ドロップ -->
           <div
-            class="border-2 border-dashed border-gray-300 p-4 rounded cursor-pointer text-center"
+            class="border-2 border-dashed border-gray-300 p-4 rounded cursor-pointer text-center bg-[#ddd5bc]"
             @dragover.prevent
             @drop.prevent="onFileDrop"
           >
@@ -22,12 +21,13 @@
               {{ $t('select_file') }}
             </button>
             <p v-if="form.file">{{ form.file.name }}</p>
+            <InputError :message="form.errors?.file" />
           </div>
 
           <!-- カテゴリ -->
           <div>
             <label class="block mb-1">{{ $t('category') }}</label>
-            <select v-model.number="form.credit_category_id" required class="input w-full">
+            <select v-model.number="form.credit_category_id" class="input-field">
               <option value="" disabled>{{ $t('select_category') }}</option>
               <option v-for="c in props.creditCategories" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
@@ -36,7 +36,7 @@
           <!-- conference -->
           <div v-if="filteredConferences.length > 0">
             <label class="block mb-1">{{ $t('conference') }}</label>
-            <select v-model.number="form.credit_conference_id" required class="input w-full">
+            <select v-model.number="form.credit_conference_id" class="input-field">
               <option value="" disabled>{{ $t('select_conference') }}</option>
               <option v-for="conf in filteredConferences" :key="conf.id" :value="conf.id">{{ conf.name }}</option>
             </select>
@@ -45,13 +45,13 @@
           <!-- 学術集会のみ session -->
           <div v-if="selectedCategoryIsAcademic">
             <label class="block mb-1">{{ $t('session') }}</label>
-            <input v-model="form.session" type="text" class="input w-full" placeholder="第14回" />
+            <TextInput v-model="form.session" type="text" placeholder="第14回" />
           </div>
 
           <!-- role -->
           <div v-if="filteredRoles.length > 0">
             <label class="block mb-1">{{ $t('role') }}</label>
-            <select v-model="form.role_id" required class="input w-full">
+            <select v-model="form.role_id" class="input-field">
               <option value="" disabled>{{ $t('select_role') }}</option>
               <option v-for="r in filteredRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
             </select>
@@ -64,7 +64,10 @@
           </div>
 
           <div class="flex justify-end">
-            <button type="submit" class="btn-primary">{{ $t('upload') }}</button>
+            <PrimaryButton type="submit" class="btn-primary"
+            >
+             {{ $t('upload') }}
+            </PrimaryButton>
           </div>
 
         </form>
@@ -76,7 +79,7 @@
 
         <div v-if="props.uploads.length === 0" class="text-gray-500">{{ $t('no_uploads') }}</div>
 
-        <div v-else class="grid grid-cols-3 gap-4">
+        <div v-else class="grid grid-cols-4 gap-4">
           <div v-for="upload in props.uploads" :key="upload.id" class="border rounded p-2">
             <div class="text-sm font-medium">{{ upload.credit_conference_name }}</div>
             <div class="text-xs text-gray-500">{{ upload.role_name }} - {{ upload.category_name }}</div>
@@ -92,13 +95,19 @@
             </div>
 
             <div class="flex justify-between items-center mt-1">
-              <a
+              <button
+                @click="previewPdf = `/pdf-uploads/${upload.id}/view`"
+                class="text-blue-600 hover:underline text-xs"
+              >
+                {{ $t('view_pdf') }}
+              </button>
+              <!--a
                 :href="`/pdf-uploads/${upload.id}/view`"
                 target="_blank"
                 class="text-blue-600 hover:underline text-xs"
               >
                 {{ $t('view_pdf') }}
-              </a>
+            </a -->
 
               <span
                 class="text-xs px-1 rounded"
@@ -120,13 +129,53 @@
       </div>
 
     </div>
+    <div>
+      <DialogModal
+        :show="!!previewPdf"
+        maxWidth="7xl"
+        @close="previewPdf = null"
+      >
+        <template #title>
+          {{ t('PDFpreview') }}
+        </template>
+
+        <template #content>
+          <div class="w-[90vw] h-[80vh]">
+            <iframe
+              v-if="previewPdf"
+              :src="previewPdf"
+              class="w-full h-full border"
+            />
+          </div>
+        </template>
+
+        <template #footer>
+          <SecondaryButton @click="previewPdf = null">
+            {{ t('closed') }}
+          </SecondaryButton>
+        </template>
+      </DialogModal>
+    </div>
   </AppLayout>
 </template>
 
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { useForm } from '@inertiajs/vue3'
+import DialogModal from '@/Components/DialogModal.vue';
+import { useForm, Link, router, usePage } from '@inertiajs/vue3'
+
 import { ref, computed , watch } from 'vue'
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const page = usePage()
 
 const props = defineProps({
   uploads: { type: Array, required: true },
@@ -180,17 +229,33 @@ watch(() => form.credit_conference_id, (v) => {
   console.log("選択中 conference_id:", v, typeof v);
 });
 
+const previewPdf = ref(null)
+
+const openPdf = (pdfPath) => {
+  console.log('PDF PATH:', pdfPath)
+  if (!pdfPath) return
+
+  // 例：フルパス化
+  previewPdf.value = pdfPath
+
+  // 例：ここで loading true
+}
+
 function submit() {
   console.log(form)
-  form.post('/pdf-uploads', {
-    file: form.file,
-    credit_category_id: form.credit_category_id,
-    credit_conference_id: form.credit_conference_id,
-    role_id: form.role_id, 
-    session: form.session
-  })
+  if (!form.file) {
+    form.errors.file = 'ファイルを選択してください'
+    return
+  }
+
+  form.post('/pdf-uploads')
 }
 
 </script>
-
+<style>
+.input-field {
+  @apply w-full rounded-md border border-gray-300 px-3 py-2 text-sm
+         shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500;
+}
+</style>
 

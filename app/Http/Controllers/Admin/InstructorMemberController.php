@@ -16,11 +16,14 @@ class InstructorMemberController extends Controller
         $page = $request->page ?? 1;
 
         // ベースクエリ
+        $query = Member::whereHas('user')
+          ->with(['updateCycles', 'pdfUploads', 'user']);
+/*
         $query = Member::whereHas('user.roles', function($q){
             $q->where('name', 'instructor');
         })
         ->with(['updateCycles', 'pdfUploads', 'user']);
-
+*/
         if (!empty($search)) {
             $query->where('name', 'like', "%{$search}%");
         }

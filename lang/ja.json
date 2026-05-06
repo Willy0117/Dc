@@ -1,0 +1,17 @@
+{
+    "app": {
+        "ok": "OK",
+        "cancel": "Cancel",
+        "save": "Save",
+        "language": "Language",
+        "japanese": "Japanese",
+        "english": "English",
+        "search": "検索",
+        "customer_list": "Customer List",
+        "search_placeholder": "会社名、代表者名、担当者名で検索...",
+        "delete": "Delete",
+        "add": "追　加",
+        "filter": "Filter",
+        "item_count": "{0} No items|{1} :count item|[2,*] :count items"
+    }
+}

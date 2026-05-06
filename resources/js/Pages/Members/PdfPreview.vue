@@ -1,43 +1,84 @@
 <template>
   <GuestLayout>
+    <RegisterStep current="bank" />
     <Head title="PDF確認" />
 
     <div class="max-w-5xl mx-auto bg-white p-6 rounded shadow">
       <h2 class="text-xl font-bold mb-4">口座振替申請書 確認</h2>
 
-      <canvas ref="canvas" class="border w-full mb-4"></canvas>
+      <div
+        id="pdf-container"
+        class="space-y-6 overflow-y-auto max-h-[80vh] border p-4 bg-gray-50"
+      ></div>
 
-      <div class="flex gap-4">
-        <a
-          :href="pdfUrl"
-          download
-          class="bg-blue-600 text-white px-4 py-2 rounded"
+      <div class="space-y-3 mt-6">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" v-model="confirmed" />
+          <span>記載内容に相違ありません。</span>
+        </label>
+
+        <label class="flex items-center gap-2">
+          <input type="checkbox" v-model="downloaded" />
+          <span>PDFをダウンロードしました。</span>
+        </label>
+      </div>
+
+      <div class="flex gap-4 items-center">
+        <PrimaryButton
+          type="button"
+          class="mt-6 h-10 px-4 flex items-center justify-center"
+          :disabled="!canSubmit"
+          @click="submitRegister"
         >
-          ダウンロード
+          データ登録
+        </PrimaryButton>
+
+        <a
+          :href="confirmed ? pdfUrl : null"
+          download
+          class="mt-6 h-10 px-4 flex items-center justify-center rounded text-white"
+          :class="confirmed
+            ? 'bg-blue-600 cursor-pointer'
+            : 'bg-gray-400 cursor-not-allowed pointer-events-none'
+          "
+        >
+          {{ t('download') }}
         </a>
 
         <button
           @click="goBack"
-          class="bg-gray-300 px-4 py-2 rounded"
+          class="mt-6 h-10 px-4 flex items-center justify-center rounded bg-gray-300"
         >
-          戻る
+          {{ t('revise') }}
         </button>
       </div>
+
     </div>
   </GuestLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import GuestLayout from '@/Layouts/GuestLayout.vue'
+import RegisterStep from '@/Components/RegisterStep.vue'    
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const canvas = ref(null)
 const page = usePage()
 const pdfUrl = usePage().props.pdfUrl
 
+const confirmed = ref(false)
+const downloaded = ref(false)
+
+const canSubmit = computed(() => {
+  return confirmed.value && downloaded.value
+})
+
 onMounted(async () => {
-  // PDF.js CDN
   const pdfjsLib = window.pdfjsLib
 
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -49,20 +90,37 @@ onMounted(async () => {
     cMapPacked: true,
   }).promise
 
-  const page1 = await pdf.getPage(1)
+  const container = document.getElementById('pdf-container')
 
-  const viewport = page1.getViewport({ scale: 1.5 })
-  const context = canvas.value.getContext('2d')
+  // 全ページ描画
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum)
 
-  canvas.value.height = viewport.height
-  canvas.value.width = viewport.width
+    const viewport = page.getViewport({ scale: 1.5 })
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
 
-  await page1.render({
-    canvasContext: context,
-    viewport,
-    renderInteractiveForms: true,
-  }).promise
+    canvas.width = viewport.width
+    canvas.height = viewport.height
+    canvas.classList.add('shadow', 'mx-auto')
+
+    container.appendChild(canvas)
+
+    await page.render({
+      canvasContext: context,
+      viewport,
+      renderInteractiveForms: true,
+    }).promise
+  }
 })
+
+const submitRegister = () => {
+  router.get(
+    route('members.completeRegistration', {
+      token: page.props.token,
+    })
+  )
+}
 
 const goBack = () => {
   router.get(

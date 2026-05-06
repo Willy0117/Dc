@@ -5,9 +5,18 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
+const props = defineProps({
+  isAgent: {
+    type: Boolean,
+    default: false,
+  },
+})
+
 const form = useForm({
   email: '',
+  is_agent: props.isAgent, // ★これが命
 })
+
 </script>
 
 <template>

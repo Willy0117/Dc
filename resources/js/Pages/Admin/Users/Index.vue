@@ -88,27 +88,22 @@
             <th class="px-3 py-2">
               <input type="checkbox" :checked="selectAll" @change="toggleSelectAll($event.target.checked)" />
             </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('code')">
-              {{ t('code') }}
-              <span v-if="form.sort==='code'">{{ form.direction==='asc'?'▲':'▼' }}</span>
+            <th class="px-3 py-2 cursor-pointer" @click="sortBy('organization_id')">
+              {{ t('users.organization') }}
+              <span v-if="form.sort_by==='organization_id'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
+            </th>
+            <th class="px-3 py-2 cursor-pointer" @click="sortBy('username')">
+              {{ t('users.username') }}
+              <span v-if="form.sort_by==='usename'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
             </th>
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('name')">
               {{ t('name') }}
-              <span v-if="form.sort==='name'">{{ form.direction==='asc'?'▲':'▼' }}</span>
+              <span v-if="form.sort_by==='name'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
             </th>
             <th class="px-3 py-2 cursor-pointer" @click="sortBy('email')">
               {{ t('email') }}
-              <span v-if="form.sort==='email'">{{ form.direction==='asc'?'▲':'▼' }}</span>
+              <span v-if="form.sort_by==='email'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
             </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('tenant_id')">
-              {{ t('tenant_id') }}
-              <span v-if="form.sort==='tenant_id'">{{ form.direction==='asc'?'▲':'▼' }}</span>
-            </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('role')">
-              {{ t('role') }}
-              <span v-if="form.sort==='role'">{{ form.direction==='asc'?'▲':'▼' }}</span>
-            </th>
-
             <th class="px-3 py-2">{{ t('updated_at') }}</th>
             <th class="px-3 py-2 text-center">{{ t('actions') }}</th>
           </tr>
@@ -118,11 +113,10 @@
             <td class="px-3 py-2">
               <input type="checkbox" :value="user.id" v-model="selectedIds" />
             </td>
-            <td class="px-3 py-2">{{ user.code }}</td>
+            <td class="px-3 py-2">{{ user.organization?.name ?? '-' }} {{ user.organization?.abbr ?? '-' }}</td>
+            <td class="px-3 py-2">{{ user.username }}</td>
             <td class="px-3 py-2">{{ user.name }}</td>
             <td class="px-3 py-2">{{ user.email }}</td>
-            <td class="px-3 py-2">{{ user.tenant_id }}</td>
-            <td class="px-3 py-2">{{ user.roles?.[0]?.name ?? '-' }}</td>
             <td class="px-3 py-2">{{ user.updated_at ? dayjs(user.updated_at).format('YYYY/MM/DD HH:mm:ss') : '' }}</td>
             <td class="px-3 py-2 text-center flex justify-center space-x-1">
               <button @click="copyUser(user.id)" class="text-green-500 hover:text-green-700">
@@ -167,8 +161,8 @@ const form = reactive({
   email: props.filters.email || '',
   tenant_id: props.filters.tenant_id || '',
   per_page: props.filters.per_page || 20,
-  sort: props.filters.sort || 'id',
-  direction: props.filters.direction || 'asc'
+  sort_by: props.filters.sort_by || 'id',
+  sort_dir: props.filters.sort_dir || 'desc'
 })
 const selectedIds = ref([])
 
@@ -189,7 +183,7 @@ const persistQuery = () => ({
   tenant_id: form.tenant_id,
   per_page: form.per_page,
   sort_by: form.sort,
-  sort_dir: form.direction,
+  sort_dir: form.sort_dir,
   page: props.users.current_page
 })
 
@@ -206,8 +200,8 @@ const goPage = (page) => {
 }
 
 const sortBy = (field) => {
-  if (form.sort === field) form.direction = form.direction==='asc'?'desc':'asc'
-  else { form.sort = field; form.direction = 'asc' }
+  if (form.sort === field) form.sort_dir = form.sort_dir==='asc'?'desc':'asc'
+  else { form.sort = field; form.sort_dir = 'asc' }
   submitSearch()
 }
 

@@ -13,6 +13,8 @@
 
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue';
+import RegisterStep from '@/Components/RegisterStep.vue'    
+
 import { usePage } from '@inertiajs/vue3';
 
 const { props } = usePage();

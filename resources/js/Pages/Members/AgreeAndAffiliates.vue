@@ -1,9 +1,11 @@
 <template>
   <GuestLayout>
-    <Head :title="t('register.title')" />
+    <RegisterStep current="agree" />
+
+    <Head :title="t('registers.title')" />
 
     <div class="max-w-4xl mx-auto bg-white p-8 rounded shadow">
-      <h2 class="text-2xl font-bold mb-6">{{ t('register.title') }}</h2>
+      <h2 class="text-2xl font-bold mb-6">{{ t('registers.title') }}</h2>
 
       <form @submit.prevent="submitForm" class="space-y-6">
 
@@ -24,7 +26,7 @@
         </div>
 
         <PrimaryButton class="mt-4">
-          次へ進む
+          {{ t('members.next') }}
         </PrimaryButton>
 
       </form>
@@ -34,11 +36,12 @@
 
 <script setup>
 import { ref , computed } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { usePage, router, useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import Agree from '@/Components/Agree.vue';
+import RegisterStep from '@/Components/RegisterStep.vue'    
 import AffiliatesList from '@/Components/AffiliatesList.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 
@@ -53,37 +56,45 @@ const errors = props.errors || {};
 // token を安全に取得
 const token = props.token;
 
-// フォーム
-const form = ref({
-  agree: false,
-  agree_at: null,
-  affiliate: null
+const form = useForm({
+  agree: props.agree ?? false,
+  affiliate: props.affiliate ?? null,
+  is_agent: props.is_agent ?? false,  
 });
-
+console.log(form)
 // 送信
 const submitForm = () => {
-  if (!form.value.agree) {
+  if (!form.agree) {
     alert('誓約書に同意してください');
     return;
   }
 
   // 加盟団体チェック
-  if (!form.value.affiliate) {
+  if (!form.affiliate) {
     alert('加盟団体の選択をしてください');
     return;
   }
-
-  // 加盟済みの場合は Rejected ページへ遷移
-  if (form.value.affiliate === 'yes') {
-    router.visit(route('members.register.rejected', { token }));
-    return;
+  // 加盟済みなら rejected
+  if (form.affiliate === 'yes') {
+    router.visit(route('members.register.rejected', { token }))
+    return
   }
-  // 同意日時をセット
-  form.value.agree_at = new Date().toISOString();
-  // 加盟団体に加入している場合
+
+  // Register へ遷移（POSTしない）
+  router.visit(
+    route('members.register.register', {
+      token,
+      agent: form.is_agent ? 1 : undefined,
+    }),
+    {
+      preserveState: false,
+    }
+  )
+};
+/*
   router.post(
     route('members.register.agree', { token }),
-    form.value,
+    form,
     {
       onSuccess: () => {
         // Registory ページへ遷移
@@ -95,5 +106,6 @@ const submitForm = () => {
       }
     }
   );
-};
+  */
+
 </script>
