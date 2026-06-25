@@ -1,530 +1,411 @@
 <template>
   <AppLayout>
-    <template #header>{{ t('members.member_list') }}</template>
-    <div dir="rtl">
-      <!-- 検索 トリガーボタン -->
-        <div class="relative size-4 ...">
-          <div class="absolute start-0 top-0 size-14 ...">
-              <button
-              @click="openDrawer = true"
-              class="p-2 rounded hover:bg-gray-200 flex items-center justify-center"
-            >
-              <MagnifyingGlassIcon class="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
-    </div>
-    <div class="p-6">
-      <!-- 右側 Drawer -->
-      <div v-if="openDrawer" class="fixed inset-0 z-40">
-        <!-- 背景オーバーレイ -->
-        <div class="absolute inset-0 bg-black bg-opacity-30" @click="openDrawer = false"></div>
+    <template #header>会員一覧</template>
 
-        <!-- 右側 Drawer -->
-        <aside
-          class="absolute top-0 right-0 h-full bg-white shadow-lg z-50 flex flex-col transition-all duration-300 overflow-hidden"
-          :style="{ width: openDrawer ? '20rem' : '0rem' }"
-        >      
-          <div class="p-4 flex justify-between items-center border-b">
-            <h2 class="text-lg font-bold">{{ t('search') }}</h2>
-            <button @click="openDrawer = false" class="text-gray-500 hover:text-gray-700">&times;</button>
-          </div>
+    <div class="p-6 space-y-4">
 
-          <div class="p-4 space-y-3">
-            <select v-if="isSuperAdmin" v-model="form.tenant_id" class="border rounded px-3 py-2 w-full">
-              <option value="">{{ t('please_select') }}</option>
-              <option v-for="t in tenants" :key="t.id" :value="t.id">
-                {{ t.name }}
-              </option>
-            </select>
-            <!-- 既存 form をそのまま利用 -->
-            <input v-model="form.code" type="text" :placeholder="t('code')" class="border rounded px-3 py-2 w-full" />
-            <input v-model="form.name" type="text" :placeholder="t('name')" class="border rounded px-3 py-2 w-full" />
-            <select v-model="form.process_id" class="border rounded px-3 py-2 w-full">
-              <option value="">{{ t('please_select') }}</option>
-              <option v-for="p in processes" :key="p.id" :value="p.id">
-                {{ p.name }}
-              </option>
-            </select>
-            <select v-model="form.measurement" class="border rounded px-3 py-2 w-full">
-              <option :value="null">{{ t('please_select')}}</option>
-              <option value="0">{{ t('dont') }}</option>
-              <option value="1">{{ t('do') }}</option>
-            </select>
-
-            <div class="flex justify-end space-x-2 mt-4">
-              <button @click="submitSearch(); openDrawer = false"
-                      class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                {{ t('search') }}
-              </button>
-              <button @click="openDrawer = false"
-                      class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
-                {{ t('close') }}
-              </button>
-            </div>
-          </div>
-        </aside>
-      </div>       
-
-      <div class="flex flex-wrap md:flex-nowrap md:justify-between mb-4 items-center gap-2">
-
-        <!-- per_page + add -->
+      <!-- ツールバー -->
+      <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <select
-            v-model.number="form.per_page"
-            @change="submitSearch"
-            class="border rounded px-3 py-2 w-16 h-10"
-          >
-            <option v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</option>
-          </select>
+          <!-- 件数 -->
+          <Select v-model="form.per_page" @update:modelValue="submitSearch">
+            <SelectTrigger class="w-20 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</SelectItem>
+            </SelectContent>
+          </Select>
 
+          <!-- 複数削除 -->
+          <Button
+            v-if="selectedIds.length > 0"
+            variant="destructive"
+            size="sm"
+            @click="bulkDelete"
+          >
+            <Trash2 class="w-3.5 h-3.5 mr-1" />
+            {{ selectedIds.length }}件削除
+          </Button>
         </div>
 
-        <!-- 複数削除ボタン -->
-        <!-- button
-          @click="bulkDelete"
-          :disabled="selectedIds.length === 0"
-          class="px-4 h-10 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center space-x-1"
-        >
-          <TrashIcon class="w-4 h-4"/>
-          <span>{{ t('delete_selected') }}</span>
-        </button -->
+        <div class="flex items-center gap-2">
+          <!-- 新規登録 -->
+          <Button size="sm" as-child>
+            <Link :href="route('admin.members.create')">
+              <Plus class="w-3.5 h-3.5 mr-1" />新規登録
+            </Link>
+          </Button>
+          <!-- 検索 -->
+          <Button variant="outline" size="sm" @click="openDrawer = true">
+            <Search class="w-3.5 h-3.5 mr-1" />検索
+          </Button>
+        </div>
       </div>
 
-      <!-- 会員一覧テーブル -->
-      <table class="min-w-full table-auto border-collapse border border-gray-300 text-sm">
-        <thead>
-          <tr class="bg-gray-200">
-            <th class="px-3 py-2">
-              <input type="checkbox" :checked="selectAll" @change="toggleSelectAll($event.target.checked)" />
-            </th>
-            <th v-if="isSuperAdmin">{{ t('tenant') }}</th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('name')">
-              {{ t('members.name') }}
-              <span v-if="form.sort_by==='name'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
-            </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('tel')">
-              {{ t('members.tel') }}
-              <span v-if="form.sort_by==='tel'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
-            </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('fax')">
-              {{ t('members.fax') }}
-              <span v-if="form.sort_by==='fax'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
-            </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('address')">
-              {{ t('members.address') }}
-              <span v-if="form.sort_by==='address'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
-            </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('email')">
-              {{ t('members.email') }}
-              <span v-if="form.sort_by==='email'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
-            </th>
-            <th class="px-3 py-2 cursor-pointer" @click="sortBy('created_at')">
-              {{ t('updated_at') }}
-              <span v-if="form.sort_by==='created_at'">{{ form.sort_dir==='asc'?'▲':'▼' }}</span>
-            </th>
-            <th class="px-3 py-2 text-center">{{ t('actions.action') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="member in members.data" :key="member.id" class="odd:bg-white even:bg-gray-100">
+      <!-- 検索中バッジ -->
+      <div v-if="hasActiveFilters" class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-muted-foreground">検索条件:</span>
+        <Badge v-if="form.keyword" variant="secondary" class="gap-1">
+          キーワード: {{ form.keyword }}
+          <button @click="form.keyword = ''; submitSearch()"><X class="w-3 h-3" /></button>
+        </Badge>
+        <Badge v-if="form.status_id" variant="secondary" class="gap-1">
+          状況: {{ statusLabels[form.status_id] }}
+          <button @click="form.status_id = ''; submitSearch()"><X class="w-3 h-3" /></button>
+        </Badge>
+        <Badge v-if="form.member_type" variant="secondary" class="gap-1">
+          種別: {{ form.member_type }}
+          <button @click="form.member_type = ''; submitSearch()"><X class="w-3 h-3" /></button>
+        </Badge>
+      </div>
 
-            <td class="px-3 py-2">
-              <input type="checkbox" :value="member.id" v-model="selectedIds" />
-            </td>
-            <td v-if="isSuperAdmin">
-              {{ tenants.find(t => t.id === member.tenant_id)?.name || '-' }}
-            </td>            
-            <td class="px-3 py-2">{{ member.name ?? '-' }}</td>
-            <td class="px-3 py-2">{{ member.tel ?? '-' }}</td>
-            <td class="px-3 py-2">{{ member.fax ?? '-' }}</td>
-            <td class="px-3 py-2">{{ member.full_address ?? '-' }}</td>
-            <td class="px-3 py-2">{{ member.email ?? '-' }}</td>
-            <td class="px-3 py-2">{{ member.created_at ? dayjs(member.created_at).format('YYYY/MM/DD') : '' }}</td>
-            <td class="px-3 py-2 text-center flex justify-center space-x-1">
-              <Link :href="route('admin.member.edit', { member: member.id, ...persistQuery() })" class="text-blue-500 hover:text-blue-700">
-                <PencilIcon class="w-4 h-4"/>
-              </Link>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- テーブル -->
+      <div class="border rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-muted/50">
+            <tr>
+              <th class="px-3 py-2.5 w-8">
+                <Checkbox :checked="selectAll" @update:checked="toggleSelectAll" />
+              </th>
+              <th class="px-3 py-2.5 text-left font-medium cursor-pointer hover:text-foreground text-muted-foreground" @click="sortBy('member_number')">
+                会員番号
+                <SortIcon field="member_number" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <th class="px-3 py-2.5 text-left font-medium cursor-pointer hover:text-foreground text-muted-foreground" @click="sortBy('last_name')">
+                氏名
+                <SortIcon field="last_name" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">所属</th>
+              <th class="px-3 py-2.5 text-left font-medium cursor-pointer hover:text-foreground text-muted-foreground" @click="sortBy('email')">
+                メール
+                <SortIcon field="email" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">電話</th>
+              <th class="px-3 py-2.5 text-left font-medium cursor-pointer hover:text-foreground text-muted-foreground" @click="sortBy('status_id')">
+                状況
+                <SortIcon field="status_id" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <th class="px-3 py-2.5 text-left font-medium cursor-pointer hover:text-foreground text-muted-foreground" @click="sortBy('joined_at')">
+                入会日
+                <SortIcon field="joined_at" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <th class="px-3 py-2.5 text-center font-medium text-muted-foreground">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr v-if="members.data.length === 0">
+              <td colspan="9" class="px-3 py-12 text-center text-muted-foreground">
+                <Users class="w-8 h-8 mx-auto mb-2 opacity-30" />
+                会員が見つかりません
+              </td>
+            </tr>
+            <tr
+              v-for="member in members.data"
+              :key="member.id"
+              class="hover:bg-muted/30 transition-colors"
+            >
+              <td class="px-3 py-2.5">
+                <Checkbox :value="member.id" v-model:checked="selectedIds" />
+              </td>
+              <td class="px-3 py-2.5 font-mono text-xs text-muted-foreground">
+                {{ member.member_number ?? '-' }}
+              </td>
+              <td class="px-3 py-2.5">
+                <Link :href="route('admin.members.show', member.id)" class="font-medium hover:underline">
+                  {{ member.full_name ?? '-' }}
+                </Link>
+                <div v-if="member.full_name_kana" class="text-xs text-muted-foreground">{{ member.full_name_kana }}</div>
+              </td>
+              <td class="px-3 py-2.5 text-sm text-muted-foreground">
+                {{ member.organization?.name ?? '-' }}
+              </td>
+              <td class="px-3 py-2.5 text-sm">{{ member.email ?? '-' }}</td>
+              <td class="px-3 py-2.5 text-sm">{{ member.tel ?? '-' }}</td>
+              <td class="px-3 py-2.5">
+                <Badge :variant="statusVariant(member.status_id)">
+                  {{ statusLabels[member.status_id] ?? '-' }}
+                </Badge>
+              </td>
+              <td class="px-3 py-2.5 text-sm text-muted-foreground">
+                {{ member.joined_at ? dayjs(member.joined_at).format('YYYY/MM/DD') : '-' }}
+              </td>
+              <td class="px-3 py-2.5">
+                <div class="flex items-center justify-center gap-1">
+                  <Button variant="ghost" size="icon" class="h-7 w-7" as-child>
+                    <Link :href="route('admin.members.edit', { id: member.id, ...persistQuery() })">
+                      <Pencil class="w-3.5 h-3.5" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-7 w-7 text-destructive hover:text-destructive"
+                    @click="deleteMember(member)"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- ページネーション -->
-      <Pagination :paginator="members" :onPageChange="goPage" :startItem="startItem" :endItem="endItem"/>
+      <div class="flex items-center justify-between text-sm text-muted-foreground">
+        <span>{{ startItem }}〜{{ endItem }} 件 / 全{{ members.total }}件</span>
+        <Pagination :paginator="members" :onPageChange="goPage" />
+      </div>
     </div>
 
-    <div>
- 
-      <DialogModal :show="showStatusModal" @close="closeModal">
-        <template #title>
-          ステータス変更
-        </template>
+    <!-- ========== 検索 Drawer ========== -->
+    <Teleport to="body">
+      <div v-if="openDrawer" class="fixed inset-0 z-40">
+        <div class="absolute inset-0 bg-black/30" @click="openDrawer = false" />
+        <aside class="absolute top-0 right-0 h-full w-80 bg-background shadow-xl z-50 flex flex-col">
+          <div class="flex items-center justify-between px-5 py-4 border-b">
+            <h2 class="font-bold">検索</h2>
+            <Button variant="ghost" size="icon" @click="openDrawer = false">
+              <X class="w-4 h-4" />
+            </Button>
+          </div>
+          <div class="flex-1 overflow-y-auto p-5 space-y-4">
+            <div class="space-y-1.5">
+              <Label>キーワード（氏名・かな・メール・会員番号）</Label>
+              <Input v-model="form.keyword" placeholder="検索ワードを入力" />
+            </div>
+            <div class="space-y-1.5">
+              <Label>会員状況</Label>
+              <Select v-model="form.status_id">
+                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">すべて</SelectItem>
+                  <SelectItem v-for="(label, id) in statusLabels" :key="id" :value="Number(id)">{{ label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="space-y-1.5">
+              <Label>会員種別</Label>
+              <Select v-model="form.member_type">
+                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">すべて</SelectItem>
+                  <SelectItem value="regular">正会員</SelectItem>
+                  <SelectItem value="student">学生会員</SelectItem>
+                  <SelectItem value="honorary">名誉会員</SelectItem>
+                  <SelectItem value="supporting">賛助会員</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div class="px-5 py-4 border-t flex gap-2">
+            <Button class="flex-1" @click="submitSearch(); openDrawer = false">
+              <Search class="w-3.5 h-3.5 mr-1" />検索
+            </Button>
+            <Button variant="outline" @click="resetSearch">リセット</Button>
+          </div>
+        </aside>
+      </div>
+    </Teleport>
 
-        <template #content>
-          <select
-            v-model="statusForm.status_id"
-            class="w-full border rounded px-3 py-2"
-          >
-            <option
-              v-for="s in statuses"
-              :key="s.id"
-              :value="s.id"
-            >
-              {{ s.name }}
-            </option>
-          </select>
-        </template>
-        <template #footer>
-          <SecondaryButton @click="closeModal">
-            <v-spacer />
-            <v-btn text @click="showStatusModal = false">{{ t('cancel') }}</v-btn>
-          </SecondaryButton>
-          <PrimaryButton class="ms-3" @click="submitStatus">
-              {{ t('actions.update') }}
-          </PrimaryButton>
-        </template>
-      </DialogModal>
+    <!-- ========== ステータス変更モーダル ========== -->
+    <Dialog v-model:open="showStatusModal">
+      <DialogContent class="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>会員状況を変更</DialogTitle>
+        </DialogHeader>
+        <Select v-model="statusForm.status_id">
+          <SelectTrigger><SelectValue placeholder="選択してください" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="(label, id) in statusLabels" :key="id" :value="Number(id)">{{ label }}</SelectItem>
+          </SelectContent>
+        </Select>
+        <DialogFooter>
+          <Button variant="outline" @click="showStatusModal = false">キャンセル</Button>
+          <Button @click="submitStatus">更新</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-
-
-   
-    </div>
   </AppLayout>
 </template>
 
 <script setup>
-import AppLayout from '@/Layouts/Admin/AppLayout.vue'
-import Pagination from '@/Components/Pagination.vue'
-import DialogModal from '@/Components/DialogModal.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-
+import { ref, reactive, computed, watch } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
-import { Link, usePage, router } from '@inertiajs/vue3'
-import { ref, reactive, computed, watch} from 'vue'
-import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
-import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, DocumentPlusIcon} from '@heroicons/vue/24/outline'
+import {
+  Search, Plus, Trash2, Pencil, Eye, X, Upload, Users
+} from 'lucide-vue-next'
 
-const page = usePage()
+import AppLayout      from '@/Layouts/Admin/AppLayout.vue'
+import Pagination     from '@/Components/Pagination.vue'
+import SortIcon       from '@/Components/SortIcon.vue'
+import { Button }     from '@/components/ui/button'
+import { Input }      from '@/components/ui/input'
+import { Label }      from '@/components/ui/label'
+import { Badge }      from '@/components/ui/badge'
+import { Checkbox }   from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
+// ──────────────────────────────────────────
+// Props
+// ──────────────────────────────────────────
 const props = defineProps({
   members: Object,
-  user: Object,
-  tenants: Array,
-  statuses: Array,
   filters: {
     type: Object,
     default: () => ({
-      name: '', tel: '', tenant_id: '', status_id: 1,
-      per_page: 20, sort_by: 'created_at', sort_dir: 'desc', page: 1
-    })
-  }
-})
-
-console.log(props.members)
-
-const { t } = useI18n()
-
-const show = ref(false)
-const message = ref('')
-let timer = null
-
-watch(
-  () => page.props.flash.success,
-  (val) => {
-    if (val) {
-      message.value = val
-      show.value = true
-
-      if (timer) clearTimeout(timer)
-
-      timer = setTimeout(() => {
-        show.value = false
-      }, 3000)
-    }
+      keyword: '', status_id: '', member_type: '', organization_id: '',
+      per_page: 20, sort_by: 'created_at', sort_dir: 'desc',
+    }),
   },
-  { immediate: true }
-)
-
-const isSuperAdmin = computed(() =>
-  props.user?.roles?.some(r => r.name.toLowerCase() === 'super admin')
-)
-
-// 検索フォーム・per_page・sort・sort_dirを reactive で管理
-const openDrawer = ref(false)
-
-// 複数検索用に reactive 拡張
-const form = reactive({
-  name: props.filters.name,
-  status_id: props.filters.status_id,
-  tenant_id: props.filters.tenant_id,
-  per_page: props.filters.per_page || 20,
-  sort_by: props.filters.sort_by,   // ← 初期値を必ずセット
-  sort_dir: props.filters.sort_dir,    // ← 初期値を必ずセット
+  statusLabels: {
+    type: Object,
+    default: () => ({ 1: '通常', 2: '休会', 3: '退会' }),
+  },
 })
-// 選択削除
+
+// ──────────────────────────────────────────
+// フォーム
+// ──────────────────────────────────────────
+const form = reactive({
+  keyword:         props.filters.keyword       ?? '',
+  status_id:       props.filters.status_id     ?? '',
+  member_type:     props.filters.member_type   ?? '',
+  organization_id: props.filters.organization_id ?? '',
+  per_page:        props.filters.per_page      ?? 20,
+  sort_by:         props.filters.sort_by       ?? 'created_at',
+  sort_dir:        props.filters.sort_dir      ?? 'desc',
+})
+
+const hasActiveFilters = computed(() =>
+  form.keyword || form.status_id || form.member_type
+)
+
+// ──────────────────────────────────────────
+// 選択
+// ──────────────────────────────────────────
 const selectedIds = ref([])
 
+const selectAll = computed(() =>
+  props.members.data.length > 0 &&
+  selectedIds.value.length === props.members.data.length
+)
+
 const toggleSelectAll = (checked) => {
-  selectedIds.value = checked ? props.members.data.map(s => s.id) : []
+  selectedIds.value = checked ? props.members.data.map(m => m.id) : []
 }
 
-const resetSelectedIds = () => {
-  selectedIds.value = []
-}
+watch(() => props.members.current_page, () => { selectedIds.value = [] })
 
-const selectAll = computed({
-  get() {
-    return selectedIds.value.length === props.members.data.length
-  }
-})
+// ──────────────────────────────────────────
+// 検索・ソート・ページ
+// ──────────────────────────────────────────
+const openDrawer = ref(false)
 
-watch(() => props.members.current_page, () => {
-  selectedIds.value = []
-})
-
-
-// persistQueryに各検索項目を追加
 const persistQuery = () => ({
-  tenant_id: form.tenant_id,
-  name: form.name,
-  status_id: form.status_id,
-  per_page: form.per_page,
-  sort_by: form.sort_by,
-  sort_dir: form.sort_dir,
-  page: props.members.current_page
+  keyword:         form.keyword,
+  status_id:       form.status_id,
+  member_type:     form.member_type,
+  organization_id: form.organization_id,
+  per_page:        form.per_page,
+  sort_by:         form.sort_by,
+  sort_dir:        form.sort_dir,
+  page:            props.members.current_page,
 })
 
 const submitSearch = () => {
-  console.log(persistQuery())
-  router.get(route('admin.member.index'), { ...persistQuery(), page: 1 }, {
+  router.get(route('admin.members.index'), { ...persistQuery(), page: 1 }, {
     preserveState: true,
     replace: true,
-    onSuccess: () => resetSelectedIds()
+    onSuccess: () => { selectedIds.value = [] },
   })
 }
 
-// ページ番号クリック
+const resetSearch = () => {
+  form.keyword = ''
+  form.status_id = ''
+  form.member_type = ''
+  submitSearch()
+  openDrawer.value = false
+}
+
 const goPage = (page) => {
-  router.get(route('admin.member.index'), { ...persistQuery(), page }, {
+  router.get(route('admin.members.index'), { ...persistQuery(), page }, {
     preserveState: true,
     replace: true,
-    onSuccess: () => resetSelectedIds()
+    onSuccess: () => { selectedIds.value = [] },
   })
 }
 
-// 列ヘッダクリックでソート
 const sortBy = (field) => {
-  if (form.sort_by === field) form.sort_dir = form.sort_dir==='asc'?'desc':'asc'
-  else { form.sort_by = field; form.sort_dir = 'desc' }
+  if (form.sort_by === field) {
+    form.sort_dir = form.sort_dir === 'asc' ? 'desc' : 'asc'
+  } else {
+    form.sort_by  = field
+    form.sort_dir = 'desc'
+  }
   submitSearch()
 }
 
-// 行単位削除
-const deletemember = (member_id) => {
-  if (!confirm(t('confirm_delete'))) return
-  router.delete(route('admin.member.destroy', member_id), {
+// ──────────────────────────────────────────
+// 削除
+// ──────────────────────────────────────────
+const deleteMember = (member) => {
+  if (!confirm(`「${member.full_name}」を削除しますか？`)) return
+  router.delete(route('admin.members.destroy', member.id), {
     preserveState: true,
-    onSuccess: () => {
-      router.get(route('admin.member.index'), { ...persistQuery(), page: props.members.current_page }, { preserveState: true })
-    }
+    onSuccess: () => submitSearch(),
   })
 }
-// 複数削除
+
 const bulkDelete = () => {
-  if (!confirm(t('confirm_delete_selected'))) return
-  router.post(
-    route('members.bulkDelete'),
-    { ids: selectedIds.value },
-    {
-      preserveState: true,
-      onSuccess: () => {
-        // 削除後に検索条件・ページを保持して再取得
-        router.get(route('admin.member.index'), { ...persistQuery(), page: props.members.current_page }, { preserveState: true })
-      }
-    }
-  )
-}
-const previewPdf = ref(null)
-
-const openPdf = (pdfPath) => {
-  console.log('PDF PATH:', pdfPath)
-  if (!pdfPath) return
-
-  // 例：フルパス化
-  previewPdf.value = pdfPath
-
-  // 例：ここで loading true
+  if (!confirm(`選択した${selectedIds.value.length}件を削除しますか？`)) return
+  router.post(route('admin.members.bulkDelete'), { ids: selectedIds.value }, {
+    preserveState: true,
+    onSuccess: () => submitSearch(),
+  })
 }
 
-// 表示件数計算
-const startItem = computed(() => props.members.per_page * (props.members.current_page - 1) + 1)
-const endItem = computed(() => Math.min(props.members.per_page * props.members.current_page, props.members.total))
-
-const showProgressModal = ref(false)
-
-const progressForm = reactive({
-  member_id: null,
-  progress_id: null,
-})
-
-
-const progresses = ref([])
-
-const openProgress = async (member) => {
-  // ★ axios より前で判定
-  if (member.status.id !== 1) {
-    alert('申請中のデータのみ進捗を訂正できます。')
-    return
-  }
-
-  // ここから先だけ axios
-  const res = await axios.get(
-    `/admin/member/${member.id}/progress/edit`
-  )
-
-  progressForm.member_id = member.id
-  progressForm.progress_id = res.data.member.progress_id
-  progresses.value = res.data.progresses
-
-  showProgressModal.value = true
-}
-
-
-const submitProgress = async () => {
-  await axios.put(
-    `/admin/member/${progressForm.member_id}/progress`,
-    {
-      progress_id: progressForm.progress_id,
-    }
-  )
-
-  closeModal()
-
-  // 一覧だけ再取得
-  router.reload({ only: ['members'] })
-}
-
+// ──────────────────────────────────────────
+// ステータス変更
+// ──────────────────────────────────────────
 const showStatusModal = ref(false)
-
-const statusForm = ref({
-  member_id: null,
-  status_id: null,
-})
-
-const statuses = ref([])
+const statusForm = reactive({ member_id: null, status_id: null })
 
 const openStatus = async (member) => {
-  const res = await axios.get(
-    `/admin/member/${member.id}/status/edit`
-  )
-
-  statusForm.value.member_id = member.id
-  statusForm.value.status_id = res.data.member.status_id
-  statuses.value = res.data.statuses
-
+  statusForm.member_id = member.id
+  statusForm.status_id = member.status_id
   showStatusModal.value = true
 }
 
 const submitStatus = async () => {
-  await axios.put(
-    `/admin/member/${statusForm.value.member_id}/status`,
-    { 
-      status_id: statusForm.value.status_id,
-    }
-  )
-
+  await axios.patch(route('admin.members.updateStatus', statusForm.member_id), {
+    status_id: statusForm.status_id,
+  })
   showStatusModal.value = false
   router.reload({ only: ['members'] })
 }
 
-const closeModal = () => {
-  showProgressModal.value = false;
-  showStatusModal.value = false;
-  showUploadModal.value = false
-  file.value = null
-  uploadForm.value.type_id = null
-}
-const showUploadModal = ref(false)
-
-const uploadForm = ref({
-  member_id: null,
-  type_id: null,
-})
-
-const file = ref(null)
-
-const documentTypes = [
-  { id: 1, name: '履歴事項全部証明書' },
-  { id: 2, name: '郵送先確認書' },
-  { id: 3, name: '口座振替依頼書' },
-  { id: 4, name: '委任状' },
-]
-
-/**
- * モーダルを開く（status / progress と同型）
- */
-const openUpload = (member) => {
-  uploadForm.value.member_id = member.id
-  showUploadModal.value = true
+// ──────────────────────────────────────────
+// ユーティリティ
+// ──────────────────────────────────────────
+const statusVariant = (statusId) => {
+  const map = { 1: 'default', 2: 'secondary', 3: 'destructive' }
+  return map[statusId] ?? 'outline'
 }
 
-const fileInput = ref(null)
+const startItem = computed(() =>
+  props.members.per_page * (props.members.current_page - 1) + 1
+)
+const endItem = computed(() =>
+  Math.min(props.members.per_page * props.members.current_page, props.members.total)
+)
 
-/**
- * drag & drop
- */
-const handleDrop = (e) => {
-  const droppedFiles = e.dataTransfer.files
-  if (droppedFiles.length && droppedFiles[0].type === 'application/pdf') {
-    file.value = droppedFiles[0]
-  } else {
-    alert('PDF ファイルを1つだけアップロードしてください')
-  }
-}
-
-/**
- * file input
- */
-const onFileChange = (e) => {
-  const selected = e.target.files[0]
-  if (selected && selected.type === 'application/pdf') {
-    file.value = selected
-  } else {
-    alert('PDF ファイルを選択してください')
-    file.value = null
-  }
-}
-
-/**
- * submit（status と同型）
- */
-const submitUpload = async () => {
-  if (!file.value || !uploadForm.value.type_id)
-    return alert('書類と種別を選択してください')
-
-  const formData = new FormData()
-  formData.append('document', file.value)   // ← controller と一致
-  formData.append('type_id', uploadForm.value.type_id)
-  console.log(formData);
-
-  try {
-    await axios.post(
-      `/admin/member/${uploadForm.value.member_id}/upload-document`,
-      formData,
-      //      { headers: { 'Content-Type': 'multipart/form-data' } }
-    )
-
-    alert('アップロード完了')
-    showUploadModal.value = false
-    router.reload({ only: ['members'] })
-  } catch (err) {
-    console.error(err)
-    alert('アップロード失敗')
-  }
-}
-
+// Import（将来用）
+const openImport = ref(false)
 </script>

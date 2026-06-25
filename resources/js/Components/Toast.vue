@@ -1,58 +1,26 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 
 const page = usePage()
 
 const show = ref(false)
 const message = ref('')
-const type = ref('success') // success or error
+const type = ref('success')
 let timer = null
 
 watch(
   () => page.props.flash.success ?? page.props.flash.error,
   (val) => {
     if (!val) return
-
     message.value = val
     type.value = page.props.flash.error ? 'error' : 'success'
     show.value = true
-
     if (timer) clearTimeout(timer)
-
-    timer = setTimeout(() => {
-      show.value = false
-    }, 3000)
+    timer = setTimeout(() => { show.value = false }, 3000)
   }
 )
-/*
-watch(
-  () => page.props.flash,
-  (flash) => {
-    if (flash?.success || flash?.error) {
-
-      if (flash.success) {
-        message.value = flash.success
-        type.value = 'success'
-      }
-
-      if (flash.error) {
-        message.value = flash.error
-        type.value = 'error'
-      }
-
-      show.value = true
-
-      if (timer) clearTimeout(timer)
-
-      timer = setTimeout(() => {
-        show.value = false
-      }, 3000)
-    }
-  },
-  { immediate: true }
-)
-*/
 </script>
 
 <template>
@@ -70,18 +38,8 @@ watch(
              'px-4 py-3 rounded-xl shadow-lg flex items-center min-w-[250px] text-white',
              type === 'success' ? 'bg-green-500' : 'bg-red-500'
            ]">
-
-        <span class="flex-1 text-sm">
-          {{ message }}
-        </span>
-
-        <button
-          @click="show = false"
-          class="ml-3 w-6 h-6 flex items-center justify-center rounded hover:bg-white/20"
-        >
-          ×
-        </button>
-
+        <span class="flex-1 text-sm">{{ message }}</span>
+        <button @click="show = false" class="ml-3 w-6 h-6 flex items-center justify-center rounded hover:bg-white/20">×</button>
       </div>
     </transition>
   </div>

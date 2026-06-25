@@ -17,7 +17,32 @@
           />
           <p v-if="errors.name" class="text-red-500 text-sm mt-1">{{ errors.name }}</p>
         </div>
+        <div class="space-y-2">
+            <Label for="guard_name">対象</Label>
 
+            <Select v-model="form.guard_name">
+                <SelectTrigger>
+                    <SelectValue placeholder="対象を選択" />
+                </SelectTrigger>
+
+                <SelectContent class="bg-white border shadow-md">
+                    <SelectItem value="admin">
+                        管理者
+                    </SelectItem>
+
+                    <SelectItem value="web">
+                        会員
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+
+            <p
+                v-if="errors.guard_name"
+                class="text-red-500 text-sm mt-1"
+            >
+                {{ errors.guard_name }}
+            </p>
+        </div>
         <!-- Permissions MultiSelect -->
         <div>
           <label class="block mb-1 font-medium">{{ t('permissions.permission') }}</label>
@@ -66,6 +91,12 @@ import { reactive, computed } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/Admin/AppLayout.vue'
 import { useI18n } from 'vue-i18n'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 
 // Props
 const props = defineProps({
@@ -80,6 +111,7 @@ const { t } = useI18n()
 // 初期フォーム値
 const form = reactive({
   name: props.role?.name || '',
+  guard_name: props.role?.guard_name || '',
   permissions: props.role?.permissions?.map(p => p.id) || [],
 })
 

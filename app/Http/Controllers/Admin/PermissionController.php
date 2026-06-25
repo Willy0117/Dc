@@ -21,8 +21,8 @@ class PermissionController extends Controller
         $user = $request->user();
         $query = Permission::query();
 
-        // テナント絞り込み（Super Admin は全件表示）
-        if (!$user->hasRole('Super Admin')) {
+        // テナント絞り込み（super_admin は全件表示）
+        if (!$user->hasRole('super_admin')) {
             $query->where('tenant_id', $user->tenant_id);
         }
 
@@ -39,7 +39,7 @@ class PermissionController extends Controller
         // ページネーション
         $permissions = $query->paginate($request->input('per_page', 20))
                              ->withQueryString();
-        $tenants = $user->hasRole('Super Admin') ? Tenant::all() : [];                     
+        $tenants = $user->hasRole('super_admin') ? Tenant::all() : [];                     
 
         return Inertia::render('Admin/Permissions/Index', [
             'permissions' => $permissions,
@@ -55,8 +55,8 @@ class PermissionController extends Controller
     {
         $user = auth()->user()->load('roles');
 
-        $tenants = $user->hasRole('Super Admin') ? Tenant::all() : [];
-
+        $tenants = $user->hasRole('super_admin') ? Tenant::all() : [];
+        
         return Inertia::render('Admin/Permissions/Edit', [
             'permission' => $permission,
             'tenants' => $tenants,
@@ -71,7 +71,7 @@ class PermissionController extends Controller
     {
         $user = auth()->user()->load('roles');
 
-        $tenants = $user->hasRole('Super Admin') ? Tenant::all() : [];
+        $tenants = $user->hasRole('super_admin') ? Tenant::all() : [];
 
         return Inertia::render('Admin/Permissions/Edit', [
             'permission' => null,
@@ -88,18 +88,19 @@ class PermissionController extends Controller
     {
         $user = $request->user();
 
-        $tenantId = $user->hasRole('Super Admin') ? $request->tenant_id : $user->tenant_id;
+        $tenantId = $user->hasRole('super_admin') ? $request->tenant_id : $user->tenant_id;
 
         $request->validate([
             'name' => 'required|string|max:255',
             'tenant_id' => 'nullable|exists:tenants,id',
+            'guard_name' => 'required|string',
         ]);
 
         // Teams モード対応: tenant_id を考慮して create
         Permission::firstOrCreate(
             [
                 'name' => $request->name,
-                'guard_name' => 'web',
+                'guard_name' => $request->guard_name,
                 'tenant_id' => $tenantId
             ]
         );
@@ -114,16 +115,17 @@ class PermissionController extends Controller
     {
         $user = $request->user();
 
-        $tenantId = $user->hasRole('Super Admin') ? $request->tenant_id : $user->tenant_id;
+        $tenantId = $user->hasRole('super_admin') ? $request->tenant_id : $user->tenant_id;
 
         $request->validate([
             'name' => 'required|string|max:255',
             'tenant_id' => 'nullable|exists:tenants,id',
+            'guard_name' => 'required|string',
         ]);
 
         // Teams モード対応: tenant_id を考慮して更新（同じ tenant 内で name 重複しないように）
         $exists = Permission::where('name', $request->name)
-            ->where('guard_name', 'web')
+            ->where('guard_name', $request->guard_name)
             ->where('tenant_id', $tenantId)
             ->where('id', '!=', $permission->id)
             ->first();
@@ -135,7 +137,7 @@ class PermissionController extends Controller
         $permission->update([
             'name' => $request->name,
             'tenant_id' => $tenantId,
-            'guard_name' => 'web',
+            'guard_name' => $request->guard_name,
         ]);
 
         return redirect()->route('admin.permissions.index', $request->filters ?? []);

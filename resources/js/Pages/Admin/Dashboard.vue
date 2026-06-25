@@ -31,53 +31,6 @@ onMounted(async () => {
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-            <!--
-            <Link
-            :href="route('admin.exams.index')"
-            class="bg-white shadow rounded-2xl p-6 flex items-center justify-between hover:shadow-lg transition"
-            >
-            <div>
-                <p class="text-sm text-gray-500">今月の試験申請</p>
-                <p class="text-3xl font-bold text-blue-600 mt-2">
-                {{ examCount }}
-                </p>
-            </div>
-            <ClipboardDocumentCheckIcon class="w-10 h-10 text-blue-300" />
-            </Link>
-            -->
-            <!-- PDF申請 -->
-            <Link
-            :href="route('admin.pdf-uploads.index')"
-            class="bg-white shadow rounded-2xl p-6 flex items-center justify-between hover:shadow-lg transition"
-            >
-            <div>
-                <p class="text-sm text-gray-500">単位取得申請 要対応数</p>
-                <p class="text-3xl font-bold text-red-500 mt-2">
-                {{ pdfCount }}
-                </p>
-                <p v-if="pdfCount > 0" class="text-xs text-red-400 mt-1">
-                対応が必要です
-                </p>
-            </div>
-            <DocumentTextIcon class="w-10 h-10 text-red-300" />
-            </Link>
-            <!-- PDF申請 -->
-            <Link
-            :href="route('admin.pdf-uploads.index')"
-            class="bg-white shadow rounded-2xl p-6 flex items-center justify-between hover:shadow-lg transition"
-            >
-            <div>
-                <p class="text-sm text-gray-500">更新申請 要対応数</p>
-                <p class="text-3xl font-bold text-red-500 mt-2">
-                {{ pdfCount }}
-                </p>
-                <p v-if="pdfCount > 0" class="text-xs text-red-400 mt-1">
-                対応が必要です
-                </p>
-            </div>
-            <DocumentTextIcon class="w-10 h-10 text-red-300" />
-            </Link>
-
         </div>
 
         <div class="py-12">

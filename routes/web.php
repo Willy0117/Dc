@@ -10,24 +10,44 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SetLocaleController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
-use App\Http\Controllers\Admin\InstructorMemberController as AdminInstructorMemberController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
-use App\Http\Controllers\Admin\AnnualFeeController as AdminAnnualFeeController;
-use App\Http\Controllers\Admin\PdfUploadController as AdminPdfUploadController;
-use App\Http\Controllers\Admin\MemberImportController;
+use App\Http\Controllers\Admin\WebhookLogController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\StripeAdminController;
+use App\Http\Controllers\Admin\LicenseFeeController;
 
 use App\Http\Controllers\ApplicationController;
-use App\Http\Controllers\PdfUploadController;
-use App\Http\Controllers\RehabApplicationController;
-use App\Http\Controllers\ExamController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\AnnualFeeController;
+use App\Http\Controllers\StripeController;
+use App\Http\Controllers\StripeWebhookController;
 
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 
+// stripe テスト用
+Route::get('/checkout', [StripeController::class, 'checkout']);
+
+Route::get('/success', function () {
+    \Log::info('stripe success redirect');
+    return '決済成功🔥';
+});
+
+Route::get('/cancel', function () {
+    return 'キャンセルされました';
+});
+
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
 Route::get('/compose-image', [\App\Http\Controllers\PrintController::class, 'composeImage'])->name('composeImage');
+
+Route::prefix('applications')->name('applications.')->group(function () {
+    Route::get('/register',  [\App\Http\Controllers\ApplicationController::class, 'register'])->name('register');
+    Route::post('/register', [\App\Http\Controllers\ApplicationController::class, 'registerStore'])->name('register.store');
+    Route::get('/confirm',   [\App\Http\Controllers\ApplicationController::class, 'confirm'])->name('confirm');
+    Route::get('/contract',  [\App\Http\Controllers\ApplicationController::class, 'contract'])->name('contract');
+    Route::post('/sign',     [\App\Http\Controllers\ApplicationController::class, 'sign'])->name('sign');
+    Route::get('/complete',  [\App\Http\Controllers\ApplicationController::class, 'complete'])->name('complete');
+    Route::get('/stripe-complete', [\App\Http\Controllers\ApplicationController::class, 'stripeComplete'])->name('stripe_complete');
+});
 
 Route::prefix('admin')->name('admin.')->group(function () {
 
@@ -60,87 +80,57 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
         // admin
         Route::resource('admins', \App\Http\Controllers\Admin\AdminController::class);
-
-        // organization
+        // Members
+        Route::get('members/organizations/search', [\App\Http\Controllers\Admin\MemberController::class, 'searchOrganizations'])->name('members.organizations.search');
+        Route::post('members/bulk-delete', [\App\Http\Controllers\Admin\MemberController::class, 'bulkDelete'])->name('members.bulkDelete');
+        Route::patch('members/{member}/status', [\App\Http\Controllers\Admin\MemberController::class, 'updateStatus'])->name('members.updateStatus');
         Route::resource('members', \App\Http\Controllers\Admin\MemberController::class);
-        // organization
-        Route::resource('organizations', \App\Http\Controllers\Admin\OrganizationController::class);
 
-        Route::resource('annual-fees', \App\Http\Controllers\Admin\AnnualFeeController::class);
+        // Organizations
+        Route::get('organizations/create', [\App\Http\Controllers\Admin\OrganizationController::class, 'edit'])->name('organizations.create');
+        Route::resource('organizations', \App\Http\Controllers\Admin\OrganizationController::class)->except(['create']);
+        Route::post('organizations/bulk-delete', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkDelete'])->name('organizations.bulkDelete');
+        Route::post('organizations/{organization}/send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'sendInvitation'])->name('organizations.send-invitation');
+        Route::post('organizations/bulk-send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendInvitation'])->name('organizations.bulk-send-invitation');
+        Route::get('organizations/{organization}/fee', [\App\Http\Controllers\Admin\OrganizationController::class, 'fee'])->name('organizations.fee');
+        Route::post('organizations/{id}/license', [\App\Http\Controllers\Admin\OrganizationController::class, 'issueLicense'])->name('organizations.license');
+        Route::post('organizations/{id}/license/mail', [\App\Http\Controllers\Admin\OrganizationController::class, 'mailLicense'])->name('organizations.license.mail');
+        Route::post('organizations/invoice', [\App\Http\Controllers\Admin\OrganizationController::class, 'createInvoice'])->name('organizations.invoice');
 
-        // exams　指導士試験申込
-        Route::put(
-            'exams/{exam}/status',
-            [\App\Http\Controllers\Admin\ExamController::class, 'updateStatus']
-        )->name('exams.updateStatus');
+        Route::post('organizations/stripe-payment', [\App\Http\Controllers\Admin\OrganizationController::class, 'createStripePayment'])->name('organizations.stripe_payment');
+        //        Route::resource('organizations', \App\Http\Controllers\Admin\OrganizationController::class);
+        Route::get('webhook-logs/unread-count', [WebhookLogController::class, 'unreadCount'])->name('webhook_logs.unread_count');
+        Route::get('webhook-logs', [WebhookLogController::class, 'index'])->name('webhook_logs.index');
+        Route::post('webhook-logs/mark-all-read', [WebhookLogController::class, 'markAllRead'])->name('webhook_logs.mark_all_read');
+        // ──────────────────────────────────────────────────────────────
+        // ライセンス料金マスター
+        // ──────────────────────────────────────────────────────────────
+        Route::get('license-fees', [LicenseFeeController::class, 'index'])->name('license-fees.index');
+        Route::post('license-fees', [LicenseFeeController::class, 'store'])->name('license-fees.store');
+        // ──────────────────────────────────────────────────────────────
+        // 請求書
+        // ──────────────────────────────────────────────────────────────
+        Route::resource('invoices', InvoiceController::class)
+            ->only(['index', 'show', 'update', 'destroy']);
+        
+        Route::post('invoices/{invoice}/resend-email',
+            [InvoiceController::class, 'resendEmail']
+        )->name('invoices.resendEmail');
+        
+        // ──────────────────────────────────────────────────────────────
+        // Stripe 管理
+        // ──────────────────────────────────────────────────────────────
+        Route::get('stripe',
+            [StripeAdminController::class, 'index']
+        )->name('stripe.index');
+        
+        Route::post('stripe/payment-link',[StripeAdminController::class, 'paymentLink'])->name('stripe.payment-link');
 
-        Route::resource('exams', \App\Http\Controllers\Admin\ExamController::class);
-
-        Route::post(
-            'applications/{application}/upload-document',
-            [\App\Http\Controllers\Admin\ApplicationController::class, 'uploadDocument']
-        )->name('applications.uploadDocument');
-
-        Route::get(
-            'applications/{application}/print-document',
-            [\App\Http\Controllers\Admin\ApplicationController::class, 'printDocument']
-        )->name('applications.printDocument');
-
-        Route::put(
-            'applications/{application}/status',
-            [\App\Http\Controllers\Admin\ApplicationController::class, 'updateStatus']
-        )->name('applications.updateStatus');
-
-        Route::get(
-            'applications/fax',
-            [\App\Http\Controllers\Admin\ApplicationController::class, 'fax']
-        )->name('applications.fax');
-
-        Route::post(
-            'applications/faxstore',
-            [\App\Http\Controllers\Admin\ApplicationController::class, 'faxstore']
-        )->name('applications.faxstore');
-
-        Route::resource(
-            'applications',
-            \App\Http\Controllers\Admin\ApplicationController::class
-        )->only(['index','show','create','store']);
-
-        Route::get('pdf-uploads', [AdminPdfUploadController::class, 'index'])->name('pdf-uploads.index');
-        Route::post('pdf-uploads/{pdf}/approve', [AdminPdfUploadController::class, 'approve'])->name('pdf-uploads.approve');
-        Route::post('pdf-uploads/{pdf}/reject', [AdminPdfUploadController::class, 'reject'])->name('pdf-uploads.reject');
-        Route::get('pdf-uploads/{pdf}/view', [AdminPdfUploadController::class, 'view'])->name('pdf-uploads.view');
-        Route::get('pdf-uploads/{pdf}/thumbnail', [AdminPdfUploadController::class, 'thumbnail'])->name('pdf-uploads.thumbnail');
-        // 指導士会員一覧
-        Route::get('instructorMembers', [AdminInstructorMemberController::class, 'index'])
-            ->name('instructorMembers.index');
-
-        // 指導士会員詳細（PDF一覧）
-        Route::get('instructorMembers/{member}', [AdminInstructorMemberController::class, 'show'])
-            ->name('instructorMembers.show');
-        // インストラクター更新サイクルの審査結果送信
-        Route::post('instructorUpdateCycles/{cycle}/review',[AdminInstructorUpdateCycleController::class, 'review']
-            )->name('instructorUpdateCycles.review');
-        // PDF承認 / Reject
-        Route::post('pdf/{upload}/approve', [PdfUploadController::class, 'approve'])
-            ->name('pdf.approve');
-
-        Route::post('pdf/{upload}/reject', [PdfUploadController::class, 'reject'])
-                ->name('pdf.reject');
-        // 管理画面で一覧表示
-        Route::get('/rehab-applications', [RehabApplicationController::class, 'index'])
-            ->name('admin.rehab.index');
-        Route::post('/rehab-applications/{application}/reject', [RehabApplicationController::class, 'reject'])
-            ->name('rehab.reject');
-        Route::post('/rehab-applications/{application}/approve', [RehabApplicationController::class, 'approve'])
-            ->name('rehab.approve');
+        Route::post('stripe/{invoice}/resend-email', [\App\Http\Controllers\Admin\StripeAdminController::class, 'resendEmail'])->name('stripe.resendEmail');
 
         Route::prefix('member')->name('member.')->group(function () {
-            Route::get('/import', [MemberImportController::class, 'index'])->name('import');
 
-            Route::post('/import', [MemberImportController::class, 'store'])->name('import.store');
-
-            Route::get('/', [AdminMemberController::class, 'index'])->name('index');
+        Route::get('/', [AdminMemberController::class, 'index'])->name('index');
             Route::get('/pdf/{id}', [AdminMemberController::class, 'pdfPreview'])->name('pdf.preview');
             Route::get('/{member}', [AdminMemberController::class, 'show'])->name('show');
             Route::get('/{member}/edit', [AdminMemberController::class, 'edit'])->name('edit');
@@ -189,8 +179,13 @@ Route::get('/test-mail', function () {
     return 'sent';
 });
 
-Route::get('/pdf', [\App\Http\Controllers\PDFController::class, 'index']);
-
+Route::get('/debug-secure', function () {
+    return [
+        'secure' => request()->secure(),
+        'url' => request()->fullUrl(),
+        'scheme' => request()->getScheme(),
+    ];
+});
 
 Route::get('/zipcode/{zip}', function ($zip) {
     $zip = preg_replace('/[^0-9]/', '', $zip);
@@ -224,52 +219,6 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    Route::post('applications/{application}/upload-document', [ApplicationController::class, 'uploadDocument'])->name('applications.uploadDocument');
-    Route::get('applications/{application}/print-document', [ApplicationController::class, 'printDocument'])->name('applications.printDocument');
-    Route::put('applications/{application}/status', [ApplicationController::class, 'updateStatus'])->name('updateStatus');
-
-
-    //Route::post('applications/pdf-generate', [ApplicationController::class, 'pdfGenerate'])->name('applications.pdfGenerate');
-    Route::get('applications/pdf-generate', [ApplicationController::class, 'pdfGenerate'])->name('applications.pdfGenerate');
-
-    Route::get('applications/fax', [ApplicationController::class, 'fax'])->name('applications.fax');
-    Route::post('applications/faxstore', [ApplicationController::class, 'faxstore'])->name('applications.faxstore');
-
-   // PDFを会員が閲覧
-    Route::get('/pdf-uploads/{pdf}/view', [PdfUploadController::class, 'view'])->name('pdf-uploads.view');
-    // サムネイルを返す
-    Route::get('/pdf-uploads/{pdf}/thumbnail', [PdfUploadController::class, 'thumbnail'])->name('pdf-uploads.thumbnail');
-
-    Route::resource('applications', ApplicationController::class);
-
-    Route::resource('pdf-uploads', PdfUploadController::class);
-    
-    Route::resource('exams', ExamController::class);
-    Route::resource('reports', ReportController::class);
-
-    Route::resource('annual-fees', AnnualFeeController::class);
-    // ----------------------------------------
-    // ユーザー向け
-    // ----------------------------------------
-
-    // 自己申告フォーム
-    Route::get('/rehab-apply', [RehabApplicationController::class, 'create'])
-        ->name('rehab.create');
-
-    // 自己申告フォーム保存
-    Route::post('/rehab-apply', [RehabApplicationController::class, 'store'])
-        ->name('rehab.store');
-
-    // PDFアップロード画面
-    Route::get('/rehab-apply/files', [RehabApplicationController::class, 'editFiles'])
-        ->name('rehab.files.edit');
-
-    // PDF個別アップロード
-    Route::post('/rehab-apply/files', [RehabApplicationController::class, 'uploadPdf'])
-        ->name('rehab.files.upload');
-
-
 
 });
 /*

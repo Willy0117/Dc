@@ -3,108 +3,39 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
-use App\Enums\Status;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Application extends Model
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Mass Assignment
-    |--------------------------------------------------------------------------
-    */
     protected $fillable = [
         'organization_id',
-        'application_date',
-        'delivery_date',
-        'funeral_datetime',
-        'staff_name',
-        'last_name',
-        'first_name',
-        'deceased_furigana',
-        'age_at_death',
-        'gender',
-        'spouse_status',
-        'children_count',
-        'grandchildren_count',
-        'chief_mourner_name',
-        'relationship_to_deceased',
-        'traits',
-        'special_notes',
-        'text_color',
-        'bg_color',
-        'remarks',
-        'working_at',
-        'completed_at',
+        'cloudsign_document_id',
         'status',
-        'apply_type',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Casts
-    |--------------------------------------------------------------------------
-    */
     protected $casts = [
-        'application_date'   => 'datetime',
-        'delivery_date'      => 'datetime',
-        'funeral_datetime'   => 'datetime',
-        'traits'             => 'array',
-        'working_at'         => 'datetime',
-        'completed_at'       => 'datetime',
-
+        'status' => 'integer',
     ];
 
-    protected function serializeDate(\DateTimeInterface $date)
-    {
-        // これにより、Vueには "2026-03-12 16:42:00" という形式で渡ります
-        return $date->format('Y-m-d H:i:s');
-    }
-    /*
-    |--------------------------------------------------------------------------
-    | Relationships
-    |--------------------------------------------------------------------------
-    */
+    // ステータス定数
+    const STATUS_PENDING   = 0; // 申込中
+    const STATUS_SENT      = 1; // 送信済
+    const STATUS_COMPLETED = 2; // 締結完了
+    const STATUS_CANCELED  = 3; // 取り消し
 
-    public function organization()
+    public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
     }
 
-    public function documents()
+    public function documents(): HasMany
     {
         return $this->hasMany(ApplicationDocument::class);
     }
 
-    public function getFullNameAttribute()
+    public function contractDocument()
     {
-        return $this->last_name . ' ' . $this->first_name;
-    }
-
-    public function getOrderCodeAttribute()
-    {
-        return 'P' . str_pad($this->id, 8, '0', STR_PAD_LEFT);
-    }
-
-        // JSON化時に自動で fullname を含める
-    protected $appends = ['fullname', 'order_code'];
-
-    public function getStatusAttribute($value)
-    {
-        return Status::from($value)->label();
-    }
-    /*
-
-     */
-    public function pdfDocuments()
-    {
-        return $this->hasMany(ApplicationDocument::class)
-                    ->where('type', 'pdf');
-    }
-    public function canvasDocument()
-    {
-        return $this->hasOne(ApplicationDocument::class)
-                    ->where('type', 'canvas');
+        return $this->documents()->where('type', ApplicationDocument::TYPE_CONTRACT)->latest()->first();
     }
 }

@@ -183,7 +183,7 @@ const showAccessControl = computed(() => {
         <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
       </Link>
 
-      <div class="mt-2">
+      <!-- div class="mt-2">
         <button
           @click="toggleSubMenu('exams')"
           class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
@@ -216,6 +216,7 @@ const showAccessControl = computed(() => {
          </div>   
         </transition>
       </div>
+-->
       <div class="mt-2">
         <button
           @click="toggleSubMenu('reports')"
@@ -256,6 +257,7 @@ const showAccessControl = computed(() => {
          </div>   
         </transition>
       </div>
+<!--      
       <Link :href="route('pdf-uploads.create')"
             class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
             :class="isActive('pdf-uploads.create') ? 'bg-gray-300 font-semibold' : ''">
@@ -274,7 +276,7 @@ const showAccessControl = computed(() => {
             :class="isActive('annual-fees') ? 'bg-gray-300 font-semibold' : ''">
         <DocumentCurrencyYenIcon class="w-5 h-5"/>
         <span v-if="!collapsed" class="ml-2">{{ t('annual_fees.annual_fee') }}</span>
-      </Link>
+      </Link -->
     </nav>
   </aside>
       <!-- モバイルオーバーレイ -->

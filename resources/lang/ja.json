@@ -359,7 +359,7 @@
   },
   "exams": {
     "exam_list": "指導士申込一覧",
-    "reports_list": "自験例報告書一覧",
+    "reports_list": "症例報告書一覧",
     "application": "受験申込",
     "name": "申請者名",
     "gender": "性別",
@@ -376,7 +376,7 @@
     "attachments": "添付書類（証明書・推薦状など）",
     "certificate": "証明書",
     "recommendation":"推薦状",
-    "reports": "自験例報告書",
+    "reports": "症例報告書",
     "send": "申込"
   },
   "common": {

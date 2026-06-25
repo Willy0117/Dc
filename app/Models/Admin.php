@@ -73,7 +73,10 @@ class Admin extends Authenticatable
         }
 
         return $this->getAllPermissions()
-            ->where('tenant_id', $this->tenant_id);
+            ->where(function ($permission) {
+                return is_null($permission->tenant_id) 
+                    || $permission->tenant_id === $this->tenant_id;
+            });
     }
 
     public function isSuperAdmin()

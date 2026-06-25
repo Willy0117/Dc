@@ -5,390 +5,445 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Imagick;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
 
 use App\Models\Member;
-use App\Models\Status;
-use App\Models\OrganizationDocument;
-
-use App\Http\Resources\MemberResource;
-use Illuminate\Support\Facades\Storage;
+use App\Models\Organization;
+use App\Models\MemberAddress;
+use App\Models\MemberEducation;
+use App\Models\MemberDegree;
+use App\Models\MemberRole;
+use App\Models\MemberCommittee;
 
 class MemberController extends Controller
 {
-    // 一覧ページ
+    // ──────────────────────────────────────────
+    // 一覧
+    // ──────────────────────────────────────────
+
     public function index(Request $request)
     {
-        $query = Member::query()
-            ->with([
-                'status',
-            ])
-            ->when(request('status_id'), function ($q, $status_id) {
-                $q->where('status_id', $status_id);
-            });
-
-        // =====================
-        // ソート（membersのみ）
-        // =====================
-
         $sortBy  = $request->input('sort_by', 'created_at');
         $sortDir = $request->input('sort_dir', 'desc');
-
-        $allowedSorts = [
-            'id',
-            'name',
-            'address',
-            'tel',
-            'email',
-            'created_at',
-        ];
-
-        if (! in_array($sortBy, $allowedSorts)) {
-            $sortBy = 'created_at';
-        }
-        /*
-        |--------------------------------------------------------------------------
-        | members 単体で完結するソート
-        |--------------------------------------------------------------------------
-        */
-        if ($sortBy === 'address') {
-            $query->orderByRaw("
-                CONCAT_WS(' ',
-                    members.address1,
-                    members.address2,
-                    members.address3
-                ) {$sortDir}
-            ");
-        } else {
-            $query->orderBy("members.{$sortBy}", $sortDir);
-        }
-        // =====================
-        // ページング + 整形
-        // =====================
-
         $perPage = (int) $request->input('per_page', 20);
 
-        $statuses = Status::select('id', 'name')
-            ->orderBy('id')
-            ->get();
+        $allowedSorts = ['id', 'member_number', 'last_name', 'email', 'status_id', 'joined_at', 'created_at'];
+        if (!in_array($sortBy, $allowedSorts)) $sortBy = 'created_at';
 
-        $members = $query
+        $members = Member::query()
+            ->with(['organization'])
+            ->when($request->keyword, fn($q, $kw) => $q->search($kw))
+            ->when($request->status_id, fn($q, $s) => $q->where('status_id', $s))
+            ->when($request->organization_id, fn($q, $o) => $q->where('organization_id', $o))
+            ->when($request->member_type, fn($q, $t) => $q->where('member_type', $t))
+            ->orderBy("members.{$sortBy}", $sortDir)
             ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('Admin/Members/Index', [
             'members' => $members,
             'filters' => [
-                'name'         => $request->name ?? '',
-                'status_id'    => $request->status_id ?? '',
-                'per_page'     => $request->per_page ?? 20,
-                'sort_by'      => $request->sort_by ?? 'created_at',  // ← 初期値
-                'sort_dir'     => $request->sort_dir ?? 'desc',       // ← 初期値
+                'keyword'         => $request->keyword ?? '',
+                'status_id'       => $request->status_id ?? '',
+                'organization_id' => $request->organization_id ?? '',
+                'member_type'     => $request->member_type ?? '',
+                'per_page'        => $perPage,
+                'sort_by'         => $sortBy,
+                'sort_dir'        => $sortDir,
             ],
-            'statuses' => $statuses,
+            'statusLabels' => Member::STATUS_LABELS,
         ]);
     }
 
+    // ──────────────────────────────────────────
     // 作成画面
+    // ──────────────────────────────────────────
+
     public function create()
     {
-        return Inertia::render('Admin/Members/Create', [
-            'member' => null
+        return Inertia::render('Admin/Members/Edit', [
+            'member'           => null,
+            'organization'     => null,
+            'home_address'     => null,
+            'shipping_address' => null,
+            'education'        => null,
+            'degrees'          => [],
+            'roles'            => [],
+            'committees'       => [],
+            'filters'          => [],
         ]);
     }
 
+    // ──────────────────────────────────────────
     // 保存
+    // ──────────────────────────────────────────
+
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validated = $this->validateMember($request);
 
-
-
-        ]);
-
-        Member::create($validated);
+        DB::transaction(function () use ($validated) {
+            $member = Member::create($validated['member']);
+            $this->syncRelatedData($member, $validated);
+        });
 
         return redirect()->route('admin.members.index')
-            ->with('success', __('member_created'));
+            ->with('success', '会員を登録しました。');
     }
+
+    // ──────────────────────────────────────────
+    // 詳細
+    // ──────────────────────────────────────────
 
     public function show(Request $request, Member $member)
     {
-        // persistQuery() 用に現在のクエリを保持
-        $queryParams = $request->only([
-            'name',
-            'name',
-            'tel',
-            'per_page',
-            'sort_by',
-            'sort_dir',
-            'page',
+        $member->load([
+            'organization.locationAddress',
+            'addresses',
+            'educations',
+            'degrees',
+            'roles',
+            'committees',
         ]);
-        // 書類は type ごとに全部取得
-        $documents = $member->organizations
-            ->flatMap(fn ($org) => $org->documents)
-            ->map(fn ($doc) => [
-                'type'           => $doc->type,
-                'path'           => $doc->file_path ? Storage::url($doc->file_path) : null,
-                'thumbnail_path' => $doc->thumbnail_path ? Storage::url($doc->thumbnail_path) : null,
-            ]);
 
         return Inertia::render('Admin/Members/Show', [
-            'member' => [
-                'id' => $member->id,
-
-                // 申請者
-                'first_name' => $member->first_name,
-                'last_name'  => $member->last_name,
-                'name'       => $member->full_name,
-
-                // ステータス
-                'status'   => $member->status,
-                'progress' => $member->progress,
-
-                // organization（typeごとに整理）
-                'organizations' => $member->organizations->map(fn ($o) => [
-                    'id'           => $o->id,
-                    'type'         => $o->type,
-                    'name'         => $o->full_name,
-                    'postal_code'  => $o->postal_code,
-                    'address'      => $o->full_address,
-                    'tel'          => $o->tel,
-                    'fax'          => $o->fax,
-                    'mobile'       => $o->mobile,
-                    'email'        => $o->email,
-                    'contact_name' => $o->contact_name,
-                ]),
-
-                // 書類は独立
-                'documents' => $documents,
-
-                'created_at' => $member->created_at,
-            ],
-            // 検索条件をそのまま渡す
-            'filters' => $request->only([
-                'name', 'name', 'tel', 'per_page', 'sort_by', 'sort_dir', 'page'
-            ]),            
+            'member'  => $this->formatMember($member),
+            'filters' => $request->only(['keyword', 'status_id', 'per_page', 'sort_by', 'sort_dir', 'page']),
         ]);
     }
 
+    // ──────────────────────────────────────────
     // 編集画面
+    // ──────────────────────────────────────────
+
     public function edit(Member $member, Request $request)
     {
-        
-        // Inertia に渡す
+        $member->load([
+            'organization',
+            'addresses',
+            'educations',
+            'degrees',
+            'roles',
+            'committees',
+        ]);
+
+        $homeAddress     = $member->addresses->firstWhere('type', MemberAddress::TYPE_HOME);
+        $shippingAddress = $member->addresses->firstWhere('type', MemberAddress::TYPE_SHIPPING);
+
         return Inertia::render('Admin/Members/Edit', [
-            'form' => $member,
-            'filters' => $request->only(['name', 'name', 'tel', 'per_page', 'sort_by', 'sort_dir']),
+            'member'          => $member,
+            'organization'    => $member->organization,
+            'home_address'    => $homeAddress,
+            'shipping_address'=> $shippingAddress,
+            'education'       => $member->educations->first(),
+            'degrees'         => $member->degrees,
+            'roles'           => $member->roles,
+            'committees'      => $member->committees,
+            'filters'         => $request->only(['keyword', 'status_id', 'per_page', 'sort_by', 'sort_dir']),
         ]);
     }
 
+    // ──────────────────────────────────────────
+    // 更新
+    // ──────────────────────────────────────────
 
     public function update(Request $request, Member $member)
     {
-        $data = $request->validate([
-            'name' => 'required|string',
-            'postal_code'  => 'nullable|string|regex:/^\d{3}-\d{4}$/',
-            'address1'  => 'required|string',
-            'address2'  => 'required|string',
-            'address3'  => 'nullable|string',
-            'position'  => 'nullable|string',
-            'first_name'=> 'nullable|string',
-            'last_name' => 'nullable|string',
-            'tel'    => 'required|string|regex:/^0\d{1,4}-\d{1,4}-\d{3,4}$/',
-            'fax'    => 'nullable|string|regex:/^0\d{1,4}-\d{1,4}-\d{3,4}$/',
-            'mobile' => 'nullable|string|regex:/^0[5789]0-\d{4}-\d{4}$/',
-        ]);
+        $validated = $this->validateMember($request, $member->id);
 
-        $member->update($data);
+        DB::transaction(function () use ($member, $validated) {
+            $member->update($validated['member']);
+            $this->syncRelatedData($member, $validated);
+        });
 
-        return redirect()
-            ->route('admin.member.index', $member)->with('success', '会員情報を更新しました!');
+        return redirect()->route('admin.members.show', $member)
+            ->with('success', '会員情報を更新しました。');
     }
 
+    // ──────────────────────────────────────────
     // 削除
+    // ──────────────────────────────────────────
+
     public function destroy(Member $member)
     {
         $member->delete();
+
         return redirect()->route('admin.members.index')
-            ->with('success', __('member_deleted'));
+            ->with('success', '会員を削除しました。');
     }
 
     // 複数削除
     public function bulkDelete(Request $request)
     {
-        Member::whereIn('id', $request->ids)->delete();
-        return redirect()->route('admin.members.index')
-            ->with('success', __('selected_members_deleted'));
-    }
-
-    public function autocomplete(Request $request)
-    {
-        $search = $request->input('q');
-
-        $members = Member::query()
-            ->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
-            ->when($search, fn($q) => $q->where('representative', 'like', "%{$search}%"))
-            ->orderBy('name', 'desc')
-            ->limit(20)
-            ->get()
-            ->map(fn($m) => [
-                'id' => $m->id,
-                'label' => "{$m->name} ({$m->representative})"
-            ]);
-
-        return response()->json($members);
-    }
-    // AdminMemberController.php
-    public function editStatus(Member $member)
-    {
-        return response()->json([
-            'member' => [
-                'status_id' => $member->status_id,
-            ],
-            'statuses' => Status::select('id', 'name')->orderBy('id')->get(),
+        $request->validate([
+            'ids'   => 'required|array',
+            'ids.*' => 'exists:members,id',
         ]);
+
+        Member::whereIn('id', $request->ids)->delete();
+
+        return redirect()->route('admin.members.index')
+            ->with('success', '選択した会員を削除しました。');
     }
+
+    // ──────────────────────────────────────────
+    // 組織検索（Vue用オートコンプリート）
+    // ──────────────────────────────────────────
+
+    public function searchOrganizations(Request $request)
+    {
+        $organizations = Organization::search($request->input('q', ''))
+            ->select('id', 'name', 'abbr')
+            ->limit(20)
+            ->get();
+
+        return response()->json($organizations);
+    }
+
+    // ──────────────────────────────────────────
+    // ステータス更新（モーダル用）
+    // ──────────────────────────────────────────
 
     public function updateStatus(Request $request, Member $member)
     {
         $request->validate([
-            'status_id' => ['required', 'exists:statuses,id'],
+            'status_id' => 'required|integer|in:1,2,3',
         ]);
 
-        $member->update([
-            'status_id' => $request->status_id,
-        ]);
+        $member->update(['status_id' => $request->status_id]);
 
         return response()->json(['ok' => true]);
     }
 
-    public function editProgress(Member $member)
-    {
-        return response()->json([
-            'member' => [
-                'id' => $member->id,
-                'progress_id' => $member->progress_id,
-            ],
-            'progresses' => Progress::select('id', 'name')
-                ->orderBy('id')
-                ->get(),
-        ]);
-    }
-
-    public function updateProgress(Request $request, Member $member)
-    {
-        $request->validate([
-            'progress_id' => ['required', 'exists:progresses,id'],
-        ]);
-
-        $member->update([
-            'progress_id' => $request->progress_id,
-        ]);
-
-        return response()->json(['ok' => true]);
-    }
+    // ──────────────────────────────────────────
+    // PDFアップロード
+    // ──────────────────────────────────────────
 
     public function uploadDocument(Request $request, Member $member)
     {
         $request->validate([
-            'type_id' => 'required|integer|in:1,2,3,4',
+            'type_id'  => 'required|integer|in:1,2,3,4',
             'document' => 'required|file|mimes:pdf|max:10240',
         ]);
-        // member → organizations（法人）
-        $organization = $member->organizations()
-            ->where('type', 1)
-            ->first();
 
-        if (!$organization) {
-            abort(404, '法人organizationが見つかりません');
-        }
-
-        $organizationId = $organization->id;
-
-        // type_id によってアップロード先フォルダを振り分け
-        $folderMap = [
-            1 => 'members/history_certificates',
-            2 => 'members/address_certificates',
-            3 => 'members/bank_transfer_forms',
-            4 => 'members/power_of_attorney',
-        ];
-
-        $folder = $folderMap[$request->type_id] ?? 'members/others';
-
-        // PDFアップロード＋サムネイル生成
         [$filePath, $thumbPath] = $this->storePdfWithThumbnail(
             $request->file('document'),
-            $folder
-        );
-
-        // DB保存（organization_documents）
-        OrganizationDocument::updateOrCreate(
-            [
-                'organization_id' => $organizationId,
-                'type' => $request->type_id,
-            ],
-            [
-                'file_path' => $filePath,
-                'thumbnail_path' => $thumbPath,
-                'verified_at' => null,
-            ]
+            'members/documents'
         );
 
         return response()->json([
-            'success' => true,
-            'file_url' => Storage::url($filePath),
+            'success'       => true,
+            'file_url'      => Storage::url($filePath),
             'thumbnail_url' => $thumbPath ? Storage::url($thumbPath) : null,
         ]);
     }
 
+    // ──────────────────────────────────────────
+    // Private: バリデーション
+    // ──────────────────────────────────────────
 
-    // pdf upload＋thumbnail(png)作成関数    
-    private function storePdfWithThumbnail(
-        ?UploadedFile $file,
-        string $baseDir
-    ): array {
-/* debug用
-logger()->error('BASE DIR DEBUG', [
-    'file' => $file,
-    'baseDir' => $baseDir,
-    'length' => strlen($baseDir),
-]);
-*/
-        if (!$file) {
+    private function validateMember(Request $request, ?int $memberId = null): array
+    {
+        $memberRules = [
+            'member.organization_id' => 'nullable|exists:organizations,id',
+            'member.member_number'   => 'nullable|string|max:20',
+            'member.position'        => 'nullable|string|max:20',
+            'member.last_name'       => 'required|string|max:100',
+            'member.first_name'      => 'required|string|max:100',
+            'member.last_name_kana'  => 'nullable|string|max:100',
+            'member.first_name_kana' => 'nullable|string|max:100',
+            'member.gender'          => 'nullable|in:male,female,other',
+            'member.birthdate'       => 'nullable|date',
+            'member.tel'             => 'nullable|string|max:30',
+            'member.mobile'          => 'nullable|string|max:30',
+            'member.fax'             => 'nullable|string|max:30',
+            'member.email'           => [
+                'nullable', 'email', 'max:255',
+                $memberId
+                    ? "unique:members,email,{$memberId}"
+                    : 'unique:members,email',
+            ],
+            'member.personal_email'  => 'nullable|email|max:255',
+            'member.status_id'       => 'nullable|integer|in:1,2,3',
+            'member.member_type'     => 'nullable|string|max:50',
+            'member.joined_at'       => 'nullable|date',
+            'member.withdrawn_at'    => 'nullable|date',
+        ];
+
+        $addressRules = [
+            'home_address.postal_code' => 'nullable|string|max:20',
+            'home_address.address1'    => 'nullable|string|max:255',
+            'home_address.address2'    => 'nullable|string|max:255',
+            'home_address.address3'    => 'nullable|string|max:255',
+            'home_address.tel'         => 'nullable|string|max:30',
+            'home_address.fax'         => 'nullable|string|max:30',
+
+            'shipping_address.postal_code' => 'nullable|string|max:20',
+            'shipping_address.address1'    => 'nullable|string|max:255',
+            'shipping_address.address2'    => 'nullable|string|max:255',
+            'shipping_address.address3'    => 'nullable|string|max:255',
+        ];
+
+        $otherRules = [
+            'education.school_name'  => 'nullable|string|max:255',
+            'education.faculty'      => 'nullable|string|max:255',
+            'education.graduated_at' => 'nullable|string|max:20',
+
+            'degrees'             => 'nullable|array|max:5',
+            'degrees.*.degree'    => 'nullable|string|max:100',
+            'degrees.*.obtained_at' => 'nullable|string|max:20',
+
+            'roles'               => 'nullable|array',
+            'roles.*.role'        => 'nullable|string|max:100',
+            'roles.*.started_at'  => 'nullable|string|max:20',
+            'roles.*.ended_at'    => 'nullable|string|max:20',
+
+            'committees'               => 'nullable|array',
+            'committees.*.committee'   => 'nullable|string|max:100',
+            'committees.*.started_at'  => 'nullable|string|max:20',
+            'committees.*.ended_at'    => 'nullable|string|max:20',
+        ];
+
+        return $request->validate(array_merge($memberRules, $addressRules, $otherRules));
+    }
+
+    // ──────────────────────────────────────────
+    // Private: 関連データの同期
+    // ──────────────────────────────────────────
+
+    private function syncRelatedData(Member $member, array $data): void
+    {
+        // 自宅住所
+        if (!empty($data['home_address'])) {
+            MemberAddress::updateOrCreate(
+                ['member_id' => $member->id, 'type' => MemberAddress::TYPE_HOME],
+                $data['home_address']
+            );
+        }
+
+        // 送付先住所
+        if (!empty($data['shipping_address'])) {
+            MemberAddress::updateOrCreate(
+                ['member_id' => $member->id, 'type' => MemberAddress::TYPE_SHIPPING],
+                $data['shipping_address']
+            );
+        } else {
+            // nullの場合は削除（自宅と同じ）
+            MemberAddress::where('member_id', $member->id)
+                ->where('type', MemberAddress::TYPE_SHIPPING)
+                ->delete();
+        }
+
+        // 学歴（1件）
+        if (!empty($data['education'])) {
+            MemberEducation::updateOrCreate(
+                ['member_id' => $member->id],
+                $data['education']
+            );
+        }
+
+        // 学位（最大5件・全削除→再挿入）
+        if (isset($data['degrees'])) {
+            $member->degrees()->delete();
+            foreach ($data['degrees'] as $degree) {
+                if (!empty($degree['degree'])) {
+                    $member->degrees()->create($degree);
+                }
+            }
+        }
+
+        // 役職歴（全削除→再挿入）
+        if (isset($data['roles'])) {
+            $member->roles()->delete();
+            foreach ($data['roles'] as $role) {
+                if (!empty($role['role'])) {
+                    $member->roles()->create($role);
+                }
+            }
+        }
+
+        // 委員歴（全削除→再挿入）
+        if (isset($data['committees'])) {
+            $member->committees()->delete();
+            foreach ($data['committees'] as $committee) {
+                if (!empty($committee['committee'])) {
+                    $member->committees()->create($committee);
+                }
+            }
+        }
+    }
+
+    // ──────────────────────────────────────────
+    // Private: 詳細用フォーマット
+    // ──────────────────────────────────────────
+
+    private function formatMember(Member $member): array
+    {
+        $homeAddress     = $member->addresses->firstWhere('type', MemberAddress::TYPE_HOME);
+        $shippingAddress = $member->addresses->firstWhere('type', MemberAddress::TYPE_SHIPPING);
+
+        return [
+            'id'             => $member->id,
+            'member_number'  => $member->member_number,
+            'full_name'      => $member->full_name,
+            'full_name_kana' => $member->full_name_kana,
+            'last_name'      => $member->last_name,
+            'first_name'     => $member->first_name,
+            'position'       => $member->position,
+            'gender'         => $member->gender,
+            'gender_label'   => $member->gender_label,
+            'birthdate'      => $member->birthdate?->format('Y-m-d'),
+            'tel'            => $member->tel,
+            'mobile'         => $member->mobile,
+            'fax'            => $member->fax,
+            'email'          => $member->email,
+            'personal_email' => $member->personal_email,
+            'status_id'      => $member->status_id,
+            'status_label'   => $member->status_label,
+            'member_type'    => $member->member_type,
+            'joined_at'      => $member->joined_at?->format('Y-m-d'),
+            'withdrawn_at'   => $member->withdrawn_at?->format('Y-m-d'),
+            'organization'   => $member->organization ? [
+                'id'   => $member->organization->id,
+                'name' => $member->organization->name,
+                'abbr' => $member->organization->abbr,
+                'url'  => $member->organization->url,
+                'location' => $member->organization->locationAddress,
+            ] : null,
+            'home_address'     => $homeAddress,
+            'shipping_address' => $shippingAddress,
+            'educations'       => $member->educations,
+            'degrees'          => $member->degrees,
+            'roles'            => $member->roles,
+            'committees'       => $member->committees,
+            'latest_cycle'     => $member->latestCycle,
+            'created_at'       => $member->created_at->format('Y-m-d'),
+        ];
+    }
+
+    // ──────────────────────────────────────────
+    // Private: PDF保存＋サムネイル生成
+    // ──────────────────────────────────────────
+
+    private function storePdfWithThumbnail(?UploadedFile $file, string $baseDir): array
+    {
+        if (!$file || !$file->isValid()) {
             return [null, null];
         }
 
-        if (!$file->isValid()) {
-            throw new \RuntimeException('Upload is not valid');
-        }
-
-        // PDF 保存（public）
         $pdfRelativePath = $file->store($baseDir, 'public');
+        $pdfFullPath     = storage_path('app/public/' . $pdfRelativePath);
 
-        if (!$pdfRelativePath) {
-            throw new \RuntimeException('PDF store failed');
-        }
+        $thumbDir              = $baseDir . '/thumbnails';
+        $thumbnailRelativePath = $thumbDir . '/' . pathinfo($pdfRelativePath, PATHINFO_FILENAME) . '.png';
+        $thumbnailFullPath     = storage_path('app/public/' . $thumbnailRelativePath);
 
-        $pdfFullPath = storage_path('app/public/' . $pdfRelativePath);
-
-        if (!is_file($pdfFullPath)) {
-            throw new \RuntimeException('PDF not found: ' . $pdfFullPath);
-        }
-
-        // thumbnail 保存先
-        $thumbDir = $baseDir . '/thumbnails';
         if (!Storage::disk('public')->exists($thumbDir)) {
             Storage::disk('public')->makeDirectory($thumbDir);
         }
 
-        $thumbnailRelativePath =
-            $thumbDir . '/' . pathinfo($pdfRelativePath, PATHINFO_FILENAME) . '.png';
-        $thumbnailFullPath = storage_path('app/public/' . $thumbnailRelativePath);
-
-        // thumbnail 生成
         $imagick = new \Imagick();
         $imagick->setResolution(150, 150);
         $imagick->readImage($pdfFullPath . '[0]');
@@ -398,5 +453,5 @@ logger()->error('BASE DIR DEBUG', [
         $imagick->destroy();
 
         return [$pdfRelativePath, $thumbnailRelativePath];
-    }    
+    }
 }

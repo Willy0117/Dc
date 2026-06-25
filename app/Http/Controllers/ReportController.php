@@ -36,7 +36,7 @@ class ReportController extends Controller
     {
             $member = auth()->user()->member;
 
-            return Inertia::render('Reports/Edit', [
+            return Inertia::render('Reports/Create', [
                 'member' => $member,
                 'report' => '',
             ]);

@@ -4,148 +4,353 @@ namespace App\Services;
 
 use setasign\Fpdi\Tcpdf\Fpdi;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class PdfService
 {
     protected $disk;
 
-    public function __construct()
-    {
+    public function __construct(
+        private FileService $fileService
+    ) {
         $this->disk = config('filesystems.default');
     }
 
+    // ──────────────────────────────────────────
+    // 契約書PDF生成
+    // ──────────────────────────────────────────
+
     /**
-     * Application の情報から PDF を作成し、文字列で返す
+     * 契約書PDFを生成してストレージに保存し、パスを返す
+     *
+     * @param  \App\Models\Organization $organization
+     * @param  array                    $data  セッションの application データ
+     * @return string                   storage_path からの相対パス（public/contracts/xxx.pdf）
      */
-    public function createApplicationPdf($data, $canvasFilePath)
+    public function createContractPdf($organization, array $data): string
     {
-             // FPDI + TCPDF
         $pdf = new Fpdi();
-        // ヘッダーフッター消し
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-        // ページ追加
+
+        // テンプレート読み込み
+        $templatePath = storage_path('app/templates/Contract.pdf');//Storage::path('templates/contract.pdf');
+        $pageCount    = $pdf->setSourceFile($templatePath);
+
+        // 日本語フォント
+        $pdf->SetFont('kozminproregular', '', 12);
+
+        // -----------------------------------------------
+        // 1ページ目：当事者記載
+        // -----------------------------------------------
+        $pdf->AddPage();
+        $tpl = $pdf->importPage(1);
+        $pdf->useTemplate($tpl);
+        
+        $text = '医療法人社団祐優会（以下「甲」という。）、' . $organization->name . '（以下「乙」という。）および株式会社Ａｌｉｖｉｏ ＪＡＰＡＮ（以下「丙」という。）とは、次のとおりライセンス契約（以下「本契約」という。）を締結する。';
+        // \xc2\xa0 はUTF-8のノーブレークスペースに置き換え
+        $text = str_replace(["\r\n", "\r", "\n", "　", " "], "\xc2\xa0", $text);
+
+        $pdf->SetXY(20, 50);
+        $pdf->MultiCell(170, 8, $text);
+
+        // -----------------------------------------------
+        // 中間ページをそのまま取り込む
+        // -----------------------------------------------
+        for ($i = 2; $i < $pageCount; $i++) {
+            $pdf->AddPage();
+            $tpl = $pdf->importPage($i);
+            $pdf->useTemplate($tpl);
+
+            if ($i == 11) {
+                    // 契約日
+                    $pdf->SetFont('kozminproregular', '', 10);
+                    $pdf->SetXY(30, 35);
+
+                    $contractDate = $organization->new_contract_date
+                        ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y年n月j日')
+                        : now()->format('Y年n月j日');
+                    $pdf->Write(0, $contractDate);
+
+                    // 乙（動的）
+                    $address     = $organization->locationAddress;
+                    $etsuAddress = implode('', array_filter([
+                        $address?->address1,
+                        $address?->address2,
+                        $address?->address3,
+                    ]));
+                    $pdf->SetFont('kozminproregular', '', 12);
+                    $x = 70; $y = 103;
+                    $width = 114; // 右端までの幅を調整
+
+                    $pdf->SetXY($x, $y);
+                    $pdf->Cell($width, 8, '（住所）〒' . ($data['postal_code'] ?? '') . '　' . $etsuAddress, 0, 1, 'R');
+
+                    $pdf->SetXY($x, $y+8);
+                    $pdf->Cell($width, 8, ($data['corp_name'] ?? $organization->name), 0, 1, 'R');
+
+                    $pdf->SetXY($x, $y+16);
+                    $pdf->Cell($width, 8, ($data['rep_position'] ?? '') . '　' . ($data['rep_last_name'] ?? '') . '　' . ($data['rep_first_name'] ?? '') . '　印', 0, 1, 'R');            }
+        }
+
+        // -----------------------------------------------
+        // 保存
+        // -----------------------------------------------
+        $code = $organization->code;
+
+        if (empty($code)) {
+            $code = 'OC' . str_pad($organization->contract_no, 5, '0', STR_PAD_LEFT);
+        }
+
+        $fileName = 'contracts/' . $code . '_' . now()->format('Y-m-d') . '.pdf';
+
+        // 一時ファイルとして生成
+        $tmpPath = tempnam(sys_get_temp_dir(), 'contract_');
+        $pdf->Output($tmpPath, 'F');
+
+        // Storageファサード経由で保存（ローカル/S3どちらでも対応）
+        Storage::disk('public')->put($fileName, file_get_contents($tmpPath));
+        unlink($tmpPath);
+
+        return $fileName;
+    }
+
+    // ──────────────────────────────────────────
+    // 合意書PDF生成
+    // ──────────────────────────────────────────
+ 
+    public function createAgreementPdf($organization, array $data): string
+    {
+        $pdf = new Fpdi();
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+ 
+        // テンプレート読み込み
+        $templatePath = storage_path('app/templates/Agreement.pdf');//Storage::path('templates/contract.pdf');
+        $pageCount    = $pdf->setSourceFile($templatePath);
+ 
+        // 日本語フォント
+        $pdf->SetFont('kozminproregular', '', 11);
+ 
+        // -----------------------------------------------
+        // 1ページ目：当事者記載・合意日
+        // -----------------------------------------------
+        $pdf->AddPage();
+        $tpl = $pdf->importPage(1);
+        $pdf->useTemplate($tpl);
+ 
+        // 合意日（contract_dateを使用）
+        $contractDate = $organization->contract_date
+            ? Carbon::parse($organization->contract_date)->format('Y年n月j日')
+            : now()->format('Y年n月j日');
+
+        $text = '医療法人社団祐優会（以下「甲」という。）、' . $organization->name 
+        . '（以下「乙」という。）及び株式会社Ａｌｉｖｉｏ ＪＡＰＡＮ（以下「丙」という。）は、甲乙丙間の' 
+        . $contractDate
+        . '付ライセンス契約（同契約の内容の変更・追加をする合意を含む。以下「旧契約」という。）及び甲乙丙間の本日付ライセンス契約（以下「新契約」という。）について、次のとおり合意する。';
+        // \xc2\xa0 はUTF-8のノーブレークスペースに置き換え
+        $text = str_replace(["\r\n", "\r", "\n", "　", " "], "\xc2\xa0", $text);
+
+        $pdf->SetXY(20, 50);
+        $pdf->MultiCell(170, 8, $text);
+
+        // 乙（動的）
+                // -----------------------------------------------
+        // 2ページ目：テンプレート取り込み＋住所書き込み
+        // -----------------------------------------------
+        $pdf->AddPage();
+        $tpl = $pdf->importPage(2);
+        $pdf->useTemplate($tpl);
+        // 契約日
+        $pdf->SetFont('kozminproregular', '', 10);
+        $pdf->SetXY(30, 35);
+
+        $contractDate = $organization->new_contract_date
+            ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y年n月j日')
+            : now()->format('Y年n月j日');
+        $pdf->Write(0, $contractDate);
+
+        // 乙（動的）
+        $address     = $organization->locationAddress;
+        $etsuAddress = implode('', array_filter([
+            $address?->address1,
+            $address?->address2,
+            $address?->address3,
+        ]));
+        $pdf->SetFont('kozminproregular', '', 10.5);
+        $x = 70; $y = 74;
+        $width = 110; // 右端までの幅を調整
+
+        $pdf->SetXY($x, $y);
+        $pdf->Cell($width, 8, '〒' . ($data['postal_code'] ?? '') . '　' . $etsuAddress, 0, 1, 'R');
+
+        $pdf->SetXY($x, $y+11);
+        $pdf->Cell($width, 8, ($data['corp_name'] ?? $organization->name), 0, 1, 'R');
+
+        $pdf->SetXY($x-20, $y+22);
+        $pdf->Cell($width, 8, ($data['rep_position'] ?? '') . '　' . ($data['rep_last_name'] ?? '') . '　' . ($data['rep_first_name'] ?? '') . '', 0, 1, 'R');
+        // -----------------------------------------------
+        // 保存
+        // -----------------------------------------------
+        return $this->savePdf($pdf, 'contracts/agreement_' . $organization->id . '_' . now()->format('YmdHis') . '.pdf');
+    }
+
+    // ──────────────────────────────────────────
+    // 請求書PDF生成
+    // ──────────────────────────────────────────
+
+    /**
+     * 請求書PDFを生成してストレージに保存し、[path, thumbnailPath]を返す
+     */
+    public function createInvoicePdf(
+        $organization,
+        array $data,
+        string $invoiceNo,
+        array $items,
+        int $amount,
+        int $tax,
+        int $total,
+        string $billingDate,
+        string $dueDate
+    ): string {
+        $pdf = new Fpdi();
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
         $pdf->AddPage();
 
-        // 既存PDFテンプレート読み込み
-        $templatePath = Storage::path('templates/order_sheet/poem.pdf');
+        // テンプレート読み込み
+        $templatePath = storage_path('app/templates/Invoice.pdf');//Storage::path('templates/Invoice.pdf');
 
-        $pageCount = $pdf->setSourceFile($templatePath);
+        $pdf->setSourceFile($templatePath);
         $tpl = $pdf->importPage(1);
         $pdf->useTemplate($tpl);
 
-        // TCPDF同梱の日本語フォント
-        $pdf->SetFont('kozminproregular', '', 11); // もしくは cid0jp
-                // 受注コード
-        $pdf->SetXY(158, 18);
-        $pdf->Write(8, $data->order_code);
-        //納品時間    
-        $pdf->SetXY(50, 48);
-        $pdf->Write(8, ($data['delivery_date']??now())->format('Y年m月d日 H時i分'));
-        //申込時間    
-        $pdf->SetXY(135, 48);
-        $pdf->Write(8, now()->format('Y年m月d日 H時i分'));
+        // 日本語フォント
+        $pdf->SetFont('kozminproregular', '', 10);
 
-        $pdf->SetXY(65, 62);
-        $pdf->Write(8, $data['staff_name']??'山田　太郎');
-        $pdf->SetXY(65, 69);
-        $pdf->Write(8, $data->user);
-        $pdf->SetXY(65, 76);
-        $pdf->Write(8, ($data['funeral_datetime']??now())->format('Y年m月d日 H時i分'));
-        $pdf->SetXY(65, 83);
-        $pdf->Write(8, '名前の詩');
-        $pdf->SetXY(65, 90);
-        $pdf->Write(8, $data['deceased_furigana']??'やまだ　たろう');
-        $pdf->SetFont('kozminproregular', '', 14); // もしくは cid0jp
+        // 請求書番号
+        $pdf->SetXY(36, 17);
+        $pdf->Write(8, $invoiceNo);
 
-        $name = ($data['last_name']??'山田') . ' ' . ($data['first_name']??'太郎');
-        $pdf->SetXY(65,  99);
-        $pdf->Write(8, $name);
-        $pdf->SetFont('kozminproregular', '', 11); // もしくは cid0jp
+        // 請求書発行日
+        $pdf->SetXY(168, 17);
+        $pdf->Write(8, \Carbon\Carbon::parse($billingDate)->format('Y年m月d日'));
 
-        $pdf->SetXY(65, 107);
-        $pdf->Write(8, $data['gender']??'男');
-        $pdf->SetXY(65, 114);
-        $pdf->Write(8, ($data['age_at_death']??'90') . '　歳');
-        $pdf->SetXY(65, 121);
+        // 請求書送付先
+        $pdf->SetXY(20, 66);
+        $pdf->Write(8, $organization->name);
 
-        $spouse = $data['spouse_status']??'none';
-        $spouse_status = [
-            'none' => '無',
-            'alive' => '有',
-            'deceased' => '死別',
-        ];
-        $pdf->Write(8, $spouse_status[$spouse]);
-        $pdf->SetXY(65, 128);
-        $pdf->Write(8, $data['children_count']??'未記入');
-        $pdf->SetXY(65, 135);
-        $pdf->Write(8, $data['grandchildren_count']??'未記入');
-        $pdf->SetXY(65, 142);
-        $pdf->Write(8, $data['chief_mourner_name']??'未記入');
-        $pdf->SetXY(65, 149);
-        $pdf->Write(8, $data['relationship_to_deceased']??'未記入');
+        // お支払い期限
+        $pdf->SetXY(35, 94);
+        $pdf->Write(8, \Carbon\Carbon::parse($dueDate)->format('Y年m月d日'));
 
-        $text_color = $data['text_color']??'brown';
-        $colorLabels = [
-            'brown'  => '茶',
-            'green'  => '緑',
-            'pink'   => 'ピンク',
-            'blue'   => '青',
-            'orange' => 'オレンジ',
-            'yellow' => '黄色',
-        ];
-        $pdf->SetXY(65, 155);
-        $pdf->Write(8, $colorLabels[$text_color]);
+        // ご請求額（税込）
+        $pdf->SetXY(10, 106);
+        $pdf->Cell(55, 14, number_format($total) . '円', 0, 0, 'R');
 
-        $bg_color = $data['bg_color']??'none';
-        $colorLabels = [
-            'none'   => 'なし',
-            'green'  => '緑',
-            'pink'   => 'ピンク',
-            'blue'   => '青',
-            'orange' => 'オレンジ',
-        ];
-        $pdf->SetXY(65, 162);
-        $pdf->Write(8, $colorLabels[$bg_color]);
-
-        $traitsOptions = [
-            '優しい','明朗','温和','誠実','思いやり','面倒見良い','忍耐強い',
-            '親切','真面目','努力家','積極的','責任感が強い','世話好き'
-        ];
-
-        $traits = $data['traits'] ?? [];
-
-        if (is_string($traits)) {
-            $traits = json_decode($traits, true) ?? [];
+        // 明細行
+        $y = 133;
+        foreach ($items as $item) {
+            $pdf->SetXY(17, $y);
+            $pdf->Write(8, $item[0]);
+            $pdf->SetXY(128, $y);
+            $pdf->Cell(15, 10, number_format($item[1]), 0, 0, 'R');
+            $pdf->SetXY(165, $y);
+            $pdf->Cell(25, 10, number_format($item[2]), 0, 0, 'R');
+            $y += 10;
         }
 
-        if (is_string($traits)) {
-            $traits = json_decode($traits, true) ?? [];
+        // 小計・消費税・合計
+        $pdf->SetXY(165, 204);
+        $pdf->Cell(25, 10, number_format($amount), 0, 0, 'R');
+        $pdf->SetXY(165, 213);
+        $pdf->Cell(25, 10, number_format($tax), 0, 0, 'R');
+        $pdf->SetXY(165, 222);
+        $pdf->Cell(25, 10, number_format($total), 0, 0, 'R');
+
+        // 保存
+        // 保存
+        $fileName = 'invoices/invoice_' . $invoiceNo . '.pdf';
+        $fullPath = storage_path('app/public/' . $fileName);
+ 
+        if (!file_exists(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
         }
-        $traitsText = '';
+ 
+        $pdf->Output($fullPath, 'F');
+ 
+        return $fileName;
+    }
 
-        foreach ($traitsOptions as $trait) {
-            $traitsText .= in_array($trait, $traits) ? '■'.$trait.'  ' : '□'.$trait.'  ';
+    // ──────────────────────────────────────────
+    // 請求書PDF生成
+    // ──────────────────────────────────────────
+
+    public function createLicensePdf($organization, string $dueDate, string $displayName = null): string
+    {
+        \Log::info('display_name:', ['value' => $displayName]);
+        $pdf = new Fpdi();
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->AddPage('L');
+
+        // テンプレート読み込み
+        $templatePath = storage_path('app/templates/License.pdf');
+
+        $pdf->setSourceFile($templatePath);
+        $tpl = $pdf->importPage(1);
+        $pdf->useTemplate($tpl);
+
+        // 日本語フォント
+        $pdf->SetFont('kozminproregular', '', 12);
+
+        // 契約日
+        $pdf->SetXY(168, 153);
+        $pdf->Write(8, $dueDate);
+
+        // 日本語フォント
+        $pdf->SetFont('kozminproregular', '', 21);
+        // 契約先名
+        $text = $organization->name;
+        $text = $organization->name;
+        $pageWidth = $pdf->GetPageWidth(); // 297
+        $cellWidth = 140;
+        $x = ($pageWidth - $cellWidth) / 2; // 中央揃え
+
+        $text = $displayName ?? $organization->name;
+
+        $text = str_replace([' ', '　'], "\xc2\xa0", $text);
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+        $pdf->SetXY($x, 50);
+        $pdf->MultiCell($cellWidth, 8, $text, 0, 'C');
+
+        // 保存
+        $fileName = 'licenses/' . $organization->code . '_' . now()->format('Y-m-d') . '.pdf';
+        $fullPath = storage_path('app/public/' . $fileName);
+ 
+        if (!file_exists(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
         }
-        $pdf->SetXY(65, 171);
-        $pdf->MultiCell(120,7,$traitsText);
+ 
+        $pdf->Output($fullPath, 'F');
+ 
+        return $fileName;
+    }
+    // ──────────────────────────────────────────
+    // PDF保存（共通）
+    // ──────────────────────────────────────────
 
-        $pdf->SetXY(65, 197);
-        $pdf->MultiCell(120, 8, $data['special_note'] ?? 'なし');
+    private function savePdf(Fpdi $pdf, string $fileName): string
+    {
+        $fullPath = storage_path('app/public/' . $fileName);
 
-        $pdf->SetXY(65, 224);
-        $pdf->MultiCell(120, 8, $data['remarks'] ?? 'なし');
-
-        if ($canvasFilePath) {
-
-            $canvasPath = Storage::disk($this->disk)->path($canvasFilePath);
-
-            if (file_exists($canvasPath)) {
-                $pdf->Image($canvasPath, 150, 108, 32);
-            }
+        if (!file_exists(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
         }
-        // PDFデータを文字列で返す
-        return $pdf->Output('', 'S'); // 'S'で文字列取得
+
+        $pdf->Output($fullPath, 'F');
+
+        return $fileName;
     }
 
 }

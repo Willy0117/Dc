@@ -3,34 +3,47 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class ApplicationDocument extends Model
 {
-    protected $table = 'application_documents';
-    
     protected $fillable = [
         'application_id',
-        'type', 
+        'type',
         'file_path',
         'thumbnail_path',
     ];
 
-    protected $appends = [
-        'url', 'thumbnail_url'
+    protected $casts = [
+        'type' => 'integer',
     ];
 
-    public function application()
+    // タイプ定数
+    const TYPE_CONTRACT = 1; // 契約書PDF（送信前の自社生成版）
+    const TYPE_SIGNED    = 2; // 締結済みPDF（クラウドサインからの最終版）
+    const TYPE_AGREEMENT        = 3; // 合意書PDF（送信前）
+    const TYPE_AGREEMENT_SIGNED = 4; // 合意書PDF（締結済み）
+
+    public function application(): BelongsTo
     {
         return $this->belongsTo(Application::class);
     }
 
-    public function getUrlAttribute()
+    // ストレージURL取得
+    public function getUrlAttribute(): string
     {
-        return $this->file_path ? Storage::url($this->file_path) : null;
+        return Storage::url($this->file_path);
     }
 
-    public function getThumbnailUrlAttribute()
+    // 絶対パス取得
+    public function getFullPathAttribute(): string
+    {
+        return storage_path('app/' . $this->file_path);
+    }
+
+    // サムネイルURL取得
+    public function getThumbnailUrlAttribute(): ?string
     {
         return $this->thumbnail_path ? Storage::url($this->thumbnail_path) : null;
     }

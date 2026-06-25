@@ -40,4 +40,15 @@ return [
         'api_key' => env('BANKCODEJP_API_KEY'),
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'cloudsign' => [
+        'client_id' => env('CLOUDSIGN_CLIENT_ID'),
+        'api_url' => env('CLOUDSIGN_API_URL', 'https://api.cloudsign.jp'),
+    ],
+
 ];

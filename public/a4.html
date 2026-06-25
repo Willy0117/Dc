@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>オリジナル会葬礼状作成サービス カタログ</title>
+    <style>
+        :root {
+            --main-purple: #4a154b;
+            --sub-purple: #6b2d6c;
+            --light-bg: #faf7fc;
+            --accent-gold: #c5a059;
+            --text-dark: #333333;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: var(--text-dark);
+            line-height: 1.5;
+        }
+
+        /* A4サイズ縦長コンテナ（はみ出し防止の調整） */
+        .a4-page {
+            width: 210mm;
+            height: 297mm;
+            max-height: 297mm;
+            margin: 20px auto;
+            background: #ffffff;
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ヘッダー */
+        header {
+            background-color: var(--main-purple);
+            color: #ffffff;
+            padding: 30px 40px;
+            text-align: center;
+            position: relative;
+            border-bottom: 5px solid var(--accent-gold);
+            flex-shrink: 0;
+        }
+
+        .header-sub {
+            font-size: 13px;
+            letter-spacing: 0.2em;
+            margin-bottom: 6px;
+            color: #e1bee7;
+        }
+
+        .header-title {
+            font-size: 34px;
+            font-weight: bold;
+            margin: 5px 0;
+            letter-spacing: 0.1em;
+            font-family: "ヒラギノ明朝 ProN", serif;
+        }
+
+        .header-lead {
+            font-size: 15px;
+            color: #f3e5f5;
+            margin-top: 6px;
+            letter-spacing: 0.05em;
+        }
+
+        /* メインコンテンツエリア */
+        .content {
+            padding: 30px 40px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .intro-text {
+            text-align: center;
+            font-size: 14px;
+            color: #444;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        /* 4つの特徴 */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .feature-box {
+            background: var(--light-bg);
+            border: 1px solid #e0d0e8;
+            border-top: 4px solid var(--sub-purple);
+            padding: 12px 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .icon-circle {
+            width: 36px;
+            height: 36px;
+            background: var(--sub-purple);
+            border-radius: 50%;
+            margin: 0 auto 8px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .icon-circle svg {
+            width: 18px;
+            height: 18px;
+            fill: #ffffff;
+        }
+
+        .feature-box h3 {
+            font-size: 13px;
+            color: var(--main-purple);
+            margin: 0 0 6px 0;
+            font-weight: bold;
+        }
+
+        .feature-box p {
+            font-size: 11px;
+            margin: 0;
+            color: #555;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        /* 文面サンプル（高さを少しコンパクトにして安全マージンを確保） */
+        .sample-section {
+            background-color: #fffdfa;
+            border: 1px solid var(--accent-gold);
+            padding: 25px 30px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            position: relative;
+            height: 350px;
+            box-sizing: border-box;
+        }
+
+        .sample-tag {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: var(--main-purple);
+            color: white;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .vertical-container {
+            writing-mode: vertical-rl;
+            -webkit-writing-mode: vertical-rl;
+            height: 100%;
+            width: 100%;
+            font-family: "ヒラギノ明朝 ProN", "Hiragino Mincho ProN", "MS 明朝", serif;
+            display: block;
+        }
+
+        .vertical-container h4 {
+            font-size: 15px;
+            margin: 0 0 0 25px;
+            color: #111;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .vertical-container p {
+            font-size: 12.5px;
+            line-height: 2.3;
+            margin: 0 0 0 16px;
+            text-indent: 1em;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .vertical-container .signature-block {
+            margin-left: 0;
+            margin-right: 25px;
+            display: inline-block;
+        }
+        
+        .vertical-container .signature-block p {
+            margin: 0 0 0 10px;
+            text-indent: 0;
+            display: block;
+        }
+
+        /* ご利用の流れ */
+        .flow-section {
+            margin-bottom: 5px;
+        }
+
+        .flow-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--main-purple);
+            margin-bottom: 12px;
+            letter-spacing: 0.2em;
+        }
+
+        .flow-grid {
+            display: grid;
+            grid-template-columns: 1fr 16px 1fr 16px 1fr 16px 1fr;
+            align-items: center;
+        }
+
+        .flow-step {
+            background: #ffffff;
+            border: 1px solid #dcd0e5;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            height: 85px;
+            box-sizing: border-box;
+        }
+
+        .flow-step .step-num {
+            font-weight: bold;
+            color: var(--main-purple);
+            margin-bottom: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .flow-step .step-num svg {
+            width: 14px;
+            height: 14px;
+            fill: var(--main-purple);
+        }
+
+        .flow-arrow {
+            text-align: center;
+            color: var(--accent-gold);
+            font-weight: bold;
+            font-size: 16px;
+            user-select: none;
+        }
+
+        /* フッター（最下部に固定されて絶対に切れない処理） */
+        footer {
+            background-color: var(--main-purple);
+            color: #ffffff;
+            padding: 25px 40px;
+            border-top: 4px solid var(--accent-gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            margin-top: auto; /* これにより常に一番下に押し出されます */
+        }
+
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            font-family: "ヒラギノ明朝 ProN", serif;
+            line-height: 1.2;
+        }
+
+        .company-address {
+            font-size: 11px;
+            color: #e1bee7;
+            letter-spacing: 0.05em;
+        }
+
+        .footer-right {
+            text-align: right;
+        }
+
+        .contact-label {
+            font-size: 11px;
+            margin-bottom: 3px;
+            opacity: 0.8;
+        }
+
+        .phone-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffffff;
+            line-height: 1;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* 印刷時の余白リセット設定 */
+        @media print {
+            @page {
+                size: A4 vertical;
+                margin: 0; /* ブラウザが勝手につける余白をゼロにします */
+            }
+            body {
+                background: none;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .a4-page {
+                margin: 0;
+                box-shadow: none;
+                height: 297mm;
+                max-height: 297mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="a4-page">
+    <!-- ヘッダー -->
+    <header>
+        <div class="header-sub">ご遺族への丁寧な電話ヒアリングから紡ぐ、たった一つの物語</div>
+        <div class="header-title">オリジナル会葬礼状作成サービス</div>
+        <div class="header-lead">定型文では伝わらない、故人様らしい想いを、心に残る言葉に。</div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="content">
+        <div class="intro-text">
+            故人様が歩まれた人生やご家族の想いを丁寧にお伺いし、世界に一つだけの会葬礼状をお作りします。<br>
+            参列された方々の心に深く残り、故人様を偲ぶ大切な一枚をお届けします。
+        </div>
+
+        <!-- 4つの特徴 -->
+        <div class="features">
+            <div class="feature-box">
+                <div class="icon-circle">
+                    <svg viewBox="0 0 24 24"><path d="M6.62,10.79C8.06,13.62 10.38,15.93 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/></svg>
+                </div>
+                <h3>丁寧なお電話取材</h3>
+                <p>専門の聞き手が、故人様の人柄や思い出、ご家族の想いを丁寧にお伺いします（約15〜20分）。</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon-circle">
+                    <svg viewBox="0 0 24 24"><path d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,4 16.96,4.18L15.13,6L18,8.83L19.83,7C20.22,6.61 20.22,6 19.83,5.61L18.39,4.17C18.2,3.96 17.93,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L15,7.11L14.06,6.19Z"/></svg>
+                </div>
+                <h3>専任ライターが執筆</h3>
+                <p>伺ったエピソードをもとに、専任ライターが心を込めて一文字一文字、完全オーダーメイドで綴ります。</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon-circle">
+                    <svg viewBox="0 0 24 24"><path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/></svg>
+                </div>
+                <h3>迅速・柔軟な対応</h3>
+                <p>お急ぎのご依頼にも柔軟に対応。ご葬儀のスケジュールに間に合うよう迅速に対応いたします。</p>
+            </div>
+            <div class="feature-box">
+                <div class="icon-circle">
+                    <svg viewBox="0 0 24 24"><path d="M2,12H4V17H20V12H22V17A2,2 0 0,1 20,19H4A2,2 0 0,1 2,17V12M12,2L16,6H13V14H11V6H8L12,2Z"/></svg>
+                </div>
+                <h3>スピードデータ納品</h3>
+                <p>全国どこでも対応可能。完成した礼状データ（PDF・画像等）をメールやSNS等で即座にお届けします。</p>
+            </div>
+        </div>
+
+        <!-- 文面サンプル -->
+        <div class="sample-section">
+            <div class="sample-tag">文面サンプル一例</div>
+            <div class="vertical-container">
+                <h4>【生涯、ひたむきに庭を愛した父へ】</h4>
+                <p>「植物は手をかけた分だけ、必ず美しい花を咲かせて応えてくれる」それが、寡黙で、不器用ながらも誰より実直だった父の口癖でございました。雨の日も風の日も、朝早くから泥だらけになって庭に出ては、大好きな盆栽や季節の草花と静かに対話していたあの穏やかな後ろ姿が、今も私たちの心に鮮明に焼き付いております。</p>
+                <p>多くを語る人ではありませんでしたが、その背中から、私たちは物事に誠実向き合うことの大切さを教わったように思います。本日ここに集い、父との思い出を語り合ってくださる皆様の温かいお言葉こそが、何よりの供養になると存じます。生前、皆様から賜りましたひとかたならぬご厚情に、遺族一同、故人に代わりまして心より深く感謝申し上げます。本日はご多忙の折、父の旅立ちを共に見送っていただき、誠にありがとうございました。</p>
+                
+                <div class="signature-block">
+                    <p style="margin-top:40px;">令和六年五月吉日</p>
+                    <p style="margin-top:60px;">喪主 こころ 太郎</p>
+                    <p style="margin-top:10px;">外 親族一同</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ご利用の流れ -->
+        <div class="flow-section">
+            <div class="flow-title">ー ご利用の流れ ー</div>
+            <div class="flow-grid">
+                <div class="flow-step">
+                    <span class="step-num">
+                        <svg viewBox="0 0 24 24"><path d="M14,10H2V12H14V10M14,6H2V8H14V6M2,16H10V14H2V16M21.57,14.15L18,17.72L16.43,16.15L15,17.57L18,20.57L23,15.57L21.57,14.15Z"/></svg>
+                        1. お申込み
+                    </span>
+                    葬儀社様を通じて、または当窓口へ直接ご依頼ください。
+                </div>
+                
+                <div class="flow-arrow">＞</div>
+                
+                <div class="flow-step">
+                    <span class="step-num">
+                        <svg viewBox="0 0 24 24"><path d="M6.62,10.79C8.06,13.62 10.38,15.93 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/></svg>
+                        2. お電話取材
+                    </span>
+                    専門スタッフがお電話にて思い出をお伺いします（約15〜20分）。
+                </div>
+                
+                <div class="flow-arrow">＞</div>
+                
+                <div class="flow-step">
+                    <span class="step-num">
+                        <svg viewBox="0 0 24 24"><path d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,4 16.96,4.18L15.13,6L18,8.83L19.83,7C20.22,6.61 20.22,6 19.83,5.61L18.39,4.17C18.2,3.96 17.93,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L15,7.11L14.06,6.19Z"/></svg>
+                        3. 原稿作成・確認
+                    </span>
+                    専任ライターが原稿を作成し、内容をご確認いただけます。
+                </div>
+                
+                <div class="flow-arrow">＞</div>
+                
+                <div class="flow-step">
+                    <span class="step-num">
+                        <svg viewBox="0 0 24 24"><path d="M2,12H4V17H20V12H22V17A2,2 0 0,1 20,19H4A2,2 0 0,1 2,17V12M12,2L16,6H13V14H11V6H8L12,2Z"/></svg>
+                        4. データ納品
+                    </span>
+                    校了後、完成データをメール等にて即座にお届けします。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- フッター -->
+    <footer>
+        <div class="footer-left">
+            <div class="company-name">株式会社 こころメモリー</div>
+            <div class="company-address">〒981-9954 宮城県仙台市青葉区川平3-4-30 キャピタル中山3F</div>
+        </div>
+        <div class="footer-right">
+            <div class="contact-label">お電話でのご相談・ご依頼はこちら</div>
+            <div class="phone-number">TEL. 022-342-0318</div>
+        </div>
+    </footer>
+</div>
+
+</body>
+</html>

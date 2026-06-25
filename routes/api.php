@@ -9,10 +9,12 @@ use App\Http\Controllers\Api\BankCategoryController;
 use App\Http\Controllers\InsuranceSimulationController;
 use App\Models\Organization;
 use App\Models\Member;
-use App\Models\Exam;
 use App\Models\PdfUpload;
+use App\Http\Controllers\CloudSignWebhookController;
 
-
+// CSRFを除外するためapi.phpに記載
+Route::post('/webhook/cloudsign', [CloudSignWebhookController::class, 'handle']);
+// routes/web.php の admin グループ内に追記
 
 Route::get('/dashboard/stats', function () {
     return response()->json([
@@ -22,16 +24,9 @@ Route::get('/dashboard/stats', function () {
     ]);
 });
 
-
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
-Route::post('/calculate-premium', [InsuranceSimulationController::class, 'calculate']);
-
-Route::get('/banks', [BankController::class, 'index']);
-Route::get('/branches', [BankController::class, 'branches']);
-Route::get('/bank-categories', [BankCategoryController::class, 'index']);
 
 Route::get('/zipcode/{zip}', function ($zip) {
     $zip = preg_replace('/[^0-9]/', '', $zip);

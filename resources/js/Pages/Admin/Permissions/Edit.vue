@@ -29,7 +29,32 @@
               </option>
             </select>
           </div>
+          <div class="space-y-2">
+              <Label for="guard_name">対象</Label>
 
+              <Select v-model="form.guard_name">
+                  <SelectTrigger>
+                      <SelectValue placeholder="対象を選択" />
+                  </SelectTrigger>
+
+                  <SelectContent class="bg-white border shadow-md">
+                      <SelectItem value="admin">
+                          管理者
+                      </SelectItem>
+
+                      <SelectItem value="web">
+                          会員
+                      </SelectItem>
+                  </SelectContent>
+              </Select>
+
+              <p
+                  v-if="errors.guard_name"
+                  class="text-red-500 text-sm mt-1"
+              >
+                  {{ errors.guard_name }}
+              </p>
+          </div>
           <!-- Buttons -->
           <div class="flex space-x-2 mt-6">
             <PrimaryButton
@@ -59,6 +84,7 @@ import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { router } from '@inertiajs/vue3'
 import { reactive, computed } from 'vue'
@@ -73,7 +99,7 @@ const props = defineProps({
 
 const { t } = useI18n()
 
-console.log(props)
+console.log(props.permission)
 
 // Super Admin 判定
 const isSuperAdmin = computed(() =>
@@ -83,15 +109,14 @@ const isSuperAdmin = computed(() =>
 // フォーム初期値
 const form = reactive({
   name: props.permission ? props.permission.name : '',
+  guard_name: props.permission?.guard_name || '',
   tenant_id: props.permission
     ? props.permission.tenant_id
     : (isSuperAdmin.value ? null : props.user?.tenant_id ?? null)
 })
 
 // エラー管理
-//const errors = reactive({
-//  name: ''
-//})
+const errors = reactive({})
 
 // 送信処理
 const submitForm = () => {

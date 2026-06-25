@@ -4,36 +4,44 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // ✅ Super Admin 用のグローバル権限
-        $permissions = [
-            'manage tenants',
-            'manage roles',
-            'manage permissions',
+        
+        $resources = [
+            'organization',
+            'member',
+            'invoice',
+            'stripe',
+            'tenant',
+            'license-fee',
+            'role',
+            'permission',
+            'admin',
+            'user',
         ];
 
-        foreach ($permissions as $perm) {
-            Permission::firstOrCreate([
-                'name' => $perm,
-                'tenant_id' => null,
-                'guard_name' => 'web',
-            ]);
+        $actions = [
+            'view',
+            'create',
+            'update',
+            'delete',
+        ];
+
+        foreach ([null, 1] as $tenantId) {
+            foreach ($resources as $resource) {
+                foreach ($actions as $action) {
+                    Permission::firstOrCreate(
+                        [
+                            'name'       => "{$resource}.{$action}",
+                            'guard_name' => 'admin',
+                            'tenant_id'  => $tenantId,
+                        ]
+                    );
+                }
+            }
         }
-
-        // ✅ Super Admin ロール作成
-        $role = Role::firstOrCreate([
-            'name' => 'super admin',
-            'tenant_id' => null,
-            'guard_name' => 'web',
-        ]);
-
-        // ✅ グローバル権限を全部付与
-        $role->syncPermissions($permissions);
     }
 }
-

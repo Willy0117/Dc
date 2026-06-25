@@ -21,10 +21,9 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with(['roles', 'member']);
-
+        $query = User::with(['roles', 'member.organization']);
         // テナント絞り込み（Super Admin は全件表示）
-        if (! $request->user()->hasRole('Super Admin|Admin')) {
+        if (! $request->user()->hasRole('super_admin|Admin')) {
             $query->where('tenant_id', $request->user()->tenant_id);
         }
 
