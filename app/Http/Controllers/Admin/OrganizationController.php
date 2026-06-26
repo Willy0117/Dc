@@ -73,6 +73,17 @@ class OrganizationController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
+        $organizations->getCollection()->transform(function ($org) {
+            $org->documents_map = $org->applicationDocuments
+                ->keyBy('type')
+                ->map(fn($doc) => [
+                    'id'   => $doc->id,
+                    'name' => $doc->name,
+                    'type' => $doc->type,
+                ]);
+            return $org;
+        });
+
         return Inertia::render('Admin/Organizations/Index', [
             'organizations'        => $organizations,
             'filters'              => [
@@ -85,6 +96,7 @@ class OrganizationController extends Controller
                 'per_page'           => $perPage,
                 'sort_by'            => $sortBy,
                 'sort_dir'           => $sortDir,
+                'page'               => $request->input('page', 1), 
             ],
             'contractStatusLabels' => Organization::STATUS_LABELS,
         ]);
@@ -129,7 +141,18 @@ class OrganizationController extends Controller
 
         return Inertia::render('Admin/Organizations/Show', [
             'organization' => $this->formatOrganization($organization),
-            'filters'      => $request->only(['keyword', 'contract_status', 'address1', 'per_page', 'sort_by', 'sort_dir', 'page']),
+            'filters' => $request->only([
+                'keyword',
+                'contract_status',
+                'address1',
+                'contract_date_from',  // ← 追加
+                'contract_date_to',    // ← 追加
+                'payment_method',      // ← 追加
+                'per_page',
+                'sort_by',
+                'sort_dir',
+                'page',                // ← 追加
+            ]),
         ]);
     }
 
@@ -171,8 +194,19 @@ class OrganizationController extends Controller
                 'withdrawn_at'    => $m->withdrawn_at?->format('Y-m-d'),
                 'addresses'       => $m->addresses,  // ← 追加
             ]) : [],
-            'filters'          => $request->only(['keyword', 'contract_status', 'address1', 'per_page', 'sort_by', 'sort_dir']),
-        ]);
+            'filters' => $request->only([
+                'keyword',
+                'contract_status',
+                'address1',
+                'contract_date_from',  // ← 追加
+                'contract_date_to',    // ← 追加
+                'payment_method',      // ← 追加
+                'per_page',
+                'sort_by',
+                'sort_dir',
+                'page',                // ← 追加
+            ]),
+         ]);
     }
 
     // ──────────────────────────────────────────
@@ -189,8 +223,18 @@ class OrganizationController extends Controller
             $this->syncMembers($organization, $validated);
         });
 
-        return redirect()->route('admin.organizations.index', $organization)
-            ->with('success', '契約情報を更新しました。');
+        return redirect()->route('admin.organizations.index', $request->only([
+            'keyword',
+            'contract_status',
+            'address1',
+            'contract_date_from',
+            'contract_date_to',
+            'payment_method',
+            'per_page',
+            'sort_by',
+            'sort_dir',
+            'page',
+        ]))->with('success', '契約情報を更新しました。');
     }
 
     // ──────────────────────────────────────────

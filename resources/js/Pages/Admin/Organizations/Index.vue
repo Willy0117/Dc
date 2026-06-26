@@ -238,6 +238,16 @@
                   >
                     <Award class="w-3.5 h-3.5" />
                   </Button>
+                  <!-- 契約書閲覧ボタン -->
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-7 w-7 text-blue-600 hover:text-blue-700"
+                    title="契約書閲覧"
+                    @click="openContractDialog(org)"
+                  >
+                    <FileText class="w-3.5 h-3.5" />
+                  </Button>
                   <!-- Button
                     variant="ghost"
                     size="icon"
@@ -355,6 +365,11 @@
       :pdf-url="licensePdfUrl"
       @mail="mailLicense"
     />
+    <!-- ========== 契約書閲覧 Dialog ========== -->
+    <ContractDialog
+      v-model:open="contractDialogOpen"
+      :org="contractDialogOrg"
+    />
   </AppLayout>
 </template>
 
@@ -375,6 +390,7 @@ import InvoiceDialog      from '@/Components/InvoiceDialog.vue'
 import StripePaymentDialog from '@/Components/StripePaymentDialog.vue'
 import InvitationDialog    from '@/Components/InvitationDialog.vue'
 import LicenseDialog from '@/Components/LicenseDialog.vue'
+import ContractDialog from '@/Components/ContractDialog.vue'
 
 import { Textarea }    from '@/components/ui/textarea'
 
@@ -402,6 +418,7 @@ const props = defineProps({
       per_page:           20,
       sort_by:            'contract_date',
       sort_dir:           'desc',
+      page:               1,
     }),
   },
   contractStatusLabels: {
@@ -423,6 +440,7 @@ const form = reactive({
   per_page:            props.filters.per_page            ?? 20,
   sort_by:             props.filters.sort_by             ?? 'contract_date',
   sort_dir:            props.filters.sort_dir            ?? 'desc',
+  page:               props.filters.page               ?? 1,
 })
 
 const hasActiveFilters = computed(() =>
@@ -522,6 +540,8 @@ const persistQuery = () => ({
   sort_dir:           form.sort_dir,
   page:               props.organizations.current_page,
 })
+
+console.log(persistQuery())
 
 const submitSearch = () => {
   router.get(route('admin.organizations.index'), { ...persistQuery(), page: 1 }, {
@@ -629,6 +649,10 @@ const bulkSendInvitation = () => {
   })
 }
 
+// ──────────────────────────────────────────
+// ライセンス証 Dialog
+// ──────────────────────────────────────────
+
 const licenseDialogOpen = ref(false)
 const currentLicenseOrg = ref(null)
 const licensePdfUrl = ref(null)
@@ -644,6 +668,18 @@ const issueLicense = async (org) => {
   } catch (e) {
     console.error(e.response?.data?.message)  // ← エラーメッセージ確認
   }
+}
+
+// ──────────────────────────────────────────
+// 契約書閲覧 Dialog
+// ──────────────────────────────────────────
+
+const contractDialogOpen = ref(false)
+const contractDialogOrg  = ref(null)
+
+const openContractDialog = (org) => {
+  contractDialogOrg.value  = org
+  contractDialogOpen.value = true
 }
 
 </script>

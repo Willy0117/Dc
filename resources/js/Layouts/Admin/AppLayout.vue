@@ -126,9 +126,7 @@
     </div>
     </div>
     <!-- footer -->
-    <footer class="border-t text-center text-xs text-gray-400 py-4">
-      &copy 
-    </footer>
+    <ApplicationFooter />
   </div>    
 </template>
 
@@ -136,6 +134,7 @@
 import Navigation from '@/Layouts/Admin/Navigation.vue'
 import Toast from '@/Components/Toast.vue'
 import LoadingOverlay from '@/Components/LoadingOverlay.vue'
+import ApplicationFooter from '@/Components/ApplicationFooter.vue'
 
 import { router, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onUnmounted } from 'vue'

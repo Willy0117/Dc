@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;  
+
 
 class Organization extends Model
 {
@@ -112,6 +114,17 @@ class Organization extends Model
     {
         return $this->hasMany(OrganizationContract::class);
     }
+
+    public function applicationDocuments(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            ApplicationDocument::class,
+            Application::class,
+            'organization_id', // applications.organization_id
+            'application_id',  // application_documents.application_id
+        );
+    }
+
 
     // ──────────────────────────────────────────
     // アクセサ
