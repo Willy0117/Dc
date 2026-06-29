@@ -9,10 +9,16 @@ const props = defineProps<OrganizationEditProps>()
 
 const isEdit = computed(() => !!props.organization?.id)
 
+console.log(props.filters)
+
 function handleSubmit(data: OrganizationFormData) {
   isEdit.value
-    ? router.put(`/admin/organizations/${props.organization!.id}`, data)
-    : router.post('/admin/organizations', data)
+    ? router.put(`/admin/organizations/${props.organization!.id}`, data, {
+        onSuccess: () => router.get(route('admin.organizations.index'), props.filters ?? {})
+      })
+    : router.post('/admin/organizations', data, {
+        onSuccess: () => router.get(route('admin.organizations.index'), props.filters ?? {})
+      })
 }
 
 function handleCancel() {

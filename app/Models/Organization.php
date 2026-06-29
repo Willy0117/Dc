@@ -115,7 +115,7 @@ class Organization extends Model
         return $this->hasMany(OrganizationContract::class);
     }
 
-    public function applicationDocuments(): HasManyThrough
+    public function applicationDocuments()
     {
         return $this->hasManyThrough(
             ApplicationDocument::class,

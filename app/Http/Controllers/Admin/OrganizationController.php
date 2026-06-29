@@ -74,12 +74,14 @@ class OrganizationController extends Controller
             ->withQueryString();
 
         $organizations->getCollection()->transform(function ($org) {
-            $org->documents_map = $org->applicationDocuments
+            $org->documents_map = ($org->applicationDocuments ?? collect())
+                ->sortByDesc('id')
+                ->unique('type')
                 ->keyBy('type')
                 ->map(fn($doc) => [
-                    'id'   => $doc->id,
-                    'name' => $doc->name,
-                    'type' => $doc->type,
+                    'id'       => $doc->id,
+                    'type'     => $doc->type,
+                    'pdf_url'  => Storage::url($doc->file_path),
                 ]);
             return $org;
         });
@@ -222,19 +224,6 @@ class OrganizationController extends Controller
             $this->syncAddresses($organization, $validated);
             $this->syncMembers($organization, $validated);
         });
-
-        return redirect()->route('admin.organizations.index', $request->only([
-            'keyword',
-            'contract_status',
-            'address1',
-            'contract_date_from',
-            'contract_date_to',
-            'payment_method',
-            'per_page',
-            'sort_by',
-            'sort_dir',
-            'page',
-        ]))->with('success', '契約情報を更新しました。');
     }
 
     // ──────────────────────────────────────────

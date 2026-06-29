@@ -201,12 +201,9 @@
                   >
                     <Mail class="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" class="h-7 w-7" as-child>
-                    <Link :href="route('admin.organizations.edit', { id: org.id, ...persistQuery() })">
-                      <Pencil class="w-3.5 h-3.5" />
-                    </Link>
+                  <Button variant="ghost" size="icon" class="h-7 w-7" @click="openEdit(org)">
+                    <Pencil class="w-3.5 h-3.5" />
                   </Button>
-
                   <!-- 請求書ボタン（単発） -->
                   <Button
                     variant="ghost"
@@ -330,8 +327,8 @@
               </div>
             </div>
           </div>
-          <div class="px-5 py-4 border-t flex gap-2">
-            <Button size="sm" class="bg-[#0C447C] hover:bg-[#185FA5] text-white" @click="openDrawer = true">
+          <div class="px-5 py-4 border-t flex gap-2 justify-end">
+            <Button size="sm" variant="outline" class="bg-[#0C447C] hover:bg-[#185FA5] text-white border-[#0C447C]" @click="submitSearch(); openDrawer = false">
               <Search class="w-3.5 h-3.5 mr-1" />検索
             </Button>
             <Button variant="outline" @click="resetSearch">リセット</Button>
@@ -447,6 +444,16 @@ const hasActiveFilters = computed(() =>
   form.keyword || form.contract_status !== '' || form.address1 ||
   form.contract_date_from || form.contract_date_to || form.payment_method !== ''
 )
+
+
+const openEdit = (org) => {
+  router.get(
+    route('admin.organizations.edit', {
+        organization: org.id,
+    }),
+    persistQuery()
+  )
+}
 
 // ──────────────────────────────────────────
 // 選択

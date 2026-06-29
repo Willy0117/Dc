@@ -23,8 +23,8 @@
           </div>
 
           <template v-else>
-            <!-- 契約書 -->
-            <div v-if="org?.documents_map?.contract">
+            <!-- 契約書（type=2優先、なければtype=1） -->
+            <div v-if="contract">
               <h3 class="text-sm font-semibold text-gray-700 mb-2">ライセンス契約書</h3>
               <div
                 id="dialog-pdf-contract"
@@ -32,8 +32,8 @@
               />
             </div>
 
-            <!-- 合意書（再契約の場合のみ） -->
-            <div v-if="org?.documents_map?.agreement">
+            <!-- 合意書（type=4優先、なければtype=3） -->
+            <div v-if="agreement">
               <h3 class="text-sm font-semibold text-gray-700 mb-2">合意書</h3>
               <div
                 id="dialog-pdf-agreement"
@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { watch, nextTick, ref } from 'vue'
+import { watch, nextTick, ref, computed } from 'vue'
 import { X, Loader2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 
@@ -68,44 +68,53 @@ const emit = defineEmits(['update:open'])
 
 const loading = ref(false)
 
+// type=2優先、なければtype=1
+const contract = computed(() =>
+  props.org?.documents_map?.[2] ?? props.org?.documents_map?.[1] ?? null
+)
+
+// type=4優先、なければtype=3
+const agreement = computed(() =>
+  props.org?.documents_map?.[4] ?? props.org?.documents_map?.[3] ?? null
+)
+
 // application.contract.vue と同実装
 const renderPdf = async (url, containerId) => {
-  const pdfjsLib = window.pdfjsLib
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+    const pdfjsLib = window.pdfjsLib
 
-  const pdf = await pdfjsLib.getDocument({
-    url,
-    cMapUrl: '/cmaps/',
-    cMapPacked: true,
-  }).promise
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 
-  const container = document.getElementById(containerId)
-  if (!container) return
-
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page     = await pdf.getPage(pageNum)
-    const viewport = page.getViewport({ scale: 1.5 })
-    const canvas   = document.createElement('canvas')
-    const context  = canvas.getContext('2d')
-
-    canvas.width  = viewport.width
-    canvas.height = viewport.height
-    canvas.classList.add('shadow', 'mx-auto', 'bg-white')
-
-    container.appendChild(canvas)
-
-    await page.render({
-      canvasContext: context,
-      viewport,
-      renderInteractiveForms: true,
+    const pdf = await pdfjsLib.getDocument({
+        url,
+        cMapUrl: '/cmaps/',
+        cMapPacked: true,
     }).promise
-  }
+
+    const container = document.getElementById(containerId)
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page     = await pdf.getPage(pageNum)
+        const viewport = page.getViewport({ scale: 1.5 })
+        const canvas   = document.createElement('canvas')
+        const context  = canvas.getContext('2d')
+
+        canvas.width  = viewport.width
+        canvas.height = viewport.height
+        canvas.classList.add('shadow', 'mx-auto', 'bg-white')
+
+        container.appendChild(canvas)
+
+        await page.render({
+            canvasContext: context,
+            viewport,
+            renderInteractiveForms: true,
+        }).promise
+    }
 }
 
 watch(() => props.open, async (val) => {
   if (!val) {
-    // 閉じる時にcanvasクリア
     ;['dialog-pdf-contract', 'dialog-pdf-agreement'].forEach(id => {
       const el = document.getElementById(id)
       if (el) el.innerHTML = ''
@@ -115,19 +124,15 @@ watch(() => props.open, async (val) => {
 
   loading.value = true
   await nextTick()
+  loading.value = false  // ← 追加
+  await nextTick()
 
   try {
-    if (props.org?.documents_map?.contract) {
-      await renderPdf(
-        route('documents.preview', { document: props.org.documents_map.contract.id }),
-        'dialog-pdf-contract'
-      )
+    if (contract.value) {
+      await renderPdf(contract.value.pdf_url, 'dialog-pdf-contract')
     }
-    if (props.org?.documents_map?.agreement) {
-      await renderPdf(
-        route('documents.preview', { document: props.org.documents_map.agreement.id }),
-        'dialog-pdf-agreement'
-      )
+    if (agreement.value) {
+      await renderPdf(agreement.value.pdf_url, 'dialog-pdf-agreement')
     }
   } finally {
     loading.value = false
