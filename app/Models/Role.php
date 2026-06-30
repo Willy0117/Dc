@@ -9,7 +9,7 @@ class Role extends SpatieRole
     protected $fillable = [
         'name',
         'guard_name',
-        'tenant_id', // 追加
+        'tenant_id', 
     ];
 
     /**

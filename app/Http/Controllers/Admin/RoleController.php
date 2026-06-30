@@ -45,6 +45,10 @@ class RoleController extends Controller
     {
         $user = Auth::user();
 
+        $tenants = auth('admin')->user()->tenant_id === null
+            ? Tenant::all()
+            : [];
+
         $permissions = $user->hasRole('super_admin')
             ? Permission::all()
             : Permission::where('tenant_id', $user->tenant_id)->orWhereNull('tenant_id')->get();
@@ -54,6 +58,7 @@ class RoleController extends Controller
             'role' => null,
             'permissions' => $permissions,
             'user' => $user,
+            'tenants' => $tenants,
         ]);
     }
 
@@ -88,9 +93,10 @@ class RoleController extends Controller
     {
         $user = Auth::user();
 
-        if (! $user->hasRole('super_admin') && $role->tenant_id !== $user->tenant_id) {
-            abort(403);
-        }
+        $tenants = auth('admin')->user()->tenant_id === null
+            ? Tenant::all()
+            : [];
+
 
         $permissions = ($user->hasRole('super_admin')
             ? Permission::all()
@@ -113,6 +119,7 @@ class RoleController extends Controller
             'role' => $role,
             'permissions' => $permissions,
             'user' => $user,
+            'tenants' => $tenants,
         ]);
     }
 

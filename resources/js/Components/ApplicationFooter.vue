@@ -82,7 +82,7 @@
                   </tr>
                   <tr class="odd:bg-white even:bg-gray-50">
                     <th class="px-4 py-2.5 text-left font-semibold text-gray-700 bg-gray-50">電話番号</th>
-                    <td class="px-4 py-2.5">03-XXXX-XXXX（平日 10:00〜17:00）</td>
+                    <td class="px-4 py-2.5">03-6801-6539（平日 10:00〜17:00）</td>
                   </tr>
                   <tr class="odd:bg-white even:bg-gray-50">
                     <th class="px-4 py-2.5 text-left font-semibold text-gray-700 bg-gray-50">連絡先</th>
