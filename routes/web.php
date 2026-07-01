@@ -92,6 +92,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('organizations/bulk-delete', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkDelete'])->name('organizations.bulkDelete');
         Route::post('organizations/{organization}/send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'sendInvitation'])->name('organizations.send-invitation');
         Route::post('organizations/bulk-send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendInvitation'])->name('organizations.bulk-send-invitation');
+        // ━━━ リマインダーメール一括送信 ━━━
+        Route::post('organizations/bulk-send-reminder', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendReminder'])
+            ->name('organizations.bulk-send-reminder');
+
+        // ━━━ 自由記述メール一括送信 ━━━
+        Route::post('organizations/bulk-send-mail', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendMail'])
+            ->name('organizations.bulk-send-mail');
+            
         Route::get('organizations/{organization}/fee', [\App\Http\Controllers\Admin\OrganizationController::class, 'fee'])->name('organizations.fee');
         Route::post('organizations/{id}/license', [\App\Http\Controllers\Admin\OrganizationController::class, 'issueLicense'])->name('organizations.license');
         Route::post('organizations/{id}/license/mail', [\App\Http\Controllers\Admin\OrganizationController::class, 'mailLicense'])->name('organizations.license.mail');

@@ -169,6 +169,7 @@ class ApplicationController extends Controller
         return Inertia::render('Applications/Contract', [
             'data'    => $data,
             'pdf_url' => Storage::url($data['pdf_path']),
+//            'agreement_pdf_url' => Storage::url($data['agreement_pdf_path']),
             'agreement_pdf_url' => !empty($data['needs_agreement'])
                ? Storage::url($data['agreement_pdf_path'])
                : null,

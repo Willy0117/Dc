@@ -2,9 +2,7 @@
   <AppLayout>
     <template #header>
       <p class="text-xs text-muted-foreground">契約先管理</p>
-      <h1 class="text-xl font-semibold">
-        契約先一覧
-      </h1>
+      <h1 class="text-xl font-semibold">契約先一覧</h1>
     </template>
 
     <div class="p-6 space-y-4">
@@ -22,7 +20,17 @@
           </Select>
 
           <!-- ━━━ 一括操作ボタン群（チェック時に表示） ━━━ -->
-          <template v-if="selectedIds.length > -1">
+          <template v-if="selectedIds.length > 0">
+            <Button variant="outline" size="sm" @click="bulkMailDialogOpen = true">
+              <Mail class="w-3.5 h-3.5 mr-1" />
+              {{ selectedIds.length }}件 メール送信
+            </Button>
+            <Button variant="outline" size="sm" @click="bulkSendReminder">
+              <Bell class="w-3.5 h-3.5 mr-1" />
+              {{ selectedIds.length }}件 リマインダー送信
+            </Button>
+            <!-- 以下将来用コメントアウト -->
+            <!--
             <Button variant="outline" size="sm" @click="bulkSendInvitation">
               <Mail class="w-3.5 h-3.5 mr-1" />
               {{ selectedIds.length }}件 申込メール送信
@@ -31,16 +39,15 @@
               <Trash2 class="w-3.5 h-3.5 mr-1" />
               {{ selectedIds.length }}件削除
             </Button>
-
             <Button variant="outline" size="sm" @click="openInvoiceForSelected">
               <FileText class="w-3.5 h-3.5 mr-1" />
               {{ selectedIds.length }}件 請求書作成
             </Button>
-
             <Button variant="outline" size="sm" @click="openStripeForSelected">
               <CreditCard class="w-3.5 h-3.5 mr-1" />
               {{ selectedIds.length }}件 Stripe支払い
             </Button>
+            -->
           </template>
         </div>
 
@@ -75,8 +82,8 @@
           契約日: {{ form.contract_date_from }} 〜 {{ form.contract_date_to }}
           <button @click="form.contract_date_from = ''; form.contract_date_to = ''; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
-        <Badge v-if="form.payment_method !== ''" variant="secondary" class="gap-1">
-          支払方法: {{ form.payment_method === 1 ? '銀行振込' : 'カード' }}
+        <Badge v-if="form.payment_method !== '' && form.payment_method !== 'all'" variant="secondary" class="gap-1">
+          支払方法: {{ form.payment_method == 1 ? '銀行振込' : 'カード' }}
           <button @click="form.payment_method = ''; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
       </div>
@@ -125,7 +132,7 @@
           </thead>
           <tbody>
             <tr v-if="organizations.data.length === 0">
-              <td colspan="8" class="px-3 py-12 text-center text-muted-foreground">
+              <td colspan="9" class="px-3 py-12 text-center text-muted-foreground">
                 <Building2 class="w-8 h-8 mx-auto mb-2 opacity-30" />
                 契約先が見つかりません
               </td>
@@ -180,16 +187,16 @@
                   <template v-else>-</template>
                 </span>
               </td>
-              <!-- ━━━ 契約日 + 次回請求日 ━━━ -->
               <td class="px-3 py-2.5 text-sm text-muted-foreground">
                 <div>{{ org.contract_date ? dayjs(org.contract_date).format('YYYY/MM/DD') : '-' }}</div>
-                <div v-if="org.contract_date" class="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                <div v-if="org.new_contract_date" class="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
                   <ArrowRight class="w-3 h-3" />
-                  {{ nextBillingDate(org.contract_date) }}
+                  {{ dayjs(org.new_contract_date).format('YYYY/MM/DD') }}
+                  <span class="text-muted-foreground font-normal">
+                    (あと{{ dayjs(org.new_contract_date).diff(dayjs(), 'day') }}日)
+                  </span>
                 </div>
               </td>
-
-              <!-- ━━━ 操作 ━━━ -->
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-center gap-1">
                   <Button
@@ -204,7 +211,6 @@
                   <Button variant="ghost" size="icon" class="h-7 w-7" @click="openEdit(org)">
                     <Pencil class="w-3.5 h-3.5" />
                   </Button>
-                  <!-- 請求書ボタン（単発） -->
                   <Button
                     variant="ghost"
                     size="icon"
@@ -214,8 +220,6 @@
                   >
                     <FileText class="w-3.5 h-3.5" />
                   </Button>
-
-                  <!-- Stripe支払いボタン（単発） -->
                   <Button
                     variant="ghost"
                     size="icon"
@@ -225,7 +229,6 @@
                   >
                     <CreditCard class="w-3.5 h-3.5" />
                   </Button>
-                  <!-- ライセンス証発行ボタン -->
                   <Button
                     variant="ghost"
                     size="icon"
@@ -235,7 +238,6 @@
                   >
                     <Award class="w-3.5 h-3.5" />
                   </Button>
-                  <!-- 契約書閲覧ボタン -->
                   <Button
                     variant="ghost"
                     size="icon"
@@ -245,21 +247,14 @@
                   >
                     <FileText class="w-3.5 h-3.5" />
                   </Button>
-                  <!-- Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-7 w-7 text-destructive hover:text-destructive"
-                    @click="deleteOrganization(org)"
-                  >
-                    <Trash2 class="w-3.5 h-3.5" />
-                  </Button -->
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-            <!-- ページネーション -->
+
+      <!-- ページネーション -->
       <div class="flex items-center justify-between text-sm text-muted-foreground">
         <span>{{ startItem }}〜{{ endItem }} 件 / 全{{ organizations.total }}件</span>
         <Pagination :paginator="organizations" :onPageChange="goPage" />
@@ -270,7 +265,7 @@
     <Teleport to="body">
       <div v-if="openDrawer" class="fixed inset-0 z-40">
         <div class="absolute inset-0 bg-black/30" @click="openDrawer = false" />
-        <aside class="absolute top-0 left-64 right-0 bg-background shadow-xl z-50 flex flex-col max-h-[80vh]">  
+        <aside class="absolute top-0 left-64 right-0 bg-background shadow-xl z-50 flex flex-col max-h-[80vh]">
           <div class="flex items-center justify-between px-5 py-4 border-b">
             <h2 class="font-bold">検索</h2>
             <Button variant="ghost" size="icon" @click="openDrawer = false">
@@ -278,7 +273,6 @@
             </Button>
           </div>
           <div class="overflow-y-auto p-5">
-            <!-- 検索フォームを横並びに -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div class="space-y-1.5">
                 <Label>キーワード</Label>
@@ -289,7 +283,7 @@
                 <Select v-model="form.contract_status">
                   <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem value="">すべて</SelectItem>
                     <SelectItem v-for="(label, id) in contractStatusLabels" :key="id" :value="Number(id)">
                       {{ label }}
                     </SelectItem>
@@ -301,17 +295,18 @@
                 <Select v-model="form.address1">
                   <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem value="">すべて</SelectItem>
                     <SelectItem v-for="pref in prefectures" :key="pref" :value="pref">{{ pref }}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              <!-- ━━━ 支払方法（新規追加） ━━━ -->
               <div class="space-y-1.5">
                 <Label>支払方法</Label>
                 <Select v-model="form.payment_method">
                   <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem value="">すべて</SelectItem>
                     <SelectItem :value="1">銀行振込</SelectItem>
                     <SelectItem :value="2">カード</SelectItem>
                   </SelectContent>
@@ -336,6 +331,7 @@
         </aside>
       </div>
     </Teleport>
+
     <!-- ========== 請求書 Dialog ========== -->
     <InvoiceDialog
       v-model:open="invoiceDialogOpen"
@@ -349,12 +345,14 @@
       :targets="stripeTargets"
       @done="submitSearch"
     />
+
     <!-- ========== 招待メール送信 Dialog ========== -->
     <InvitationDialog
       v-model:open="invitationDialogOpen"
       :organization="invitationTarget"
       @done="submitSearch"
     />
+
     <!-- ========== ライセンス証メール送信 Dialog ========== -->
     <LicenseDialog
       v-model:open="licenseDialogOpen"
@@ -362,10 +360,18 @@
       :pdf-url="licensePdfUrl"
       @mail="mailLicense"
     />
+
     <!-- ========== 契約書閲覧 Dialog ========== -->
     <ContractDialog
       v-model:open="contractDialogOpen"
       :org="contractDialogOrg"
+    />
+
+    <!-- ========== 一括メール送信 Dialog（新規追加） ========== -->
+    <BulkMailDialog
+      v-model:open="bulkMailDialogOpen"
+      :targets="bulkMailTargets"
+      @done="submitSearch"
     />
   </AppLayout>
 </template>
@@ -375,21 +381,19 @@ import { ref, reactive, computed, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import dayjs from 'dayjs'
 import {
-  Search, Plus, Trash2, Pencil, Eye, X, Mail, Award,
-  Building2, ExternalLink, FileText, CreditCard, ArrowRight, Calendar, CheckCircle2, AlertCircle, Loader2,
+  Search, Plus, Trash2, Pencil, X, Mail, Award, Bell,
+  Building2, ExternalLink, FileText, CreditCard, ArrowRight,
 } from 'lucide-vue-next'
 
-import AppLayout          from '@/Layouts/Admin/AppLayout.vue'
-import Pagination         from '@/Components/Pagination.vue'
-import SortIcon           from '@/Components/SortIcon.vue'
-// ━━━ 自作コンポーネント ━━━
-import InvoiceDialog      from '@/Components/InvoiceDialog.vue'
+import AppLayout           from '@/Layouts/Admin/AppLayout.vue'
+import Pagination          from '@/Components/Pagination.vue'
+import SortIcon            from '@/Components/SortIcon.vue'
+import InvoiceDialog       from '@/Components/InvoiceDialog.vue'
 import StripePaymentDialog from '@/Components/StripePaymentDialog.vue'
 import InvitationDialog    from '@/Components/InvitationDialog.vue'
-import LicenseDialog from '@/Components/LicenseDialog.vue'
-import ContractDialog from '@/Components/ContractDialog.vue'
-
-import { Textarea }    from '@/components/ui/textarea'
+import LicenseDialog       from '@/Components/LicenseDialog.vue'
+import ContractDialog      from '@/Components/ContractDialog.vue'
+import BulkMailDialog      from '@/Components/BulkMailDialog.vue'  // ← 新規追加
 
 import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
@@ -428,29 +432,27 @@ const props = defineProps({
 // フォーム
 // ──────────────────────────────────────────
 const form = reactive({
-  keyword:             props.filters.keyword             ?? '',
-  contract_status:     props.filters.contract_status     ?? '',
-  address1:            props.filters.address1            ?? '',
-  contract_date_from:  props.filters.contract_date_from  ?? '',
-  contract_date_to:    props.filters.contract_date_to    ?? '',
-  payment_method:      props.filters.payment_method      ?? 'all',
-  per_page:            props.filters.per_page            ?? 20,
-  sort_by:             props.filters.sort_by             ?? 'contract_date',
-  sort_dir:            props.filters.sort_dir            ?? 'desc',
+  keyword:            props.filters.keyword            ?? '',
+  contract_status:    props.filters.contract_status    ?? '',
+  address1:           props.filters.address1           ?? '',
+  contract_date_from: props.filters.contract_date_from ?? '',
+  contract_date_to:   props.filters.contract_date_to   ?? '',
+  payment_method:     props.filters.payment_method     ?? '',  // ← 追加
+  per_page:           props.filters.per_page           ?? 20,
+  sort_by:            props.filters.sort_by            ?? 'contract_date',
+  sort_dir:           props.filters.sort_dir           ?? 'desc',
   page:               props.filters.page               ?? 1,
 })
 
 const hasActiveFilters = computed(() =>
   form.keyword || form.contract_status !== '' || form.address1 ||
-  form.contract_date_from || form.contract_date_to || form.payment_method !== ''
+  form.contract_date_from || form.contract_date_to ||
+  (form.payment_method !== '' && form.payment_method !== 'all')
 )
-
 
 const openEdit = (org) => {
   router.get(
-    route('admin.organizations.edit', {
-        organization: org.id,
-    }),
+    route('admin.organizations.edit', { organization: org.id }),
     persistQuery()
   )
 }
@@ -464,29 +466,18 @@ const selectAll = computed({
   get: () => props.organizations.data.length > 0 && selectedIds.value.length === props.organizations.data.length,
   set: (checked) => {
     selectedIds.value = checked ? props.organizations.data.map(o => o.id) : []
-  }
+  },
 })
-
 
 const toggleSelect = (id, checked) => {
   if (checked) {
-    if (!selectedIds.value.includes(id)) {
-      selectedIds.value.push(id)
-    }
+    if (!selectedIds.value.includes(id)) selectedIds.value.push(id)
   } else {
     selectedIds.value = selectedIds.value.filter(i => i !== id)
   }
 }
 
 watch(() => props.organizations.current_page, () => { selectedIds.value = [] })
-
-// ──────────────────────────────────────────
-// 年次請求日
-// ──────────────────────────────────────────
-const nextBillingDate = (contractDate) => {
-  if (!contractDate) return '-'
-  return dayjs(contractDate).add(1, 'year').format('YYYY/MM/DD')
-}
 
 // ──────────────────────────────────────────
 // 請求書 Dialog
@@ -496,11 +487,6 @@ const invoiceTargets    = ref([])
 
 const openInvoiceForOne = (org) => {
   invoiceTargets.value    = [org]
-  invoiceDialogOpen.value = true
-}
-
-const openInvoiceForSelected = () => {
-  invoiceTargets.value    = props.organizations.data.filter(o => selectedIds.value.includes(o.id))
   invoiceDialogOpen.value = true
 }
 
@@ -515,21 +501,6 @@ const openStripeForOne = (org) => {
   stripeDialogOpen.value = true
 }
 
-const openStripeForSelected = () => {
-  stripeTargets.value    = props.organizations.data.filter(o => selectedIds.value.includes(o.id))
-  stripeDialogOpen.value = true
-}
-
-const paymentMethodLabels = {
-  1: '銀行振込',
-  2: 'カード',
-}
-
-const paymentMethodVariant = (method) => {
-  const map = { 1: 'secondary', 2: 'default' }
-  return map[method] ?? 'outline'
-}
-
 // ──────────────────────────────────────────
 // 検索・ソート・ページ
 // ──────────────────────────────────────────
@@ -541,14 +512,12 @@ const persistQuery = () => ({
   address1:           form.address1,
   contract_date_from: form.contract_date_from,
   contract_date_to:   form.contract_date_to,
-  payment_method:     form.payment_method,
+  payment_method:     form.payment_method,  // ← 追加
   per_page:           form.per_page,
   sort_by:            form.sort_by,
   sort_dir:           form.sort_dir,
   page:               props.organizations.current_page,
 })
-
-console.log(persistQuery())
 
 const submitSearch = () => {
   router.get(route('admin.organizations.index'), { ...persistQuery(), page: 1 }, {
@@ -564,7 +533,7 @@ const resetSearch = () => {
   form.address1           = ''
   form.contract_date_from = ''
   form.contract_date_to   = ''
-  form.payment_method     = ''
+  form.payment_method     = ''  // ← 追加
   submitSearch()
   openDrawer.value = false
 }
@@ -588,7 +557,7 @@ const sortBy = (field) => {
 }
 
 // ──────────────────────────────────────────
-// 削除
+// 削除（将来用）
 // ──────────────────────────────────────────
 const deleteOrganization = (org) => {
   if (!confirm(`「${org.name}」を削除しますか？`)) return
@@ -635,7 +604,7 @@ const prefectures = [
 ]
 
 // ──────────────────────────────────────────
-// 申込メール送信
+// 申込メール送信 Dialog
 // ──────────────────────────────────────────
 const invitationDialogOpen = ref(false)
 const invitationTarget     = ref(null)
@@ -644,6 +613,7 @@ const sendInvitation = (org) => {
   invitationTarget.value     = org
   invitationDialogOpen.value = true
 }
+
 
 const bulkSendInvitation = () => {
   if (!confirm(`選択した${selectedIds.value.length}件に申込メールを送信しますか？`)) return
@@ -655,14 +625,48 @@ const bulkSendInvitation = () => {
     },
   })
 }
+// ──────────────────────────────────────────
+// リマインダーメール送信（複数・新規追加）
+// ──────────────────────────────────────────
+const bulkSendReminder = () => {
+  const targets = props.organizations.data.filter(o => selectedIds.value.includes(o.id))
+  const noDate  = targets.filter(o => !o.new_contract_date)
+
+  if (noDate.length > 0) {
+    alert(`次回契約日が未設定の組織が${noDate.length}件あります。\n（${noDate.map(o => o.name).join('、')}）\n設定済みの組織のみ送信します。`)
+  }
+
+  const validIds = targets.filter(o => o.new_contract_date).map(o => o.id)
+  if (validIds.length === 0) {
+    alert('送信対象がありません。次回契約日を設定してください。')
+    return
+  }
+
+  if (!confirm(`${validIds.length}件にリマインダーメールを送信しますか？`)) return
+
+  router.post(route('admin.organizations.bulk-send-reminder'), { ids: validIds }, {
+    preserveState: true,
+    onSuccess: () => {
+      alert('送信しました。')
+      selectedIds.value = []
+    },
+  })
+}
+
+// ──────────────────────────────────────────
+// 一括メール送信 Dialog（新規追加）
+// ──────────────────────────────────────────
+const bulkMailDialogOpen = ref(false)
+const bulkMailTargets    = computed(() =>
+  props.organizations.data.filter(o => selectedIds.value.includes(o.id))
+)
 
 // ──────────────────────────────────────────
 // ライセンス証 Dialog
 // ──────────────────────────────────────────
-
 const licenseDialogOpen = ref(false)
 const currentLicenseOrg = ref(null)
-const licensePdfUrl = ref(null)
+const licensePdfUrl     = ref(null)
 
 const issueLicense = async (org) => {
   currentLicenseOrg.value = org
@@ -670,17 +674,32 @@ const issueLicense = async (org) => {
     const response = await axios.post(route('admin.organizations.license', { id: org.id }), {
       display_name: org.name,
     })
-    licensePdfUrl.value = response.data.url
+    licensePdfUrl.value     = response.data.url
     licenseDialogOpen.value = true
   } catch (e) {
-    console.error(e.response?.data?.message)  // ← エラーメッセージ確認
+    console.error(e.response?.data?.message)
+  }
+}
+
+// ──────────────────────────────────────────
+// ライセンス証メール送信
+// ──────────────────────────────────────────
+const mailLicense = async ({ email, pdfPath }) => {
+  try {
+    await axios.post(route('admin.organizations.license.mail', { id: currentLicenseOrg.value.id }), {
+      email,
+      pdf_path: pdfPath,
+    })
+    alert('メールを送付しました。')
+    licenseDialogOpen.value = false
+  } catch (e) {
+    alert(e.response?.data?.message ?? 'メール送信に失敗しました。')
   }
 }
 
 // ──────────────────────────────────────────
 // 契約書閲覧 Dialog
 // ──────────────────────────────────────────
-
 const contractDialogOpen = ref(false)
 const contractDialogOrg  = ref(null)
 
@@ -688,5 +707,4 @@ const openContractDialog = (org) => {
   contractDialogOrg.value  = org
   contractDialogOpen.value = true
 }
-
 </script>

@@ -52,23 +52,52 @@
         <!-- Permissions -->
         <div class="space-y-1.5">
           <Label>{{ t('permissions.permission') }}</Label>
-          <div class="border rounded-lg p-3 max-h-96 overflow-y-auto">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              <label
-                v-for="permission in permissions"
-                :key="permission.id"
-                :for="'perm-' + permission.id"
-                class="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-muted/50 transition-colors"
-              >
-                <Checkbox
-                  :id="'perm-' + permission.id"
-                  :model-value="form.permissions.includes(permission.id)"
-                  @update:model-value="(checked) => togglePermission(permission.id, checked)"
-                />
-                <span class="text-sm">{{ permission.name }} {{ permission.tenant_label }}</span>
-              </label>
+
+          <div class="border rounded-lg overflow-hidden">
+            <div class="max-h-96 overflow-y-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-muted border-b sticky top-0 z-10">
+                  <tr>
+                    <th class="px-3 py-2 w-10 bg-muted">
+                      <Checkbox
+                        :model-value="isAllSelected"
+                        @update:model-value="toggleAllPermissions"
+                      />
+                    </th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground bg-muted">
+                      {{ t('permissions.permission') }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="permission in filteredPermissions"
+                    :key="permission.id"
+                    class="border-b last:border-b-0 hover:bg-muted/50 transition-colors"
+                  >
+                    <td class="px-3 py-2">
+                      <Checkbox
+                        :id="'perm-' + permission.id"
+                        :model-value="form.permissions.includes(permission.id)"
+                        @update:model-value="(checked) => togglePermission(permission.id, checked)"
+                      />
+                    </td>
+                    <td class="px-3 py-2">
+                      <label :for="'perm-' + permission.id" class="cursor-pointer">
+                        {{ getPermissionLabel(permission.name) }} {{ permission.tenant_label }}
+                      </label>
+                    </td>
+                  </tr>
+                  <tr v-if="filteredPermissions.length === 0">
+                    <td colspan="2" class="px-3 py-6 text-center text-muted-foreground text-sm">
+                      {{ t('permissions.no_permissions_for_selection') }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
+
           <p v-if="errors.permissions" class="text-sm text-destructive">{{ errors.permissions }}</p>
         </div>
 
@@ -87,11 +116,12 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, computed, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 
 import AppLayout from '@/Layouts/Admin/AppLayout.vue'
+import { usePermissionLabel } from '@/composables/usePermissionLabel'
 
 import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
@@ -110,6 +140,7 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const { getPermissionLabel } = usePermissionLabel()
 
 // ──────────────────────────────────────────
 // フォーム
@@ -119,6 +150,39 @@ const form = reactive({
   guard_name:  props.role?.guard_name                  ?? '',
   permissions: props.role?.permissions?.map(p => p.id) ?? [],
   tenant_id:   props.role?.tenant_id ?? '',
+})
+
+// tenant_id（未選択ならグローバル(NULL)、選択中ならそのtenant_idのみ）と guard_name でpermissionを絞り込む
+const filteredPermissions = computed(() => {
+  const targetTenantId = form.tenant_id || null
+
+  return props.permissions.filter((p) => {
+    const matchesTenant = p.tenant_id === targetTenantId
+    const matchesGuard  = !form.guard_name || p.guard_name === form.guard_name
+    return matchesTenant && matchesGuard
+  })
+})
+
+const isAllSelected = computed(() =>
+  filteredPermissions.value.length > 0
+  && filteredPermissions.value.every((p) => form.permissions.includes(p.id))
+)
+
+const toggleAllPermissions = (checked) => {
+  const filteredIds = filteredPermissions.value.map((p) => p.id)
+  if (checked) {
+    // フィルタ外で既に選ばれているものは保持しつつ、フィルタ内を全選択
+    form.permissions = Array.from(new Set([...form.permissions, ...filteredIds]))
+  } else {
+    // フィルタ内のものだけ解除（フィルタ外の選択は保持）
+    form.permissions = form.permissions.filter((id) => !filteredIds.includes(id))
+  }
+}
+
+// tenant_id / guard_name 変更時、フィルタ外になった選択を自動クリア
+watch([() => form.tenant_id, () => form.guard_name], () => {
+  const validIds = filteredPermissions.value.map((p) => p.id)
+  form.permissions = form.permissions.filter((id) => validIds.includes(id))
 })
 
 const errors = reactive({})

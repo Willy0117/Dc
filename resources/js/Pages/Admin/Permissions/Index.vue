@@ -102,11 +102,11 @@
                       <Pencil class="w-3.5 h-3.5" />
                     </Link>
                   </Button>
-                  <Button variant="ghost" size="icon" class="h-7 w-7" as-child>
+                  <!-- Button variant="ghost" size="icon" class="h-7 w-7" as-child>
                     <Link :href="route('admin.permissions.assign', permission.id)">
                       <UserRoundCog class="w-3.5 h-3.5" />
                     </Link>
-                  </Button>
+                  </Button -->
                   <Button
                     variant="ghost"
                     size="icon"

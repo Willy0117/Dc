@@ -46,14 +46,17 @@ class PdfService
         $pdf->AddPage();
         $tpl = $pdf->importPage(1);
         $pdf->useTemplate($tpl);
+
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect(15, 45, 180, 30, 'F'); 
         
         $text = '医療法人社団祐優会（以下「甲」という。）、' . $organization->name . '（以下「乙」という。）および株式会社Ａｌｉｖｉｏ ＪＡＰＡＮ（以下「丙」という。）とは、次のとおりライセンス契約（以下「本契約」という。）を締結する。';
         // \xc2\xa0 はUTF-8のノーブレークスペースに置き換え
         $text = str_replace(["\r\n", "\r", "\n", "　", " "], "\xc2\xa0", $text);
-
+        $pdf->setFontSpacing(0.3);
         $pdf->SetXY(20, 50);
         $pdf->MultiCell(170, 8, $text);
-
+        $pdf->setFontSpacing(0);
         // -----------------------------------------------
         // 中間ページをそのまま取り込む
         // -----------------------------------------------
@@ -62,32 +65,35 @@ class PdfService
             $tpl = $pdf->importPage($i);
             $pdf->useTemplate($tpl);
 
-            if ($i == 11) {
+            if ($i == 10) {
                     // 契約日
                     $pdf->SetFont('kozminproregular', '', 10);
-                    $pdf->SetXY(30, 35);
+                    $pdf->SetXY(20, 28);
 
                     $contractDate = $organization->new_contract_date
-                        ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y年n月j日')
-                        : now()->format('Y年n月j日');
+                        ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y　　　n　　　j')
+                        : now()->format('Y　　　n　　　j');
                     $pdf->Write(0, $contractDate);
 
                     // 乙（動的）
                     $address     = $organization->locationAddress;
-                    $etsuAddress = implode('', array_filter([
+                    $otsuAddress = implode('', array_filter([
                         $address?->address1,
                         $address?->address2,
                         $address?->address3,
                     ]));
                     $pdf->SetFont('kozminproregular', '', 12);
-                    $x = 70; $y = 103;
+                    $x = 80; $y = 103;
                     $width = 114; // 右端までの幅を調整
 
+                    $pdf->SetFillColor(255, 255, 255);
+                    $pdf->Rect($x-5, $y-5, 210-$x, 30, 'F'); 
+
                     $pdf->SetXY($x, $y);
-                    $pdf->Cell($width, 8, '（住所）〒' . ($data['postal_code'] ?? '') . '　' . $etsuAddress, 0, 1, 'R');
+                    $pdf->Cell($width, 8, '（住所）' . $otsuAddress, 0, 1, 'R');
 
                     $pdf->SetXY($x, $y+8);
-                    $pdf->Cell($width, 8, ($data['corp_name'] ?? $organization->name), 0, 1, 'R');
+                    $pdf->Cell($width, 8,'乙　　' . ($data['corp_name'] ?? $organization->name), 0, 1, 'R');
 
                     $pdf->SetXY($x, $y+16);
                     $pdf->Cell($width, 8, ($data['rep_position'] ?? '') . '　' . ($data['rep_last_name'] ?? '') . '　' . ($data['rep_first_name'] ?? '') . '　印', 0, 1, 'R');            }
@@ -150,9 +156,22 @@ class PdfService
         . '付ライセンス契約（同契約の内容の変更・追加をする合意を含む。以下「旧契約」という。）及び甲乙丙間の本日付ライセンス契約（以下「新契約」という。）について、次のとおり合意する。';
         // \xc2\xa0 はUTF-8のノーブレークスペースに置き換え
         $text = str_replace(["\r\n", "\r", "\n", "　", " "], "\xc2\xa0", $text);
+        $x = 25; $y = 60;
+        $width = 114; // 右端までの幅を調整
 
-        $pdf->SetXY(20, 50);
-        $pdf->MultiCell(170, 8, $text);
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect($x-5, $y-5, 210-$x, 32, 'F'); 
+
+        $pdf->SetXY(30, 58);
+        $pdf->MultiCell(150, 8, $text);
+       // 契約日
+        $pdf->SetFont('kozminproregular', '', 10);
+        $pdf->SetXY(38, 203);
+
+        $contractDate = $organization->new_contract_date
+            ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y　　　n　　　j')
+            : now()->format('Y　　　n　　　j');
+        $pdf->Write(0, $contractDate);
 
         // 乙（動的）
                 // -----------------------------------------------
@@ -161,18 +180,11 @@ class PdfService
         $pdf->AddPage();
         $tpl = $pdf->importPage(2);
         $pdf->useTemplate($tpl);
-        // 契約日
-        $pdf->SetFont('kozminproregular', '', 10);
-        $pdf->SetXY(30, 35);
-
-        $contractDate = $organization->new_contract_date
-            ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y年n月j日')
-            : now()->format('Y年n月j日');
-        $pdf->Write(0, $contractDate);
+ 
 
         // 乙（動的）
         $address     = $organization->locationAddress;
-        $etsuAddress = implode('', array_filter([
+        $otsuAddress = implode('', array_filter([
             $address?->address1,
             $address?->address2,
             $address?->address3,
@@ -182,7 +194,7 @@ class PdfService
         $width = 110; // 右端までの幅を調整
 
         $pdf->SetXY($x, $y);
-        $pdf->Cell($width, 8, '〒' . ($data['postal_code'] ?? '') . '　' . $etsuAddress, 0, 1, 'R');
+        $pdf->Cell($width, 8, $otsuAddress, 0, 1, 'R');
 
         $pdf->SetXY($x, $y+11);
         $pdf->Cell($width, 8, ($data['corp_name'] ?? $organization->name), 0, 1, 'R');

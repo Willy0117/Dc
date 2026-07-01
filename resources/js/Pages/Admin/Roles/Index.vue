@@ -93,7 +93,7 @@
                     :key="perm.id"
                     variant="secondary"
                   >
-                    {{ perm.name }}
+                    {{ getPermissionLabel(perm.name) }}
                   </Badge>
                 </div>
               </td>
@@ -171,6 +171,7 @@ import { Search, Plus, Trash2, Pencil, Copy, X, ShieldOff } from 'lucide-vue-nex
 import AppLayout  from '@/Layouts/Admin/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import SortIcon   from '@/Components/SortIcon.vue'
+import { usePermissionLabel } from '@/composables/usePermissionLabel'
 
 import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
@@ -191,6 +192,7 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const { getPermissionLabel } = usePermissionLabel()
 
 // ──────────────────────────────────────────
 // フォーム

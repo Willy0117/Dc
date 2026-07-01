@@ -120,13 +120,19 @@ class OrganizationController extends Controller
         $validated = $this->validateOrganization($request);
 
         DB::transaction(function () use ($validated) {
-            $organization = Organization::create($validated['organization']);
-            
-            // code生成: OC + idを含む5桁 (例: OC00001)
-            $organization->code = 'OC' . str_pad($organization->id, 5, '0', STR_PAD_LEFT);
+            $nextContractNo = (Organization::max('contract_no') ?? 0) + 1;
+
+            $organization = Organization::create(array_merge(
+                $validated['organization'],
+                ['contract_no' => $nextContractNo]
+            ));
+
+            $organization->code = 'OC' . str_pad($organization->contract_no, 5, '0', STR_PAD_LEFT);
             $organization->save();
+
             
             $this->syncAddresses($organization, $validated);
+            $this->syncMembers($organization, $validated);
         });
 
         return redirect()->route('admin.organizations.index')
@@ -471,7 +477,61 @@ class OrganizationController extends Controller
             ], 422);
         }
     }
+    // ──────────────────────────────────────────
+    // リマインダーメール一括送信
+    // ──────────────────────────────────────────
+    public function bulkSendReminder(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array',
+            'ids.*' => 'exists:organizations,id',
+        ]);
 
+        Organization::whereIn('id', $request->ids)
+            ->whereNotNull('new_contract_date')
+            ->with('locationAddress')
+            ->get()
+            ->each(function ($organization) {
+                $email = $organization->locationAddress?->email;
+                if (!$email) return;
+
+                \Mail::to($email)->send(new \App\Mail\ReminderMail($organization));
+            });
+
+        return back()->with('success', 'リマインダーメールを送信しました。');
+    }
+
+    // ──────────────────────────────────────────
+    // 自由記述メール一括送信
+    // ──────────────────────────────────────────
+    public function bulkSendMail(Request $request)
+    {
+        $request->validate([
+            'ids'     => 'required|array',
+            'ids.*'   => 'exists:organizations,id',
+            'subject' => 'required|string|max:255',
+            'body'    => 'required|string',
+        ]);
+
+        Organization::whereIn('id', $request->ids)
+            ->with('locationAddress')
+            ->get()
+            ->each(function ($organization) use ($request) {
+                $email = $organization->locationAddress?->email;
+                if (!$email) return;
+
+                $body = str_replace('{organization_name}', $organization->name, $request->body);
+
+                \Mail::to($email)->send(new \App\Mail\BulkMail(
+                    $request->subject,
+                    $body,
+                    $organization->name,  // ← 追加
+                ));
+            });
+
+        return back()->with('success', 'メールを送信しました。');
+    }
+    
     // ──────────────────────────────────────────
     // 検索API（Member form用）
     // ──────────────────────────────────────────
