@@ -22,14 +22,22 @@ class InvoiceController extends Controller
             ->when($request->keyword, fn($q, $kw) =>
                 $q->whereHas('organization', fn($o) =>
                     $o->where('name', 'like', "%{$kw}%")
-                      ->orWhere('contract_no', 'like', "%{$kw}%")
+                    ->orWhere('contract_no', 'like', "%{$kw}%")
                 )
             )
-            ->when($request->status !== null && $request->status !== '', fn($q) =>
-                $q->where('status', $request->status)
+            ->when(
+                $request->status !== null && $request->status !== '' && $request->status !== 'all',
+                fn($q) => $q->where('status', $request->status)
             )
-            ->when($request->billing_year, fn($q, $year) =>
-                $q->whereYear('billing_date', $year)
+            ->when(
+                $request->billing_year && $request->billing_year !== 'all',
+                fn($q) => $q->whereYear('billing_date', $request->billing_year)
+            )
+            ->when(
+                $request->payment_method && $request->payment_method !== 'all',
+                fn($q) => $q->whereHas('organization', function ($sub) use ($request) {
+                    $sub->where('payment_method', $request->payment_method);
+                })
             )
             ->orderBy(
                 $request->sort_by  ?? 'billing_date',
@@ -40,7 +48,15 @@ class InvoiceController extends Controller
 
         return Inertia::render('Admin/Invoices/Index', [
             'invoices'     => $invoices,
-            'filters'      => $request->only(['keyword', 'status', 'billing_year', 'per_page', 'sort_by', 'sort_dir']),
+            'filters'      => [
+                'keyword'        => $request->keyword        ?? '',
+                'status'         => $request->status         ?? 'all',
+                'billing_year'   => $request->billing_year   ?? 'all',
+                'payment_method' => $request->payment_method ?? 'all',
+                'per_page'       => $request->per_page       ?? 20,
+                'sort_by'        => $request->sort_by        ?? 'billing_date',
+                'sort_dir'       => $request->sort_dir       ?? 'desc',
+            ],
             'statusLabels' => Invoice::$statusLabels,
         ]);
     }

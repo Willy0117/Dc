@@ -14,7 +14,7 @@ use Stripe\PaymentLink;
 use Stripe\Price;
 use Stripe\Product;
 
-class StripeAdminController extends Controller
+class StripeController extends Controller
 {
     public function __construct()
     {
@@ -33,8 +33,9 @@ class StripeAdminController extends Controller
                     $o->where('name', 'like', "%{$kw}%")
                 )
             )
-            ->when($request->status !== null && $request->status !== '', fn($q) =>
-                $q->where('status', $request->status)
+            ->when(
+                $request->status !== null && $request->status !== '' && $request->status !== 'all',
+                fn($q) => $q->where('status', $request->status)
             )
             ->orderByDesc('created_at');
 
@@ -42,7 +43,13 @@ class StripeAdminController extends Controller
 
         return Inertia::render('Admin/Stripe/Index', [
             'invoices'     => $invoices,
-            'filters'      => $request->only(['keyword', 'status', 'per_page']),
+            'filters'      => [
+                'keyword'  => $request->keyword  ?? '',
+                'status'   => $request->status   ?? 'all',
+                'per_page' => $request->per_page ?? 20,
+                'sort_by'  => $request->sort_by  ?? 'created_at',
+                'sort_dir' => $request->sort_dir ?? 'desc',
+            ],
             'statusLabels' => Invoice::$statusLabels,
         ]);
     }

@@ -88,7 +88,7 @@
                     <th class="px-4 py-2.5 text-left font-semibold text-gray-700 bg-gray-50">連絡先</th>
                     <td class="px-4 py-2.5">
                       <a href="mailto:info@alivio-japan.co.jp" class="text-blue-500 hover:underline">
-                        license_okunoclinic@alivio-japan.co.jp
+                        license_okunoclinic@alivio-japan.com
                       </a>
                     </td>
                   </tr>

@@ -35,10 +35,13 @@
       <!-- ツールバー -->
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
-          <Select v-model="form.per_page" @update:modelValue="submitSearch">
+          <Select 
+            :model-value="String(form.per_page)" 
+            @update:modelValue="(v) => { form.per_page = Number(v); submitSearch() }"
+          >
             <SelectTrigger class="w-20 h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="n in [10,20,30,50]" :key="n" :value="n">{{ n }}</SelectItem>
+              <SelectItem v-for="n in [10,20,30,50]" :key="n" :value="String(n)">{{ n }}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -66,13 +69,17 @@
           キーワード: {{ form.keyword }}
           <button @click="form.keyword = ''; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
-        <Badge v-if="form.status !== ''" variant="secondary" class="gap-1">
+        <Badge v-if="form.status !== 'all' && form.status !== ''" variant="secondary" class="gap-1">
           ステータス: {{ statusLabels[form.status] }}
-          <button @click="form.status = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.status = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
-        <Badge v-if="form.billing_year" variant="secondary" class="gap-1">
+        <Badge v-if="form.billing_year !== 'all' && form.billing_year !== ''" variant="secondary" class="gap-1">
           請求年: {{ form.billing_year }}年
-          <button @click="form.billing_year = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.billing_year = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
+        </Badge>
+        <Badge v-if="form.payment_method !== 'all'" variant="secondary" class="gap-1">
+          支払方法: {{ form.payment_method === 1 ? '銀行振込' : 'カード' }}
+          <button @click="form.payment_method = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
       </div>
 
@@ -121,6 +128,7 @@
               v-for="invoice in invoices.data"
               :key="invoice.id"
               class="odd:bg-white even:bg-muted/30 hover:bg-muted/50 transition-colors border-b"
+              :class="isOverdue(invoice) ? 'border-l-4 border-l-red-500' : ''"
             >
               <td class="px-3 py-2.5">
                 <Checkbox :value="invoice.id" v-model:checked="selectedIds" />
@@ -205,39 +213,54 @@
     <Teleport to="body">
       <div v-if="openDrawer" class="fixed inset-0 z-40">
         <div class="absolute inset-0 bg-black/30" @click="openDrawer = false" />
-        <aside class="absolute top-0 right-0 h-full w-80 bg-background shadow-xl z-50 flex flex-col">
+        <aside class="absolute top-0 left-64 right-0 bg-background shadow-xl z-50 flex flex-col max-h-[80vh]">
           <div class="flex items-center justify-between px-5 py-4 border-b">
             <h2 class="font-bold">検索</h2>
-            <Button variant="ghost" size="icon" @click="openDrawer = false"><X class="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" @click="openDrawer = false">
+              <X class="w-4 h-4" />
+            </Button>
           </div>
-          <div class="flex-1 overflow-y-auto p-5 space-y-4">
-            <div class="space-y-1.5">
-              <Label>キーワード（契約先名・請求書No.）</Label>
-              <Input v-model="form.keyword" placeholder="検索ワードを入力" />
-            </div>
-            <div class="space-y-1.5">
-              <Label>ステータス</Label>
-              <Select v-model="form.status">
-                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">すべて</SelectItem>
-                  <SelectItem v-for="(label, val) in statusLabels" :key="val" :value="String(val)">{{ label }}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div class="space-y-1.5">
-              <Label>請求年</Label>
-              <Select v-model="form.billing_year">
-                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">すべて</SelectItem>
-                  <SelectItem v-for="year in billingYears" :key="year" :value="String(year)">{{ year }}年</SelectItem>
-                </SelectContent>
-              </Select>
+          <div class="overflow-y-auto p-5">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div class="space-y-1.5">
+                <Label>キーワード</Label>
+                <Input v-model="form.keyword" placeholder="契約先名・請求書No." />
+              </div>
+              <div class="space-y-1.5">
+                <Label>ステータス</Label>
+                <Select v-model="form.status">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem v-for="(label, val) in statusLabels" :key="val" :value="String(val)">{{ label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-1.5">
+                <Label>請求年</Label>
+                <Select v-model="form.billing_year">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem v-for="year in billingYears" :key="year" :value="String(year)">{{ year }}年</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-1.5">
+                <Label>支払方法</Label>
+                <Select v-model="form.payment_method">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem :value="1">銀行振込</SelectItem>
+                    <SelectItem :value="2">カード</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-          <div class="px-5 py-4 border-t flex gap-2">
-            <Button class="flex-1" @click="submitSearch(); openDrawer = false">
+          <div class="px-5 py-4 border-t flex gap-2 justify-end">
+            <Button size="sm" variant="outline" class="bg-[#0C447C] hover:bg-[#185FA5] text-white border-[#0C447C]" @click="submitSearch(); openDrawer = false">
               <Search class="w-3.5 h-3.5 mr-1" />検索
             </Button>
             <Button variant="outline" @click="resetSearch">リセット</Button>
@@ -284,7 +307,7 @@ const props = defineProps({
   filters: {
     type: Object,
     default: () => ({
-      keyword: '', status: '', billing_year: '',
+      keyword: '', status: '', billing_year: '', payment_method: 'all',
       per_page: 20, sort_by: 'billing_date', sort_dir: 'desc',
     }),
   },
@@ -314,15 +337,21 @@ const summary = computed(() => {
 // ──────────────────────────────────────────
 const form = reactive({
   keyword:      props.filters.keyword      ?? '',
-  status:       props.filters.status       ?? '',
-  billing_year: props.filters.billing_year ?? '',
+  status:       props.filters.status       ?? 'all',
+  billing_year: props.filters.billing_year ?? 'all',
+  payment_method: props.filters.payment_method && props.filters.payment_method !== 'all'
+    ? Number(props.filters.payment_method)
+    : 'all',
   per_page:     props.filters.per_page     ?? 20,
   sort_by:      props.filters.sort_by      ?? 'billing_date',
   sort_dir:     props.filters.sort_dir     ?? 'desc',
 })
 
 const hasActiveFilters = computed(() =>
-  form.keyword || form.status !== '' || form.billing_year
+  form.keyword ||
+  (form.status !== 'all' && form.status !== '') ||
+  (form.billing_year !== 'all' && form.billing_year !== '') ||
+  (form.payment_method !== 'all')
 )
 
 const billingYears = computed(() => {
@@ -379,6 +408,7 @@ const persistQuery = () => ({
   keyword:      form.keyword,
   status:       form.status,
   billing_year: form.billing_year,
+  payment_method: form.payment_method,
   per_page:     form.per_page,
   sort_by:      form.sort_by,
   sort_dir:     form.sort_dir,
@@ -395,8 +425,9 @@ const submitSearch = () => {
 
 const resetSearch = () => {
   form.keyword = ''
-  form.status = ''
-  form.billing_year = ''
+  form.status = 'all'
+  form.billing_year = 'all'
+  form.payment_method = 'all'
   submitSearch()
   openDrawer.value = false
 }

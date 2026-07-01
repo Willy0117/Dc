@@ -51,6 +51,10 @@ class ApplicationController extends Controller
 
         // 料金マスタ取得
         $feeMaster = $this->getFeeMaster($organization);
+        
+        if (session('application.token') !== $token) {
+            session()->forget('application');
+        }
 
         $data = session('application') ?? [
             'organization_id'    => $organization->id,

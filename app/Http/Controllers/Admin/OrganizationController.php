@@ -49,11 +49,14 @@ class OrganizationController extends Controller
                         ->orWhere('organizations.abbr', 'like', "%{$kw}%");
                 })
             )
-            ->when($request->contract_status !== null && $request->contract_status !== '',
+            ->when($request->contract_status !== null && $request->contract_status !== '' && $request->contract_status !== 'all',
                 fn($q) => $q->where('organizations.contract_status', $request->contract_status)
             )
-            ->when($request->address1,
+            ->when($request->address1 && $request->address1 !== 'all',
                 fn($q, $a) => $q->where('organization_addresses.address1', 'like', "%{$a}%")
+            )
+            ->when($request->payment_method && $request->payment_method !== 'all',
+                fn($q) => $q->where('organizations.payment_method', $request->payment_method)
             )
             // 契約日の期間指定
             ->when($request->contract_date_from,
@@ -61,10 +64,6 @@ class OrganizationController extends Controller
             )
             ->when($request->contract_date_to,
                 fn($q, $d) => $q->where('organizations.contract_date', '<=', $d)
-            )
-            // 支払い方法
-            ->when($request->payment_method && $request->payment_method !== 'all',
-                fn($q) => $q->where('organizations.payment_method', $request->payment_method)
             )
             ->orderBy(
                 $sortBy === 'tel' ? 'organization_addresses.tel' : "organizations.{$sortBy}",
@@ -531,7 +530,7 @@ class OrganizationController extends Controller
 
         return back()->with('success', 'メールを送信しました。');
     }
-    
+
     // ──────────────────────────────────────────
     // 検索API（Member form用）
     // ──────────────────────────────────────────

@@ -82,9 +82,9 @@
           契約日: {{ form.contract_date_from }} 〜 {{ form.contract_date_to }}
           <button @click="form.contract_date_from = ''; form.contract_date_to = ''; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
-        <Badge v-if="form.payment_method !== '' && form.payment_method !== 'all'" variant="secondary" class="gap-1">
+        <Badge v-if="form.payment_method !== 'all' && form.payment_method !== ''" variant="secondary" class="gap-1">
           支払方法: {{ form.payment_method == 1 ? '銀行振込' : 'カード' }}
-          <button @click="form.payment_method = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.payment_method = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
       </div>
 
@@ -141,6 +141,7 @@
               v-for="org in organizations.data"
               :key="org.id"
               class="odd:bg-white even:bg-muted/30 hover:bg-muted/50 transition-colors border-b"
+              :class="getContractBarColor(org)"
             >
               <td class="px-3 py-2.5">
                 <Checkbox
@@ -149,7 +150,7 @@
                 />
               </td>
               <td class="px-3 py-2.5 font-mono text-xs text-muted-foreground">
-                {{ org.contract_no ?? '-' }}
+                {{ org.code ?? '-' }}
               </td>
               <td class="px-3 py-2.5">
                 <Link :href="route('admin.organizations.show', org.id)" class="font-medium hover:underline">
@@ -199,54 +200,38 @@
               </td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-7 w-7 text-emerald-600 hover:text-emerald-700"
-                    title="申込メール送信"
-                    @click="sendInvitation(org)"
-                  >
+                  <!-- よく使うボタン -->
+                  <Button variant="ghost" size="icon" class="h-7 w-7 text-emerald-600" title="申込メール送信" @click="sendInvitation(org)">
                     <Mail class="w-3.5 h-3.5" />
                   </Button>
                   <Button variant="ghost" size="icon" class="h-7 w-7" @click="openEdit(org)">
                     <Pencil class="w-3.5 h-3.5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-7 w-7 text-blue-600 hover:text-blue-700"
-                    title="請求書作成"
-                    @click="openInvoiceForOne(org)"
-                  >
+                  <Button variant="ghost" size="icon" class="h-7 w-7 text-blue-600" title="請求書作成" @click="openInvoiceForOne(org)">
                     <FileText class="w-3.5 h-3.5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-7 w-7 text-violet-600 hover:text-violet-700"
-                    title="Stripe支払い"
-                    @click="openStripeForOne(org)"
-                  >
+                  <Button variant="ghost" size="icon" class="h-7 w-7 text-violet-600" title="Stripe支払い" @click="openStripeForOne(org)">
                     <CreditCard class="w-3.5 h-3.5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-7 w-7 text-amber-600 hover:text-amber-700"
-                    title="ライセンス証発行"
-                    @click="issueLicense(org)"
-                  >
-                    <Award class="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-7 w-7 text-blue-600 hover:text-blue-700"
-                    title="契約書閲覧"
-                    @click="openContractDialog(org)"
-                  >
-                    <FileText class="w-3.5 h-3.5" />
-                  </Button>
+
+                  <!-- たまに使う → ドロップダウン -->
+                  <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                      <Button variant="ghost" size="icon" class="h-7 w-7">
+                        <MoreHorizontal class="w-3.5 h-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem @click="issueLicense(org)">
+                        <Award class="w-3.5 h-3.5 mr-2 text-amber-600" />
+                        ライセンス証発行
+                      </DropdownMenuItem>
+                      <DropdownMenuItem @click="openContractDialog(org)">
+                        <FileText class="w-3.5 h-3.5 mr-2 text-blue-600" />
+                        契約書閲覧
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </td>
             </tr>
@@ -283,7 +268,7 @@
                 <Select v-model="form.contract_status">
                   <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">すべて</SelectItem>
+                    <SelectItem value="all">すべて</SelectItem>
                     <SelectItem v-for="(label, id) in contractStatusLabels" :key="id" :value="Number(id)">
                       {{ label }}
                     </SelectItem>
@@ -295,7 +280,7 @@
                 <Select v-model="form.address1">
                   <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">すべて</SelectItem>
+                    <SelectItem value="all">すべて</SelectItem>
                     <SelectItem v-for="pref in prefectures" :key="pref" :value="pref">{{ pref }}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -306,7 +291,7 @@
                 <Select v-model="form.payment_method">
                   <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">すべて</SelectItem>
+                    <SelectItem value="all">すべて</SelectItem>
                     <SelectItem :value="1">銀行振込</SelectItem>
                     <SelectItem :value="2">カード</SelectItem>
                   </SelectContent>
@@ -382,7 +367,7 @@ import { Link, router } from '@inertiajs/vue3'
 import dayjs from 'dayjs'
 import {
   Search, Plus, Trash2, Pencil, X, Mail, Award, Bell,
-  Building2, ExternalLink, FileText, CreditCard, ArrowRight,
+  Building2, ExternalLink, FileText, CreditCard, ArrowRight, MoreHorizontal
 } from 'lucide-vue-next'
 
 import AppLayout           from '@/Layouts/Admin/AppLayout.vue'
@@ -401,6 +386,7 @@ import { Label }    from '@/components/ui/label'
 import { Badge }    from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, } from '@/components/ui/dropdown-menu'
 
 // ──────────────────────────────────────────
 // Props
@@ -415,7 +401,7 @@ const props = defineProps({
       address1:           '',
       contract_date_from: '',
       contract_date_to:   '',
-      payment_method:     '',
+      payment_method:     'all',
       per_page:           20,
       sort_by:            'contract_date',
       sort_dir:           'desc',
@@ -433,11 +419,13 @@ const props = defineProps({
 // ──────────────────────────────────────────
 const form = reactive({
   keyword:            props.filters.keyword            ?? '',
-  contract_status:    props.filters.contract_status    ?? '',
-  address1:           props.filters.address1           ?? '',
+  contract_status:    props.filters.contract_status    ?? 'all',
+  address1:           props.filters.address1           ?? 'all',
   contract_date_from: props.filters.contract_date_from ?? '',
   contract_date_to:   props.filters.contract_date_to   ?? '',
-  payment_method:     props.filters.payment_method     ?? '',  // ← 追加
+  payment_method: props.filters.payment_method && props.filters.payment_method !== 'all'
+  ? Number(props.filters.payment_method)
+  : 'all',
   per_page:           props.filters.per_page           ?? 20,
   sort_by:            props.filters.sort_by            ?? 'contract_date',
   sort_dir:           props.filters.sort_dir           ?? 'desc',
@@ -447,7 +435,7 @@ const form = reactive({
 const hasActiveFilters = computed(() =>
   form.keyword || form.contract_status !== '' || form.address1 ||
   form.contract_date_from || form.contract_date_to ||
-  (form.payment_method !== '' && form.payment_method !== 'all')
+  (form.payment_method !== 'all' && form.payment_method !== '')
 )
 
 const openEdit = (org) => {
@@ -533,7 +521,7 @@ const resetSearch = () => {
   form.address1           = ''
   form.contract_date_from = ''
   form.contract_date_to   = ''
-  form.payment_method     = ''  // ← 追加
+  form.payment_method     = 'all'
   submitSearch()
   openDrawer.value = false
 }
@@ -706,5 +694,24 @@ const contractDialogOrg  = ref(null)
 const openContractDialog = (org) => {
   contractDialogOrg.value  = org
   contractDialogOpen.value = true
+}
+
+const getContractBarColor = (org) => {
+  // new_contract_dateがあればそれを使う、なければcontract_date + 1年
+  let renewalDate = null
+
+  if (org.new_contract_date) {
+    renewalDate = dayjs(org.new_contract_date)
+  } else if (org.contract_date) {
+    renewalDate = dayjs(org.contract_date).add(1, 'year')
+  } else {
+    return '' // どちらもなければバーなし
+  }
+
+  const daysUntil = renewalDate.diff(dayjs(), 'day')
+
+  if (daysUntil < 0) return 'border-l-4 border-l-red-500'       // 期限超過
+  if (daysUntil <= 45) return 'border-l-4 border-l-orange-400'  // 45日以内
+  return ''                                                       // 通常
 }
 </script>

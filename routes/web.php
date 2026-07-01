@@ -13,27 +13,14 @@ use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\WebhookLogController;
 use App\Http\Controllers\Admin\InvoiceController;
-use App\Http\Controllers\Admin\StripeAdminController;
+use App\Http\Controllers\Admin\StripeController;
 use App\Http\Controllers\Admin\LicenseFeeController;
 
 use App\Http\Controllers\ApplicationController;
-use App\Http\Controllers\StripeController;
 use App\Http\Controllers\StripeWebhookController;
 
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
-
-// stripe テスト用
-Route::get('/checkout', [StripeController::class, 'checkout']);
-
-Route::get('/success', function () {
-    \Log::info('stripe success redirect');
-    return '決済成功🔥';
-});
-
-Route::get('/cancel', function () {
-    return 'キャンセルされました';
-});
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
@@ -129,12 +116,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Stripe 管理
         // ──────────────────────────────────────────────────────────────
         Route::get('stripe',
-            [StripeAdminController::class, 'index']
+            [StripeController::class, 'index']
         )->name('stripe.index');
         
-        Route::post('stripe/payment-link',[StripeAdminController::class, 'paymentLink'])->name('stripe.payment-link');
+        Route::post('stripe/payment-link',[StripeController::class, 'paymentLink'])->name('stripe.payment-link');
 
-        Route::post('stripe/{invoice}/resend-email', [\App\Http\Controllers\Admin\StripeAdminController::class, 'resendEmail'])->name('stripe.resendEmail');
+        Route::post('stripe/{invoice}/resend-email', [\App\Http\Controllers\Admin\StripeController::class, 'resendEmail'])->name('stripe.resendEmail');
 
         Route::prefix('member')->name('member.')->group(function () {
 
@@ -143,7 +130,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/{member}', [AdminMemberController::class, 'show'])->name('show');
             Route::get('/{member}/edit', [AdminMemberController::class, 'edit'])->name('edit');
             Route::put('/{member}', [AdminMemberController::class, 'update'])->name('update');
-            // routes/admin.php
+            // routes/admin
             Route::get('{member}/status/edit', [AdminMemberController::class, 'editStatus'])
                 ->name('editStatus');
 

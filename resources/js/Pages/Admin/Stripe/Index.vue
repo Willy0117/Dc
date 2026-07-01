@@ -66,9 +66,9 @@
           キーワード: {{ form.keyword }}
           <button @click="form.keyword = ''; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
-        <Badge v-if="form.status !== ''" variant="secondary" class="gap-1">
+        <Badge v-if="form.status !== 'all' && form.status !== ''" variant="secondary" class="gap-1">
           ステータス: {{ statusLabels[form.status] }}
-          <button @click="form.status = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.status = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
       </div>
 
@@ -117,6 +117,7 @@
               v-for="invoice in invoices.data"
               :key="invoice.id"
               class="odd:bg-white even:bg-muted/30 hover:bg-muted/50 transition-colors border-b"
+              :class="isOverdue(invoice) ? 'border-l-4 border-l-red-500' : ''"
             >
               <td class="px-3 py-2.5">
                 <Checkbox :value="invoice.id" v-model:checked="selectedIds" />
@@ -192,29 +193,31 @@
     <Teleport to="body">
       <div v-if="openDrawer" class="fixed inset-0 z-40">
         <div class="absolute inset-0 bg-black/30" @click="openDrawer = false" />
-        <aside class="absolute top-0 right-0 h-full w-80 bg-background shadow-xl z-50 flex flex-col">
+        <aside class="absolute top-0 left-64 right-0 bg-background shadow-xl z-50 flex flex-col max-h-[80vh]">
           <div class="flex items-center justify-between px-5 py-4 border-b">
             <h2 class="font-bold">検索</h2>
             <Button variant="ghost" size="icon" @click="openDrawer = false"><X class="w-4 h-4" /></Button>
           </div>
-          <div class="flex-1 overflow-y-auto p-5 space-y-4">
-            <div class="space-y-1.5">
-              <Label>キーワード（契約先名）</Label>
-              <Input v-model="form.keyword" placeholder="検索ワードを入力" />
-            </div>
-            <div class="space-y-1.5">
-              <Label>ステータス</Label>
-              <Select v-model="form.status">
-                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">すべて</SelectItem>
-                  <SelectItem v-for="(label, val) in statusLabels" :key="val" :value="String(val)">{{ label }}</SelectItem>
-                </SelectContent>
-              </Select>
+          <div class="overflow-y-auto p-5">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div class="space-y-1.5">
+                <Label>キーワード（契約先名）</Label>
+                <Input v-model="form.keyword" placeholder="検索ワードを入力" />
+              </div>
+              <div class="space-y-1.5">
+                <Label>ステータス</Label>
+                <Select v-model="form.status">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem v-for="(label, val) in statusLabels" :key="val" :value="String(val)">{{ label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-          <div class="px-5 py-4 border-t flex gap-2">
-            <Button class="flex-1" @click="submitSearch(); openDrawer = false">
+          <div class="px-5 py-4 border-t flex gap-2 justify-end">
+            <Button size="sm" variant="outline" class="bg-[#0C447C] hover:bg-[#185FA5] text-white border-[#0C447C]" @click="submitSearch(); openDrawer = false">
               <Search class="w-3.5 h-3.5 mr-1" />検索
             </Button>
             <Button variant="outline" @click="resetSearch">リセット</Button>
@@ -283,14 +286,15 @@ const summary = computed(() => {
 // ──────────────────────────────────────────
 const form = reactive({
   keyword:  props.filters.keyword  ?? '',
-  status:   props.filters.status   ?? '',
+  status:   props.filters.status   ?? 'all',
   per_page: props.filters.per_page ?? 20,
   sort_by:  props.filters.sort_by  ?? 'created_at',
   sort_dir: props.filters.sort_dir ?? 'desc',
 })
 
-const hasActiveFilters = computed(() => form.keyword || form.status !== '')
-
+const hasActiveFilters = computed(() =>
+  form.keyword || (form.status !== 'all' && form.status !== '')
+)
 // ──────────────────────────────────────────
 // 選択
 // ──────────────────────────────────────────
@@ -362,7 +366,7 @@ const submitSearch = () => {
 
 const resetSearch = () => {
   form.keyword = ''
-  form.status  = ''
+  form.status  = 'all'
   submitSearch()
   openDrawer.value = false
 }
