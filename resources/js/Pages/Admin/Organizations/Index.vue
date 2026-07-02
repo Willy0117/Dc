@@ -410,7 +410,14 @@ const props = defineProps({
   },
   contractStatusLabels: {
     type: Object,
-    default: () => ({ 0: '契約中', 1: '契約終了', 2: '特別枠', 3: '個人契約' }),
+    default: () => ({
+      0: '新規',
+      1: '契約中',
+      2: '契約終了',
+      3: '特別枠',
+      4: '個人契約',
+      5: '更新しない',
+    }),
   },
 })
 

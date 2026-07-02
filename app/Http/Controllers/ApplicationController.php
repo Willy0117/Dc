@@ -198,7 +198,7 @@ class ApplicationController extends Controller
             $organization->update([
                 'name'            => $data['corp_name'],
                 'abbr'            => $data['clinic_name'],
-                'contract_status' => 0,
+                'contract_status' => 1,
                 'payment_method'  => $data['payment_method'],
                 'rep_position'    => $data['rep_position'],   // 追加
                 'rep_last_name'   => $data['rep_last_name'],  // 追加

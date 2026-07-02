@@ -14,16 +14,20 @@ class Organization extends Model
     // 定数
     // ──────────────────────────────────────────
 
-    const STATUS_ACTIVE   = 0; // 契約中
-    const STATUS_ENDED    = 1; // 契約終了
-    const STATUS_SPECIAL  = 2; // 特別枠（請求なし）
-    const STATUS_PERSONAL = 3; // ドクター個人契約
-
+    const STATUS_NEW      = 0; // 新規
+    const STATUS_ACTIVE   = 1; // 契約中
+    const STATUS_ENDED    = 2; // 契約終了
+    const STATUS_SPECIAL  = 3; // 特別枠（請求なし）
+    const STATUS_PERSONAL = 4; // ドクター個人契約
+    const STATUS_NO_RENEW = 5; // 更新しない
+    //
     const STATUS_LABELS = [
+        self::STATUS_NEW      => '新規',
         self::STATUS_ACTIVE   => '契約中',
         self::STATUS_ENDED    => '契約終了',
         self::STATUS_SPECIAL  => '特別枠',
         self::STATUS_PERSONAL => '個人契約',
+        self::STATUS_NO_RENEW => '更新しない',
     ];
 
     // ──────────────────────────────────────────
