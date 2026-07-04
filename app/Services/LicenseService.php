@@ -33,10 +33,12 @@ class LicenseService
     // メール送信のみ
     public function send(Organization $organization, string $email, string $pdfPath): void
     {
-        \Log::info('pdfPath received:', ['path' => $pdfPath]);
-        $relativePath = preg_replace('/^.*\/storage\//', '', $pdfPath);
+        // 署名付きURLからS3キーのみを抽出
+        $parsedPath = parse_url($pdfPath, PHP_URL_PATH); // /licenses/OC00003_2026-07-03.pdf
+        $relativePath = ltrim($parsedPath, '/'); // licenses/OC00003_2026-07-03.pdf
+
         \Log::info('relativePath:', ['path' => $relativePath]);
-       
+
         Mail::to($email)->send(new LicenseMail($organization, $relativePath));
     }
 }

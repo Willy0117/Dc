@@ -8,6 +8,7 @@ use App\Models\Organization;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class CloudSignService
 {
@@ -16,7 +17,8 @@ class CloudSignService
     private ?string $accessToken = null;
 
     public function __construct(
-        private PdfService $pdfService
+        private PdfService $pdfService,
+        private FileService $fileService
     ) {
         $this->baseUrl  = config('services.cloudsign.api_url');
         $this->clientId = config('services.cloudsign.client_id');
@@ -91,10 +93,11 @@ class CloudSignService
             : '動注治療ライセンス契約書';
 
         $documentId = $this->sendContract(
-            pdfPath:          storage_path('app/public/' . $pdfPath),
+            pdfPath:          $this->fileService->getLocalTempPath($pdfPath),
             agreementPdfPath: !empty($data['agreement_pdf_path'])
-                ? storage_path('app/public/' . $data['agreement_pdf_path'])
+                ? $this->fileService->getLocalTempPath($data['agreement_pdf_path'])
                 : null,
+                
             title:        $title,
             note:         'ライセンス契約書をお送りします。内容をご確認のうえ、電子署名をお願いいたします。',
             participants: [
@@ -214,13 +217,8 @@ class CloudSignService
 
         $suffix   = $index === 0 ? 'contract' : 'agreement';
         $fileName = "contracts/signed_{$suffix}_{$documentId}.pdf";
-        $fullPath = storage_path('app/public/' . $fileName);
 
-        if (!file_exists(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
-        }
-
-        file_put_contents($fullPath, $response->body());
+        Storage::disk(config('filesystems.default'))->put($fileName, $response->body());
 
         return $fileName;
     }
@@ -256,11 +254,13 @@ class CloudSignService
 
         // 契約書アップロード
         $this->uploadFile($documentId, $pdfPath, '契約書.pdf');
+        @unlink($pdfPath); //
         Log::info('CloudSign: 契約書PDFアップロード完了', ['document_id' => $documentId]);
 
         // 合意書アップロード（再契約の場合のみ）
         if ($agreementPdfPath) {
             $this->uploadFile($documentId, $agreementPdfPath, '合意書.pdf');
+            @unlink($agreementPdfPath);
             Log::info('CloudSign: 合意書PDFアップロード完了', ['document_id' => $documentId]);
         }
 

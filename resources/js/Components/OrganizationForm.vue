@@ -47,13 +47,6 @@ const tabs: { key: TabKey; label: string; icon: any }[] = [
 
 const memberCount = computed(() => form.members.length)
 
-const contractStatusColor: Record<number, string> = {
-  0: 'border-emerald-500 bg-emerald-50 text-emerald-800',
-  1: 'border-stone-400  bg-stone-50   text-stone-700',
-  2: 'border-blue-500   bg-blue-50    text-blue-800',
-  3: 'border-amber-500  bg-amber-50   text-amber-800',
-}
-
 function handleSubmit() {
   if (isValid.value) emit('submit', form)
 }
@@ -200,16 +193,11 @@ function handleSubmit() {
                 type="button"
                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-all"
                 :class="form.organization.contract_status === opt.value
-                  ? contractStatusColor[opt.value]
+                  ? opt.activeClass
                   : 'border-border bg-background text-muted-foreground hover:bg-muted'"
                 @click="form.organization.contract_status = opt.value"
               >
-                <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="{
-                  'bg-emerald-500': opt.color === 'teal',
-                  'bg-stone-400':   opt.color === 'gray',
-                  'bg-blue-500':    opt.color === 'blue',
-                  'bg-amber-500':   opt.color === 'amber',
-                }" />
+                <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="opt.bgClass" />
                 {{ opt.label }}
               </button>
             </div>

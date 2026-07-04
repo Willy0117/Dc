@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
+use App\Services\FileService;
 
 use App\Models\Member;
 use App\Models\Organization;
@@ -19,6 +20,10 @@ use App\Models\MemberCommittee;
 
 class MemberController extends Controller
 {
+    // コンストラクタに追加
+    public function __construct(private FileService $fileService) {}
+
+
     // ──────────────────────────────────────────
     // 一覧
     // ──────────────────────────────────────────
@@ -228,15 +233,15 @@ class MemberController extends Controller
             'document' => 'required|file|mimes:pdf|max:10240',
         ]);
 
-        [$filePath, $thumbPath] = $this->storePdfWithThumbnail(
+        [$filePath, $thumbPath] = $this->fileService->storeUploadedFile(
             $request->file('document'),
             'members/documents'
         );
-
+        
         return response()->json([
             'success'       => true,
-            'file_url'      => Storage::url($filePath),
-            'thumbnail_url' => $thumbPath ? Storage::url($thumbPath) : null,
+            'file_url'      => $this->fileService->getUrl($filePath),
+            'thumbnail_url' => $thumbPath ? $this->fileService->getUrl($thumbPath) : null,
         ]);
     }
 
@@ -421,37 +426,5 @@ class MemberController extends Controller
             'latest_cycle'     => $member->latestCycle,
             'created_at'       => $member->created_at->format('Y-m-d'),
         ];
-    }
-
-    // ──────────────────────────────────────────
-    // Private: PDF保存＋サムネイル生成
-    // ──────────────────────────────────────────
-
-    private function storePdfWithThumbnail(?UploadedFile $file, string $baseDir): array
-    {
-        if (!$file || !$file->isValid()) {
-            return [null, null];
-        }
-
-        $pdfRelativePath = $file->store($baseDir, 'public');
-        $pdfFullPath     = storage_path('app/public/' . $pdfRelativePath);
-
-        $thumbDir              = $baseDir . '/thumbnails';
-        $thumbnailRelativePath = $thumbDir . '/' . pathinfo($pdfRelativePath, PATHINFO_FILENAME) . '.png';
-        $thumbnailFullPath     = storage_path('app/public/' . $thumbnailRelativePath);
-
-        if (!Storage::disk('public')->exists($thumbDir)) {
-            Storage::disk('public')->makeDirectory($thumbDir);
-        }
-
-        $imagick = new \Imagick();
-        $imagick->setResolution(150, 150);
-        $imagick->readImage($pdfFullPath . '[0]');
-        $imagick->setImageFormat('png');
-        $imagick->writeImage($thumbnailFullPath);
-        $imagick->clear();
-        $imagick->destroy();
-
-        return [$pdfRelativePath, $thumbnailRelativePath];
     }
 }

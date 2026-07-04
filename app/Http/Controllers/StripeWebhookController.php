@@ -104,6 +104,9 @@ class StripeWebhookController extends Controller
         // 契約日を更新
         $invoice->organization->updateContractDate();
 
+        // リマインダー送信済みをリセット
+        $organization->update(['reminder_sent_at' => null]);
+
         Log::info('Stripe Webhook: 入金処理完了', [
             'invoice_id' => $invoice->id,
             'invoice_no' => $invoice->invoice_no,

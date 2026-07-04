@@ -111,6 +111,10 @@ class InvoiceController extends Controller
 
             // 契約日を更新
             $invoice->organization->updateContractDate();
+
+            // リマインダー送信済みをリセット
+            $invoice->organization->update(['reminder_sent_at' => null]);
+
         }
 
         return back()->with('success', 'ステータスを更新しました。');

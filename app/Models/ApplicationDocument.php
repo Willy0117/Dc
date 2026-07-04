@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FileService;
 
 class ApplicationDocument extends Model
 {
@@ -33,18 +34,20 @@ class ApplicationDocument extends Model
     // ストレージURL取得
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->file_path);
+        return app(FileService::class)->getUrl($this->file_path);
     }
 
     // 絶対パス取得
     public function getFullPathAttribute(): string
     {
-        return storage_path('app/' . $this->file_path);
+        return Storage::disk(config('filesystems.default'))->path($this->file_path);
     }
 
     // サムネイルURL取得
     public function getThumbnailUrlAttribute(): ?string
     {
-        return $this->thumbnail_path ? Storage::url($this->thumbnail_path) : null;
+        return $this->thumbnail_path 
+            ? app(FileService::class)->getUrl($this->thumbnail_path) 
+            : null;
     }
 }

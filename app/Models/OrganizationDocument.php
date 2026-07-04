@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FileService;
 
 class OrganizationDocument extends Model
 {
@@ -25,11 +26,15 @@ class OrganizationDocument extends Model
 
     public function getUrlAttribute()
     {
-        return $this->path ? Storage::url($this->path) : null;
+        return $this->path 
+            ? app(FileService::class)->getUrl($this->path) 
+            : null;
     }
 
     public function getThumbnailUrlAttribute()
     {
-        return $this->thumbnail_path ? Storage::url($this->thumbnail_path) : null;
+        return $this->thumbnail_path 
+            ? app(FileService::class)->getUrl($this->thumbnail_path) 
+            : null;
     }
 }

@@ -29,13 +29,16 @@ class LicenseMail extends Mailable
     {
         return new Content(
             view: 'emails.license',
+            with: [
+                'organization' => $this->organization,
+            ],
         );
     }
 
     public function attachments(): array
     {
         return [
-            Attachment::fromPath(storage_path('app/public/' . $this->fileName))
+            Attachment::fromStorageDisk(config('filesystems.default'), $this->fileName)
                 ->as('ライセンス証.pdf')
                 ->withMime('application/pdf'),
         ];

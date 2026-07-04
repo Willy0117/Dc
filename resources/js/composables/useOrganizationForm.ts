@@ -19,10 +19,12 @@ export const PREFECTURES = [
 ]
 
 export const CONTRACT_STATUS_OPTIONS = [
-  { value: 0 as const, label: '契約中',            color: 'teal'  },
-  { value: 1 as const, label: '契約終了',          color: 'gray'  },
-  { value: 2 as const, label: '特別枠（請求なし）', color: 'blue'  },
-  { value: 3 as const, label: 'ドクター個人契約',   color: 'amber' },
+  { value: 0 as const, label: '新規',              bgClass: 'bg-green-500',   activeClass: 'border-green-500  bg-green-50  text-green-800'  },
+  { value: 1 as const, label: '契約中',            bgClass: 'bg-emerald-500', activeClass: 'border-emerald-500 bg-emerald-50 text-emerald-800' },
+  { value: 2 as const, label: '契約終了',          bgClass: 'bg-stone-400',   activeClass: 'border-stone-400  bg-stone-50  text-stone-700'  },
+  { value: 3 as const, label: '特別枠（請求なし）', bgClass: 'bg-blue-500',    activeClass: 'border-blue-500   bg-blue-50   text-blue-800'   },
+  { value: 4 as const, label: 'ドクター個人契約',   bgClass: 'bg-amber-500',   activeClass: 'border-amber-500  bg-amber-50  text-amber-800'  },
+  { value: 5 as const, label: '更新しない',         bgClass: 'bg-red-500',     activeClass: 'border-red-500    bg-red-50    text-red-800'    },
 ] as const
 
 export const PAYMENT_METHOD_OPTIONS = [

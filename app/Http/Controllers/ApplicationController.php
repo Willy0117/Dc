@@ -11,10 +11,13 @@ use App\Services\CloudSignService;
 use App\Services\InvoiceService;
 use App\Services\StripeService;
 use App\Services\PdfService;
+use App\Services\FileService;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+
 
 class ApplicationController extends Controller
 {
@@ -172,10 +175,10 @@ class ApplicationController extends Controller
 
         return Inertia::render('Applications/Contract', [
             'data'    => $data,
-            'pdf_url' => Storage::url($data['pdf_path']),
+            'pdf_url' => app(FileService::class)->getUrl($data['pdf_path']),
 //            'agreement_pdf_url' => Storage::url($data['agreement_pdf_path']),
             'agreement_pdf_url' => !empty($data['needs_agreement'])
-               ? Storage::url($data['agreement_pdf_path'])
+               ? app(FileService::class)->getUrl($data['agreement_pdf_path'])
                : null,
         ]);
     }

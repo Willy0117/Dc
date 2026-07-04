@@ -2,7 +2,7 @@
 <template>
   <Teleport to="body">
     <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="$emit('update:open', false)">
-      <div class="bg-gray-50 rounded-xl shadow-xl w-[90vw] max-w-4xl h-[90vh] flex flex-col">
+      <div class="bg-gray-50 rounded-xl shadow-xl w-[90vw] max-w-5xl h-[90vh] flex flex-col">
 
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 bg-white border-b rounded-t-xl">

@@ -115,7 +115,7 @@ class PdfService
         $pdf->Output($tmpPath, 'F');
 
         // Storageファサード経由で保存（ローカル/S3どちらでも対応）
-        Storage::disk('public')->put($fileName, file_get_contents($tmpPath));
+        Storage::disk($this->disk)->put($fileName, file_get_contents($tmpPath));
         unlink($tmpPath);
 
         return $fileName;
@@ -279,17 +279,13 @@ class PdfService
         $pdf->Cell(25, 10, number_format($tax), 0, 0, 'R');
         $pdf->SetXY(165, 222);
         $pdf->Cell(25, 10, number_format($total), 0, 0, 'R');
-
-        // 保存
         // 保存
         $fileName = 'invoices/invoice_' . $invoiceNo . '.pdf';
-        $fullPath = storage_path('app/public/' . $fileName);
- 
-        if (!file_exists(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
-        }
- 
-        $pdf->Output($fullPath, 'F');
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'pdf_');
+        $pdf->Output($tmpPath, 'F');
+        Storage::disk($this->disk)->put($fileName, file_get_contents($tmpPath));
+        unlink($tmpPath);
  
         return $fileName;
     }
@@ -338,13 +334,11 @@ class PdfService
 
         // 保存
         $fileName = 'licenses/' . $organization->code . '_' . now()->format('Y-m-d') . '.pdf';
-        $fullPath = storage_path('app/public/' . $fileName);
- 
-        if (!file_exists(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
-        }
- 
-        $pdf->Output($fullPath, 'F');
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'pdf_');
+        $pdf->Output($tmpPath, 'F');
+        Storage::disk($this->disk)->put($fileName, file_get_contents($tmpPath));
+        unlink($tmpPath);
  
         return $fileName;
     }
@@ -354,13 +348,11 @@ class PdfService
 
     private function savePdf(Fpdi $pdf, string $fileName): string
     {
-        $fullPath = storage_path('app/public/' . $fileName);
+        $tmpPath = tempnam(sys_get_temp_dir(), 'pdf_');
+        $pdf->Output($tmpPath, 'F');
 
-        if (!file_exists(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
-        }
-
-        $pdf->Output($fullPath, 'F');
+        Storage::disk($this->disk)->put($fileName, file_get_contents($tmpPath));
+        unlink($tmpPath);
 
         return $fileName;
     }

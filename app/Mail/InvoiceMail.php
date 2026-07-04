@@ -42,7 +42,7 @@ class InvoiceMail extends Mailable
     public function attachments(): array
     {
         return [
-            Attachment::fromStorageDisk('public', $this->pdfPath)
+            Attachment::fromStorageDisk(config('filesystems.default'), $this->pdfPath)
                 ->as('請求書_' . $this->invoice->invoice_no . '.pdf')
                 ->withMime('application/pdf'),
         ];

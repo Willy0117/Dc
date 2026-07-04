@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FileService;
 
 use App\Models\Organization;
 use App\Models\OrganizationAddress;
@@ -80,7 +81,7 @@ class OrganizationController extends Controller
                 ->map(fn($doc) => [
                     'id'       => $doc->id,
                     'type'     => $doc->type,
-                    'pdf_url'  => Storage::url($doc->file_path),
+                    'pdf_url' => app(FileService::class)->getUrl($doc->file_path),
                 ]);
             return $org;
         });
@@ -454,7 +455,7 @@ class OrganizationController extends Controller
             $fileName = app(LicenseService::class)->create($organization, $request->display_name);
 
             return response()->json([
-                'url' => Storage::url($fileName),
+                'url' => app(FileService::class)->getUrl($fileName),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
@@ -462,6 +463,9 @@ class OrganizationController extends Controller
             ], 422);
         }
     }
+
+
+
     public function mailLicense($id, Request $request)
     {
         $organization = Organization::findOrFail($id);
