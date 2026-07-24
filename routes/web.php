@@ -10,14 +10,22 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SetLocaleController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
-use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
+use App\Http\Controllers\Admin\OrganizationController;
 use App\Http\Controllers\Admin\WebhookLogController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\StripeController;
 use App\Http\Controllers\Admin\LicenseFeeController;
+use App\Http\Controllers\Admin\StorageController;
 
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\StripeWebhookController;
+// 症例報告
+use App\Http\Controllers\Admin\CaseReportController as AdminCaseReportController;
+use App\Http\Controllers\CaseReportController;
+use App\Http\Controllers\Admin\FormFieldController as AdminFormFieldController;
+
+use App\Http\Controllers\ProcedureVideoController;
+use App\Http\Controllers\Admin\ProcedureVideoController as AdminProcedureVideoController;
 
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
@@ -78,6 +86,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('organizations', \App\Http\Controllers\Admin\OrganizationController::class)->except(['create']);
         Route::post('organizations/bulk-delete', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkDelete'])->name('organizations.bulkDelete');
         Route::post('organizations/{organization}/send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'sendInvitation'])->name('organizations.send-invitation');
+        Route::post('organizations/{organization}/upgrade-tier',   [\App\Http\Controllers\Admin\OrganizationController::class, 'upgradeTier'])->name('organizations.upgrade-tier');
+ 
+        Route::post('organizations/{organization}/downgrade-tier', [\App\Http\Controllers\Admin\OrganizationController::class, 'downgradeTier'])->name('organizations.downgrade-tier');
+        
         Route::post('organizations/bulk-send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendInvitation'])->name('organizations.bulk-send-invitation');
         // ━━━ リマインダーメール一括送信 ━━━
         Route::post('organizations/bulk-send-reminder', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendReminder'])
@@ -123,29 +135,48 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::post('stripe/{invoice}/resend-email', [\App\Http\Controllers\Admin\StripeController::class, 'resendEmail'])->name('stripe.resendEmail');
 
+        Route::get('storage', [\App\Http\Controllers\Admin\StorageController::class, 'index'])->name('storage.index');
+        // Admin側 auth:admin グループ内に追加
+        Route::get('form-fields', [AdminFormFieldController::class, 'index'])->name('form-fields.index');
+        Route::post('form-fields', [AdminFormFieldController::class, 'store'])->name('form-fields.store');
+        Route::post('form-fields/{formField}/toggle', [AdminFormFieldController::class, 'toggle'])->name('form-fields.toggle');
+        Route::delete('form-fields/{formField}', [AdminFormFieldController::class, 'destroy'])->name('form-fields.destroy');
+        Route::post('form-fields/{formField}/store-option', [AdminFormFieldController::class, 'storeOption'])->name('form-fields.store-option');
+        Route::post('form-fields/options/{formOption}/toggle', [AdminFormFieldController::class, 'toggleOption'])->name('form-fields.toggle-option');
+        Route::delete('form-fields/options/{formOption}', [AdminFormFieldController::class, 'destroyOption'])->name('form-fields.destroy-option');
+        // 症例報告
+        Route::get('case-reports', [App\Http\Controllers\Admin\CaseReportController::class, 'index'])->name('case-reports.index');
+        Route::get('case-reports/{caseReport}', [App\Http\Controllers\Admin\CaseReportController::class, 'show'])->name('case-reports.show');
+        Route::delete('case-reports/{caseReport}', [App\Http\Controllers\Admin\CaseReportController::class, 'destroy'])->name('case-reports.destroy');
+        // ──────────────────────────────────────────
+        // 手技動画（管理画面）
+        // ──────────────────────────────────────────
+        Route::get('procedure-videos', [App\Http\Controllers\Admin\ProcedureVideoController::class, 'index'])->name('procedure-videos.index');
+        Route::delete('procedure-videos/{procedureVideo}', [App\Http\Controllers\Admin\ProcedureVideoController::class, 'destroy'])->name('procedure-videos.destroy');
+
         Route::prefix('member')->name('member.')->group(function () {
 
-        Route::get('/', [AdminMemberController::class, 'index'])->name('index');
-            Route::get('/pdf/{id}', [AdminMemberController::class, 'pdfPreview'])->name('pdf.preview');
-            Route::get('/{member}', [AdminMemberController::class, 'show'])->name('show');
-            Route::get('/{member}/edit', [AdminMemberController::class, 'edit'])->name('edit');
-            Route::put('/{member}', [AdminMemberController::class, 'update'])->name('update');
-            // routes/admin
-            Route::get('{member}/status/edit', [AdminMemberController::class, 'editStatus'])
-                ->name('editStatus');
+            Route::get('/', [AdminMemberController::class, 'index'])->name('index');
+                Route::get('/pdf/{id}', [AdminMemberController::class, 'pdfPreview'])->name('pdf.preview');
+                Route::get('/{member}', [AdminMemberController::class, 'show'])->name('show');
+                Route::get('/{member}/edit', [AdminMemberController::class, 'edit'])->name('edit');
+                Route::put('/{member}', [AdminMemberController::class, 'update'])->name('update');
+                // routes/admin
+                Route::get('{member}/status/edit', [AdminMemberController::class, 'editStatus'])
+                    ->name('editStatus');
 
-            Route::put('{member}/status', [AdminMemberController::class, 'updateStatus'])
-                ->name('updateStatus');
+                Route::put('{member}/status', [AdminMemberController::class, 'updateStatus'])
+                    ->name('updateStatus');
 
-            Route::get('/{member}/progress/edit', [AdminMemberController::class, 'editProgress'])
-                ->name('editProgress');
-            Route::put('/{member}/progress', [AdminMemberController::class, 'updateProgress'])
-                ->name('updateProgress');
-            Route::post('/{member}/upload-document', [AdminMemberController::class, 'uploadDocument'])
-                ->name('uploadDocument');
-              
+                Route::get('/{member}/progress/edit', [AdminMemberController::class, 'editProgress'])
+                    ->name('editProgress');
+                Route::put('/{member}/progress', [AdminMemberController::class, 'updateProgress'])
+                    ->name('updateProgress');
+                Route::post('/{member}/upload-document', [AdminMemberController::class, 'uploadDocument'])
+                    ->name('uploadDocument');
+                
+            });
         });
-    });
 });
 
 // 未ログインユーザー用
@@ -209,19 +240,20 @@ Route::post('/locale', function (Request $request) {
 });
 
 Route::middleware([
-    'auth:web',
-    config('jetstream.auth_session'),
-    'verified',
-])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-});
-/*
-Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // 症例報告
+    Route::resource('reports', App\Http\Controllers\CaseReportController::class)
+        ->only(['index', 'create', 'store']);
+    // ──────────────────────────────────────────
+    // 手技動画（My Page）
+    // ──────────────────────────────────────────
+    Route::get('/procedure-videos', [ProcedureVideoController::class, 'index'])->name('procedure-videos.index');
+    Route::post('/procedure-videos/presign', [ProcedureVideoController::class, 'presign'])->name('procedure-videos.presign');
+    Route::post('/procedure-videos', [ProcedureVideoController::class, 'store'])->name('procedure-videos.store');
+
 });
-*/

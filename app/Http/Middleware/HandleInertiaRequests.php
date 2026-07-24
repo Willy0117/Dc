@@ -60,6 +60,7 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'error'   => fn () => $request->session()->get('error'),
             ],
+            'appName' => config('app.name'),
         ]);
     }
 

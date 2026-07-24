@@ -50,6 +50,7 @@ class Organization extends Model
         'rep_last_name',
         'rep_first_name',
         'new_contract_date',
+        'tier',
     ];
 
     protected $casts = [
@@ -58,6 +59,7 @@ class Organization extends Model
         'contract_date'   => 'date',
         'payment_method'  => 'integer',
         'new_contract_date' => 'date',
+        'tier' => 'integer',
     ];
 
     // ──────────────────────────────────────────
@@ -129,6 +131,14 @@ class Organization extends Model
         );
     }
 
+
+    /**
+     * 手技動画（1対多）
+     */
+    public function procedureVideos(): HasMany
+    {
+        return $this->hasMany(ProcedureVideo::class);
+    }
 
     // ──────────────────────────────────────────
     // アクセサ
@@ -278,6 +288,9 @@ class Organization extends Model
         }
  
         $this->update($updates);
+        
+        // tier自動判定（tier1・2のみ、tier3・4は引き継ぎ）
+        $this->recalculateTier();
  
         \Log::info('Organization::updateContractDate: 契約日を更新しました', [
             'organization_id'   => $this->id,
@@ -285,6 +298,91 @@ class Organization extends Model
             'new_contract_date' => $updates['new_contract_date'],
             'license_issued_at' => $updates['license_issued_at'] ?? null,
         ]);
+
+    }
+    /**
+     * 契約更新時のtier自動判定
+     * tier3・4は自動判定しない（管理者が事前に手動変更済みの想定）
+     */
+    private function recalculateTier(): void
+    {
+        // 新期間の履歴を追加（tier関係なく必要）
+        $this->addNewTierHistory();
+ 
+        // tier3・4は自動判定しない
+        if ($this->tier >= 3) return;
+ 
+        // 前期の履歴を取得
+        $previousHistory = $this->tierHistories()
+            ->where('period_end', '<', $this->contract_date)
+            ->orderByDesc('period_end')
+            ->first();
+ 
+        if (!$previousHistory) return;
+ 
+        $newTier = $previousHistory->case_count >= 36 ? 2 : 1;
+ 
+        $this->update(['tier' => $newTier]);
+ 
+        \Log::info('Organization::recalculateTier: tier更新', [
+            'organization_id' => $this->id,
+            'case_count'      => $previousHistory->case_count,
+            'old_tier'        => $this->tier,
+            'new_tier'        => $newTier,
+        ]);
+    }
+ 
+    /**
+     * 新しい契約期間の履歴レコードを追加
+     */
+    private function addNewTierHistory(): void
+    {
+        OrganizationTierHistory::create([
+            'organization_id' => $this->id,
+            'period_start'    => $this->contract_date,
+            'period_end'      => \Carbon\Carbon::parse($this->new_contract_date)->subDay()->toDateString(),
+            'case_count'      => 0,
+            'tier'            => $this->tier,
+        ]);
+ 
+        \Log::info('Organization::addNewTierHistory: 新期間履歴追加', [
+            'organization_id' => $this->id,
+            'period_start'    => $this->contract_date,
+            'period_end'      => \Carbon\Carbon::parse($this->new_contract_date)->subDay()->toDateString(),
+        ]);
+    }
+    
+    // リレーション追加
+    public function tierHistories(): HasMany
+    {
+        return $this->hasMany(OrganizationTierHistory::class)->orderBy('period_start');
+    }
+    
+    public function currentTierHistory(): HasOne
+    {
+        return $this->hasOne(OrganizationTierHistory::class)
+                    ->where('period_start', '<=', today())
+                    ->where('period_end', '>=', today())
+                    ->orderByDesc('period_start');
+    }
+    
+    // Tier定数
+    const TIER_BASIC    = 1;
+    const TIER_ADVANCE  = 2;
+    const TIER_EXPERT   = 3;
+    const TIER_MASTER   = 4;
+    
+    const TIER_LABELS = [
+        self::TIER_BASIC   => 'ベーシック',
+        self::TIER_ADVANCE => 'アドバンス',
+        self::TIER_EXPERT  => 'エキスパート',
+        self::TIER_MASTER  => 'マスター',
+    ];
+    
+    // アクセサ
+    public function getTierLabelAttribute(): string
+    {
+        return self::TIER_LABELS[$this->tier] ?? 'ベーシック';
     }
 
 }

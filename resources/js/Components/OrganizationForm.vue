@@ -47,9 +47,22 @@ const tabs: { key: TabKey; label: string; icon: any }[] = [
 
 const memberCount = computed(() => form.members.length)
 
-function handleSubmit() {
-  if (isValid.value) emit('submit', form)
+function normalizeDoctorNumberForSubmit(value: string | null): string | null {
+  if (!value) return value
+  return value.length >= 4 ? value.padStart(6, '0') : value
 }
+
+function handleSubmit() {
+  if (!isValid.value) return
+
+  form.members = form.members.map(m => ({
+    ...m,
+    doctor_number: normalizeDoctorNumberForSubmit(m.doctor_number),
+  }))
+
+  emit('submit', form)
+}
+
 </script>
 
 <template>

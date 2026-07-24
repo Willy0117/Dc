@@ -100,12 +100,15 @@ class StripeWebhookController extends Controller
         //         'started_at'               => $contract->started_at,
         //     ]);
         // }
-
         // 契約日を更新
-        $invoice->organization->updateContractDate();
+        $organization = $invoice->organization;
+        $organization->updateContractDate();
 
         // リマインダー送信済みをリセット
         $organization->update(['reminder_sent_at' => null]);
+
+        // MyPageパスワード設定メール送信(初回のみ内部で判定される)
+        app(\App\Services\UserInviteService::class)->sendPasswordSetupMail($organization);
 
         Log::info('Stripe Webhook: 入金処理完了', [
             'invoice_id' => $invoice->id,

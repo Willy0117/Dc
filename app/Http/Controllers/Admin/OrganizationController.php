@@ -7,13 +7,16 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Services\FileService;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
 
 use App\Models\Organization;
 use App\Models\OrganizationAddress;
 use App\Models\LicenseFeeMaster;
 use App\Models\User;
 
+use App\Services\FileService;
 use App\Services\InvoiceService;
 use App\Services\StripeService;
 use App\Services\LicenseService;
@@ -43,7 +46,7 @@ class OrganizationController extends Controller
                 'organization_addresses.tel as location_tel',
                 'organization_addresses.address1 as location_address1'
             )
-            ->with(['locationAddress', 'addresses'])
+            ->with(['locationAddress', 'addresses', 'currentTierHistory'])
             ->when($request->keyword, fn($q, $kw) =>
                 $q->where(function ($sub) use ($kw) {
                     $sub->where('organizations.name', 'like', "%{$kw}%")
@@ -130,9 +133,20 @@ class OrganizationController extends Controller
             $organization->code = 'OC' . str_pad($organization->contract_no, 5, '0', STR_PAD_LEFT);
             $organization->save();
 
-            
             $this->syncAddresses($organization, $validated);
             $this->syncMembers($organization, $validated);
+
+            // organization(病院)側のMyPageユーザーを新規作成
+            User::create([
+                'tenant_id'        => 1,
+                'organization_id'  => $organization->id,
+                'type'             => 1, // 1:病院(organization)
+                'username'         => $organization->code,
+                'name'             => trim($organization->rep_last_name . ' ' . $organization->rep_first_name),
+                'email'            => $validated['location_address']['email'] ?? null,
+                'password'         => Hash::make(Str::random(32)),
+                'status'           => 1,
+            ]);
         });
 
         return redirect()->route('admin.organizations.index')
@@ -184,6 +198,7 @@ class OrganizationController extends Controller
             'members' => $organization?->id ? $organization->members->map(fn($m) => [
                 'id'              => $m->id,
                 'member_number'   => $m->member_number,
+                'doctor_number'   => $m->doctor_number,
                 'position'        => $m->position,
                 'last_name'       => $m->last_name,
                 'first_name'      => $m->first_name,
@@ -574,7 +589,7 @@ class OrganizationController extends Controller
             'location_address.address3'    => 'nullable|string|max:255',
             'location_address.tel'         => 'nullable|string|max:30',
             'location_address.fax'         => 'nullable|string|max:30',
-            'location_address.email'       => 'nullable|email|max:255',
+            'location_address.email'       => 'required|email|max:255',
 
             'shipping_address.name'        => 'nullable|string|max:255',
             'shipping_address.postal_code' => 'nullable|string|max:20',
@@ -600,6 +615,7 @@ class OrganizationController extends Controller
             'members.*.last_name_kana'       => 'nullable|string|max:100',
             'members.*.first_name_kana'      => 'nullable|string|max:100',
             'members.*.member_number'        => 'nullable|string|max:20',
+            'members.*.doctor_number'        => 'nullable|digits:6',
             'members.*.position'             => 'nullable|string|max:20',
             'members.*.gender'               => 'nullable|string|max:20',
             'members.*.birthdate'            => 'nullable|date',
@@ -685,10 +701,11 @@ class OrganizationController extends Controller
                 User::create([
                     'tenant_id' => 1,
                     'member_id' => $member->id,
+                    'type'      => 2,
                     'username'  => $memberData['member_number'],
                     'name'      => $memberData['last_name'] . ' ' . $memberData['first_name'],
                     'email'     => $memberData['email'],
-                    'password'  => bcrypt('12345678'),
+                    'password'  => Hash::make(Str::random(32)),
                     'status'    => 1,
                 ]);
             }
@@ -734,6 +751,7 @@ class OrganizationController extends Controller
                 'position'     => $m->position,
                 'email'        => $m->email,
                 'tel'          => $m->tel,
+                'doctor_number' => $m->doctor_number,
                 'status_label' => $m->status_label,
             ]),
             'created_at' => $organization->created_at->format('Y-m-d'),
@@ -789,4 +807,61 @@ class OrganizationController extends Controller
                 'personal_fee'  => 10000,
             ];
     }
+
+
+    // ──────────────────────────────────────────
+    // Tier昇格（tier3/4 のみ手動）
+    // ──────────────────────────────────────────
+    public function upgradeTier(Request $request, Organization $organization)
+    {
+        $request->validate([
+            'tier' => 'required|integer|in:3,4',
+        ]);
+    
+        $newTier = (int) $request->tier;
+    
+        // 今期の履歴を取得
+        $history = $organization->currentTierHistory;
+    
+        if (!$history) {
+            return back()->withErrors(['error' => '現在の契約期間の履歴が見つかりません。']);
+        }
+    
+        // 件数条件チェック
+        $required = $newTier === 3 ? 90 : 120;
+        if ($history->case_count < $required) {
+            return back()->withErrors([
+                'error' => "昇格には年間{$required}件以上の症例報告が必要です。（現在: {$history->case_count}件）"
+            ]);
+        }
+    
+        // tier更新
+        $organization->update(['tier' => $newTier]);
+    
+        // 履歴のtierも更新
+        $history->update(['tier' => $newTier]);
+    
+        return back()->with('success', "{$organization->name} を " . Organization::TIER_LABELS[$newTier] . " に昇格しました。");
+    }
+    
+    // ──────────────────────────────────────────
+    // Tier降格（管理者が手動でtierを下げる場合）
+    // ──────────────────────────────────────────
+    public function downgradeTier(Request $request, Organization $organization)
+    {
+        $request->validate([
+            'tier' => 'required|integer|in:1,2,3',
+        ]);
+    
+        $newTier = (int) $request->tier;
+    
+        $organization->update(['tier' => $newTier]);
+    
+        $history = $organization->currentTierHistory;
+        $history?->update(['tier' => $newTier]);
+    
+        return back()->with('success', "{$organization->name} のTierを変更しました。");
+    }
+
+
 }

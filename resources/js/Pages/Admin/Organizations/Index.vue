@@ -121,6 +121,9 @@
               <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 支払方法
               </th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Tier
+              </th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer" @click="sortBy('contract_date')">
                 契約日 / 次回請求日
                 <SortIcon field="contract_date" :current="form.sort_by" :dir="form.sort_dir" />
@@ -156,6 +159,14 @@
                 <Link :href="route('admin.organizations.show', org.id)" class="font-medium hover:underline">
                   {{ org.name }}
                 </Link>
+                <span v-if="org.tier > 1" class="inline-flex items-center gap-0.5 ml-1">
+                  <Star
+                    v-for="n in org.tier - 1"
+                    :key="n"
+                    class="w-3 h-3"
+                    :class="tierConfig[org.tier]?.class"
+                  />
+                </span>
                 <a v-if="org.url" :href="org.url" target="_blank"
                    class="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5">
                   <ExternalLink class="w-3 h-3" />{{ org.url }}
@@ -187,6 +198,12 @@
                   </template>
                   <template v-else>-</template>
                 </span>
+              </td>
+              <td class="px-3 py-2.5">
+                <TierBadge :tier="org.tier" />
+                <div v-if="org.current_tier_history" class="text-xs text-muted-foreground mt-0.5">
+                  {{ org.current_tier_history.case_count }}件
+                </div>
               </td>
               <td class="px-3 py-2.5 text-sm text-muted-foreground">
                 <div>{{ org.contract_date ? dayjs(org.contract_date).format('YYYY/MM/DD') : '-' }}</div>
@@ -229,6 +246,11 @@
                       <DropdownMenuItem @click="openContractDialog(org)">
                         <FileText class="w-3.5 h-3.5 mr-2 text-blue-600" />
                         契約書閲覧
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem v-if="org.tier < 4" @click="openTierDialog(org)">
+                        <TrendingUp class="w-3.5 h-3.5 mr-2 text-emerald-600" />
+                        Tier昇格
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -358,6 +380,13 @@
       :targets="bulkMailTargets"
       @done="submitSearch"
     />
+
+    <!-- ========== Tier昇格 Dialog ========== -->
+    <TierUpgradeDialog
+      v-model:open="tierDialogOpen"
+      :organization="tierTarget"
+      @done="submitSearch"
+    />
   </AppLayout>
 </template>
 
@@ -366,7 +395,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import dayjs from 'dayjs'
 import {
-  Search, Plus, Trash2, Pencil, X, Mail, Award, Bell,
+  Search, Plus, Trash2, Pencil, X, Mail, Award, Bell, TrendingUp, Star,
   Building2, ExternalLink, FileText, CreditCard, ArrowRight, MoreHorizontal
 } from 'lucide-vue-next'
 
@@ -379,6 +408,8 @@ import InvitationDialog    from '@/Components/InvitationDialog.vue'
 import LicenseDialog       from '@/Components/LicenseDialog.vue'
 import ContractDialog      from '@/Components/ContractDialog.vue'
 import BulkMailDialog      from '@/Components/BulkMailDialog.vue'  // ← 新規追加
+import TierUpgradeDialog   from '@/Components/TierUpgradeDialog.vue'
+import TierBadge           from '@/Components/TierBadge.vue'
 
 import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
@@ -704,7 +735,6 @@ const openContractDialog = (org) => {
 }
 
 const getContractBarColor = (org) => {
-  // new_contract_dateがあればそれを使う、なければcontract_date + 1年
   let renewalDate = null
 
   if (org.new_contract_date) {
@@ -712,13 +742,28 @@ const getContractBarColor = (org) => {
   } else if (org.contract_date) {
     renewalDate = dayjs(org.contract_date).add(1, 'year')
   } else {
-    return '' // どちらもなければバーなし
+    return ''
   }
 
   const daysUntil = renewalDate.diff(dayjs(), 'day')
 
-  if (daysUntil < 0) return 'border-l-4 border-l-red-500'       // 期限超過
-  if (daysUntil <= 45) return 'border-l-4 border-l-orange-400'  // 45日以内
-  return ''                                                       // 通常
+  if (daysUntil < 0)   return 'border-l-4 border-l-red-500'      // 期限超過
+  if (daysUntil <= 15) return 'border-l-4 border-l-amber-500'    // 15日以内
+  if (daysUntil <= 45) return 'border-l-4 border-l-yellow-400'   // 45日以内
+  if (daysUntil <= 60) return 'border-l-4 border-l-orange-400'   // 60日以内
+  return ''
 }
+
+const tierDialogOpen = ref(false)
+const tierTarget     = ref(null)
+const openTierDialog = (org) => {
+  tierTarget.value     = org
+  tierDialogOpen.value = true
+}
+const tierConfig = {
+  2: { class: 'text-amber-700 fill-amber-700' },  // 銅
+  3: { class: 'text-slate-400 fill-slate-400' },  // 銀
+  4: { class: 'text-yellow-400 fill-yellow-400' }, // 金
+}
+
 </script>

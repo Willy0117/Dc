@@ -1,7 +1,6 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -36,9 +35,9 @@ const submit = () => {
     <Head :title="t('login')" />
 
     <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo bgClass="bg-emerald-100" colorClass="text-emerald-700" />
-        </template>
+        <p class="text-lg font-medium text-gray-900 mb-6">
+            {{ t('login') }}
+        </p>
 
         <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
             {{ status }}
@@ -60,7 +59,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel :for="password" :value="t('password')" />
+                <InputLabel :for="'password'" :value="t('password')" />
                 <TextInput
                     id="password"
                     v-model="form.password"
@@ -79,14 +78,21 @@ const submit = () => {
                 </label>
             </div>
 
-            <div class="flex items-center justify-end mt-4">
-                <Link v-if="canResetPassword" :href="route('password.request')" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <PrimaryButton
+                class="w-full justify-center mt-6 bg-[#1A2E2B] hover:bg-[#24403B] focus:ring-[#1A2E2B]"
+                :class="{ 'opacity-25': form.processing }"
+                :disabled="form.processing"
+            >
+                {{ t('login') }}
+            </PrimaryButton>
+
+            <div class="text-center mt-4" v-if="canResetPassword">
+                <Link
+                    :href="route('password.request')"
+                    class="text-sm text-[#4A6B63] hover:text-[#1A2E2B] underline"
+                >
                     {{ t('forgot_password') }}
                 </Link>
-
-                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    {{ t('login') }}
-                </PrimaryButton>
             </div>
         </form>
     </AuthenticationCard>

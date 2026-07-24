@@ -130,6 +130,7 @@
                 <span v-if="index === 0" class="ml-1 text-xs text-blue-500">（代表者）</span>
               </p>
               <p v-if="license.position" class="text-xs text-gray-400">{{ license.position }}</p>
+              <p v-if="license.doctor_number" class="text-xs text-gray-400">医師番号：{{ license.doctor_number }}</p>
             </div>
           </div>
         </div>

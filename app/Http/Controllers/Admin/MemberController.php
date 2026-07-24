@@ -254,6 +254,7 @@ class MemberController extends Controller
         $memberRules = [
             'member.organization_id' => 'nullable|exists:organizations,id',
             'member.member_number'   => 'nullable|string|max:20',
+            'member.doctor_number'   => 'nullable|digits:6',
             'member.position'        => 'nullable|string|max:20',
             'member.last_name'       => 'required|string|max:100',
             'member.first_name'      => 'required|string|max:100',
@@ -392,6 +393,7 @@ class MemberController extends Controller
         return [
             'id'             => $member->id,
             'member_number'  => $member->member_number,
+            'doctor_number'  => $member->doctor_number,
             'full_name'      => $member->full_name,
             'full_name_kana' => $member->full_name_kana,
             'last_name'      => $member->last_name,

@@ -9,6 +9,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -23,6 +24,9 @@ class User extends Authenticatable
         'password',
         'tenant_id',
         'organization_id',
+        'member_id',
+        'type',
+        'status',
     ];
 
     protected $hidden = [
@@ -51,12 +55,12 @@ class User extends Authenticatable
         return $this->belongsTo(Tenant::class);
     }
     // Organization リレーション
-/*
+
     public function organization()
     {
         return $this->belongsTo(Organization::class);
     }
-*/
+
     /**
      * ログインユーザーの tenant_id でフィルターしたロールを取得
      */
@@ -85,5 +89,11 @@ class User extends Authenticatable
     {
         return $this->hasRole('super_admin');
     }
+
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
 }
 

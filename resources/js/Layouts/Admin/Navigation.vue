@@ -106,6 +106,14 @@
                 <Building2 class="w-4 h-4 mr-1"/>
                 {{ t('契約先') }}
               </Link>
+                <Link
+                  :href="route('admin.storage.index')"
+                  class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                  :class="isActive('admin.storage.index') ? 'bg-gray-200 font-semibold' : ''"
+                >
+                  <HardDrive class="w-4 h-4 mr-1"/>
+                  ファイル一覧
+                </Link>
             </div>
           </transition>
         </div>
@@ -152,7 +160,56 @@
             </div>
           </transition>
         </div>
+        <!-- 症例報告 サブメニュー -->
+        <div v-if="canAccessMenu('case_reports')" class="mt-2">
+          <button
+            @click="toggleSubMenu('case_reports')"
+            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          >
+            <div class="flex items-center">
+              <ClipboardList class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">症例報告</span>
+            </div>
+            <svg
+              v-if="!collapsed"
+              :class="{ 'rotate-90': openSubMenu === 'case_reports' }"
+              class="w-4 h-4 transform transition-transform duration-200"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <transition name="slide-fade">
+            <div v-show="openSubMenu === 'case_reports' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <Link
+                :href="route('admin.case-reports.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.case-reports.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <ClipboardList class="w-4 h-4 mr-1"/>
+                症例報告一覧
+              </Link>
+              <Link
+                :href="route('admin.procedure-videos.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.procedure-videos.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <Video class="w-4 h-4 mr-1"/>
+                手技動画症例一覧
+              </Link>
 
+
+              <Link
+                :href="route('admin.form-fields.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.form-fields.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <Settings class="w-4 h-4 mr-1"/>
+                フォーム項目管理
+              </Link>
+            </div>
+          </transition>
+        </div>
         <!-- ライセンス料 サブメニュー -->
         <div v-if="canAccessMenu('license_fees')" class="mt-2">
           <button
@@ -317,16 +374,16 @@
 import { ref, onMounted, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import {
-  Home, Users, User, ShieldCheck, Award,
+  Home, Users, User, ShieldCheck, Award, ClipboardList,
   Building2, Menu, KeyRound, UserCog,
-  X, Key, GraduationCap, Receipt,
+  X, Key, GraduationCap, Receipt, Video,
   FileCheck,
   RefreshCw,
   FileText, BadgeDollarSign,
   CreditCard,
   Calendar,
   CheckCircle2,
-  ArrowLeft, Settings
+  ArrowLeft, Settings, HardDrive
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 
@@ -353,10 +410,11 @@ const menuPermissions = {
   members:       ['member.view',       'member.edit'],
   organizations: ['organization.view', 'organization.edit'],
   billing:       ['invoice.view',      'invoice.edit', 'stripe.view', 'stripe.edit'],
-  license_fees:  ['license-fee.view',  'license-fee.edit'],
+  license_fees:  ['license_fee.view',  'license_fee.edit'],
   access:        ['tenant.view',       'tenant.edit', 'role.view', 'role.edit', 'permission.view', 'permission.edit'],
   admins:        ['admin.view',        'admin.edit'],
   users:         ['user.view',         'user.edit'],
+  case_reports:  ['case_report.view',  'case_report.edit'],
 }
 
 // いずれか1つでも持っていればtrue
@@ -376,9 +434,12 @@ const groupMap = {
   license_fees:  'license_fees',
   organizations: 'organizations',
   admins:        'admins',
+  case_reports:  'case_reports',
+  form_fields:   'case_reports',
+  procedure_videos: 'case_reports',
 }
 
-const validMenus = ['members', 'organizations', 'users', 'access', 'billing', 'license_fees', 'admins']
+const validMenus = ['members', 'organizations', 'users', 'access', 'billing', 'license_fees', 'admins', 'case_reports']
 
 const detectMenu = () => {
   const current = route().current()

@@ -7,6 +7,7 @@ use App\Models\LicenseFeeMaster;
 use App\Models\Member;
 use App\Models\Organization;
 use App\Models\OrganizationAddress;
+use App\Models\User;
 use App\Services\CloudSignService;
 use App\Services\InvoiceService;
 use App\Services\StripeService;
@@ -16,6 +17,9 @@ use App\Services\FileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
 use Inertia\Inertia;
 
 
@@ -47,9 +51,10 @@ class ApplicationController extends Controller
         $bill = $organization->billingAddress;
 
         $licenses = $organization->members->map(fn($m) => [
-            'position'   => $m->position,
-            'last_name'  => $m->last_name,
-            'first_name' => $m->first_name,
+            'position'       => $m->position,
+            'last_name'      => $m->last_name,
+            'first_name'     => $m->first_name,
+            'doctor_number'  => $m->doctor_number,
         ])->toArray();
 
         // 料金マスタ取得
@@ -118,6 +123,7 @@ class ApplicationController extends Controller
             'licenses.*.last_name'  => 'required|string|max:100',
             'licenses.*.first_name' => 'required|string|max:100',
             'licenses.*.position'   => 'nullable|string|max:50',
+            'licenses.*.doctor_number'  => 'nullable|digits:6',
             'corporate_fee'         => 'required|integer',
             'personal_fee'          => 'required|integer',
             'subtotal'              => 'required|integer',
@@ -190,11 +196,11 @@ class ApplicationController extends Controller
     public function sign(Request $request)
     {
         $data = session('application');
- 
+    
         if (!$data) {
             return redirect()->route('applications.register');
         }
- 
+    
         DB::transaction(function () use ($data) {
             // 1. Organization 更新
             $organization = Organization::findOrFail($data['organization_id']);
@@ -203,11 +209,11 @@ class ApplicationController extends Controller
                 'abbr'            => $data['clinic_name'],
                 'contract_status' => 1,
                 'payment_method'  => $data['payment_method'],
-                'rep_position'    => $data['rep_position'],   // 追加
-                'rep_last_name'   => $data['rep_last_name'],  // 追加
-                'rep_first_name'  => $data['rep_first_name']
+                'rep_position'    => $data['rep_position'],
+                'rep_last_name'   => $data['rep_last_name'],
+                'rep_first_name'  => $data['rep_first_name'],
             ]);
- 
+    
             // 2. 所在地住所 更新
             OrganizationAddress::updateOrCreate(
                 [
@@ -223,7 +229,7 @@ class ApplicationController extends Controller
                     'email'       => $data['email'],
                 ]
             );
- 
+    
             // 3. 契約窓口住所 更新
             if (!($data['same_as_clinic'] ?? false)) {
                 OrganizationAddress::updateOrCreate(
@@ -242,26 +248,74 @@ class ApplicationController extends Controller
                     ]
                 );
             }
- 
+    
             // 4. ライセンス対象者を members に更新・追加
             foreach ($data['licenses'] as $index => $license) {
-                Member::updateOrCreate(
-                    [
+                $email = $index === 0 ? $data['email'] : null;
+    
+                $member = Member::where('organization_id', $organization->id)
+                    ->where('last_name', $license['last_name'])
+                    ->where('first_name', $license['first_name'])
+                    ->first();
+    
+                if ($member) {
+                    // 既存: Memberは常に更新
+                    $member->update([
+                        'position'  => $license['position'] ?? null,
+                        'email'     => $email,
+                        'status_id' => 1,
+                        'doctor_number'  => $license['doctor_number'] ?: $member->doctor_number,
+                    ]);
+    
+                    // emailがある場合のみ、対応するUserも追随して更新
+                    if (!empty($email)) {
+                        $user = User::where('member_id', $member->id)->first();
+                        if ($user) {
+                            $user->update([
+                                'name'  => $license['last_name'] . ' ' . $license['first_name'],
+                                'email' => $email,
+                            ]);
+                        }
+                    }
+                } else {
+                    // 新規: Memberは常に作成
+                    $member = Member::create([
                         'organization_id' => $organization->id,
                         'last_name'       => $license['last_name'],
                         'first_name'      => $license['first_name'],
-                    ],
-                    [
-                        'position'  => $license['position'] ?? null,
-                        'email'     => $index === 0 ? $data['email'] : null,
-                        'status_id' => 1,
-                    ]
-                );
+                        'position'        => $license['position'] ?? null,
+                        'email'           => $email,
+                        'status_id'       => 1,
+                        'member_number'   => $this->nextMemberNumber($organization),
+                        'doctor_number'   => $license['doctor_number'] ?? null,
+                    ]);
+    
+                    // emailがある場合のみUserも作成(お知らせできないユーザーは作らない)
+                    if (!empty($email)) {
+                        User::create([
+                            'tenant_id' => 1,
+                            'member_id' => $member->id,
+                            'type'      => 2,
+                            'username'  => $member->member_number,
+                            'name'      => $license['last_name'] . ' ' . $license['first_name'],
+                            'email'     => $email,
+                            'password'  => Hash::make(Str::random(32)),
+                            'status'    => 1,
+                        ]);
+                    }
+                }
             }
- 
-            // 5. DB登録・クラウドサイン送信（PDF生成済み）
+    
+            // 4.5. 病院(organization)側MyPageユーザー更新(パスワードは変更しない)
+            $user = User::where('organization_id', $organization->id)->firstOrFail();
+            $user->update([
+                'name'  => trim($data['rep_last_name'] . ' ' . $data['rep_first_name']),
+                'email' => $data['email'],
+            ]);
+    
+            // 5. DB登録・クラウドサイン送信(PDF生成済み)
             app(CloudSignService::class)->send($organization, $data);
- 
+    
             // 6. 請求処理
             if ((int)$data['payment_method'] === 1) {
                 app(InvoiceService::class)->createAndSend($organization, $data);
@@ -269,10 +323,28 @@ class ApplicationController extends Controller
                 app(StripeService::class)->createAndSend($organization, $data);
             }
         });
- 
+    
         session()->forget('application');
- 
+    
         return redirect()->route('applications.complete');
+    }
+    
+    // ──────────────────────────────────────────
+    // Private: member_number 採番(病院code + a,b,c...)
+    // ──────────────────────────────────────────
+    
+    private function nextMemberNumber(Organization $organization): string
+    {
+        $suffixes = range('a', 'z');
+    
+        $existingSuffixes = $organization->members()
+            ->pluck('member_number')
+            ->map(fn($n) => str_replace($organization->code . '_', '', $n))
+            ->toArray();
+    
+        $suffix = collect($suffixes)->first(fn($s) => !in_array($s, $existingSuffixes));
+    
+        return $organization->code . '_' . $suffix;
     }
  
     // ──────────────────────────────────────────

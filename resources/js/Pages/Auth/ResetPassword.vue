@@ -1,7 +1,6 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -27,16 +26,19 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Reset Password" />
+    <Head title="パスワードの設定" />
 
     <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
+        <p class="text-lg font-medium text-gray-900 mb-1">
+            パスワードの設定
+        </p>
+        <p class="text-sm text-gray-600 mb-6">
+            MyPageで使用するパスワードを設定してください。
+        </p>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" value="メールアドレス" />
                 <TextInput
                     id="email"
                     v-model="form.email"
@@ -50,7 +52,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" value="新しいパスワード" />
                 <TextInput
                     id="password"
                     v-model="form.password"
@@ -63,7 +65,7 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password_confirmation" value="Confirm Password" />
+                <InputLabel for="password_confirmation" value="新しいパスワード(確認)" />
                 <TextInput
                     id="password_confirmation"
                     v-model="form.password_confirmation"
@@ -75,11 +77,13 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.password_confirmation" />
             </div>
 
-            <div class="flex items-center justify-end mt-4">
-                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Reset Password
-                </PrimaryButton>
-            </div>
+            <PrimaryButton
+                class="w-full justify-center mt-6 bg-[#1A2E2B] hover:bg-[#24403B] focus:ring-[#1A2E2B]"
+                :class="{ 'opacity-25': form.processing }"
+                :disabled="form.processing"
+            >
+                パスワードを設定する
+            </PrimaryButton>
         </form>
     </AuthenticationCard>
 </template>

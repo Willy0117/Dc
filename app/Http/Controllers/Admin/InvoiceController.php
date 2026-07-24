@@ -109,11 +109,17 @@ class InvoiceController extends Controller
             //     ]);
             // }
 
+
+            $organization = $invoice->organization;
+
             // 契約日を更新
-            $invoice->organization->updateContractDate();
+            $organization->updateContractDate();
 
             // リマインダー送信済みをリセット
-            $invoice->organization->update(['reminder_sent_at' => null]);
+            $organization->update(['reminder_sent_at' => null]);
+
+            // MyPageパスワード設定メール送信(初回のみ内部で判定される)
+            app(\App\Services\UserInviteService::class)->sendPasswordSetupMail($organization);
 
         }
 

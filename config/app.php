@@ -122,5 +122,8 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+    
+    
+    'reminder_mail_enabled' => env('REMINDER_MAIL_ENABLED', false),
 
 ];

@@ -1,68 +1,97 @@
 <template>
   <AppLayout>
-    <template #header>{{ t('exams.reports_list') }}</template>
+    <template #header>
+      <p class="text-xs text-muted-foreground">症例報告</p>
+      <h1 class="text-xl font-semibold">症例報告一覧</h1>
+    </template>
 
-    <div class="p-6">
-      <div class="overflow-x-auto bg-white shadow rounded-lg">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+    <div class="p-6 space-y-4">
+
+      <!-- ツールバー -->
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-muted-foreground">
+          全{{ reports.total }}件
+        </span>
+        <Button size="sm" as-child>
+          <Link :href="route('reports.create')">
+            <Plus class="w-3.5 h-3.5 mr-1" />新規報告
+          </Link>
+        </Button>
+      </div>
+
+      <!-- テーブル -->
+      <div class="border rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-muted border-b">
             <tr>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">{{ t('rehabs.is_detailed') }}</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">{{ t('rehabs.facility_name') }}</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">{{ t('rehabs.age') }}</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">{{ t('rehabs.gender') }}</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">{{ t('rehabs.visit_type') }}</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">{{ t('rehabs.diagnosis') }}</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">{{ t('actions.action') }}</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">報告日</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">治療部位</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">患者性別</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">年代</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">トラブル</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr v-for="report in props.reports.data" :key="id" class="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
-              <td class="px-4 py-2 text-sm">
-                <span :class="report.is_detailed ? 'text-red-600' : 'text-gray-600'">
-                  {{ report.is_detailed ? t('rehabs.detailed_case_(form5)') : t('rehabs.regular_case') }}
-                </span>
+          <tbody>
+            <tr v-if="reports.data.length === 0">
+              <td colspan="5" class="px-4 py-12 text-center text-muted-foreground">
+                症例報告がありません
               </td>
-              <td class="px-4 py-2 text-sm">{{ report?.facility_name }}</td>
-              <td class="px-4 py-2 text-sm">{{ report?.age }}</td>
-              <td class="px-4 py-2 text-sm">{{ report?.gender }}</td>
-              <td class="px-4 py-2 text-sm">{{ report?.visit_type }}</td>
-              <td class="px-4 py-2 text-sm">{{ report?.diagnosis }}</td>
-              <td class="px-3 py-2 text-center flex justify-center space-x-1">
-                <Link :href="route('reports.edit', { report: report.id})" class="text-blue-500 hover:text-blue-700">
-                  <PencilIcon class="w-4 h-4"/>
-                </Link>
+            </tr>
+            <tr
+              v-for="report in reports.data"
+              :key="report.id"
+              class="odd:bg-white even:bg-muted/30 hover:bg-muted/50 border-b transition-colors"
+            >
+              <td class="px-4 py-2.5 text-sm">
+                {{ report.submitted_at ? dayjs(report.submitted_at).format('YYYY/MM/DD') : '-' }}
+              </td>
+              <td class="px-4 py-2.5">
+                <Badge variant="outline">{{ report.treatment_area }}</Badge>
+              </td>
+              <td class="px-4 py-2.5 text-sm">{{ report.patient_gender ?? '-' }}</td>
+              <td class="px-4 py-2.5 text-sm">{{ report.patient_age_group ?? '-' }}</td>
+              <td class="px-4 py-2.5 text-sm text-muted-foreground">
+                <span v-if="report.complication_types?.length">
+                  {{ report.complication_types.join('、') }}
+                </span>
+                <span v-else>なし</span>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- ページネーション -->
+      <div class="flex items-center justify-between text-sm text-muted-foreground">
+        <span>{{ startItem }}〜{{ endItem }} 件 / 全{{ reports.total }}件</span>
+        <Pagination :paginator="reports" :onPageChange="goPage" />
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue'
-import { ref } from 'vue'
-import { Link } from '@inertiajs/vue3'
-import { useI18n } from 'vue-i18n'
-// Heroicons
-import { PencilIcon, DocumentIcon, CurrencyDollarIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/solid'
-
-
-const { t } = useI18n()
+import { computed } from 'vue'
+import { Link, router } from '@inertiajs/vue3'
+import dayjs from 'dayjs'
+import { Plus } from 'lucide-vue-next'
+import AppLayout  from '@/Layouts/AppLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
+import { Button } from '@/components/ui/button'
+import { Badge }  from '@/components/ui/badge'
 
 const props = defineProps({
   reports: Object,
 })
 
-console.log(props.reports.data)
-
-</script>
-<style>
-.input-field {
-  @apply w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-         shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500;
+const goPage = (page) => {
+  router.get(route('reports.index'), { page }, { preserveState: true })
 }
-</style>
 
+const startItem = computed(() =>
+  props.reports.per_page * (props.reports.current_page - 1) + 1
+)
+const endItem = computed(() =>
+  Math.min(props.reports.per_page * props.reports.current_page, props.reports.total)
+)
+</script>

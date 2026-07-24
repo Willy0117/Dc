@@ -42,6 +42,7 @@ class Member extends Model
     protected $fillable = [
         'organization_id',
         'member_number',
+        'doctor_number',
         'position',
         'last_name',
         'first_name',
@@ -247,7 +248,8 @@ class Member extends Model
               ->orWhere('last_name_kana', 'like', "%{$keyword}%")
               ->orWhere('first_name_kana', 'like', "%{$keyword}%")
               ->orWhere('email', 'like', "%{$keyword}%")
-              ->orWhere('member_number', 'like', "%{$keyword}%");
+              ->orWhere('member_number', 'like', "%{$keyword}%")
+              ->orWhere('doctor_number', 'like', "%{$keyword}%");
         });
     }
 

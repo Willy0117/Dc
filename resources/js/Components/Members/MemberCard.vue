@@ -41,6 +41,12 @@ const genderOptions = [
   { value: 'female', label: '女性' },
   { value: 'other',  label: 'その他' },
 ]
+const normalizeDoctorNumber = (value: string) => {
+  if (!value) return ''
+  value = value.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+  value = value.replace(/[^0-9]/g, '')
+  return value.slice(0, 6)
+}
 </script>
 
 <template>
@@ -125,6 +131,21 @@ const genderOptions = [
           </Label>
           <Input v-model="member.member_number" placeholder="自動採番または手動入力" maxlength="20" />
         </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1">
+          <Label class="text-xs text-muted-foreground">
+            医師番号 <span class="text-[10px] text-muted-foreground/60">doctor_number</span>
+          </Label>
+          <Input
+            v-model="member.doctor_number"
+            @input="(e: Event) => { member.doctor_number = normalizeDoctorNumber((e.target as HTMLInputElement).value) }"
+            placeholder="123456"
+            maxlength="6"
+            inputmode="numeric"
+          />
+        </div>
+        <div /> <!-- レイアウト調整用の空セル -->
       </div>
 
       <div class="grid grid-cols-2 gap-3">

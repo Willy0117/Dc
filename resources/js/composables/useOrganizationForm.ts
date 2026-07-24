@@ -51,7 +51,7 @@ export function makeMemberAddress(type: MemberAddressType): MemberAddress {
 
 export function makeMember(): Member {
   return {
-    member_number: null, position: null,
+    member_number: null, doctor_number: null, position: null,
     last_name: '', first_name: '',
     last_name_kana: null, first_name_kana: null,
     gender: null, birthdate: null,

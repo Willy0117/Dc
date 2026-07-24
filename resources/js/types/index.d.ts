@@ -81,6 +81,7 @@ export interface Member {
   id?: number
   organization_id: number | null
   member_number: string | null
+  doctor_number: string | null
   position: string | null
   last_name: string
   first_name: string

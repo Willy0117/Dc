@@ -179,30 +179,40 @@
           </div>
         </div>
 
-        <div v-for="(license, index) in form.licenses" :key="index" class="border border-gray-100 rounded-lg p-4 bg-gray-50 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">ライセンス {{ index + 1 }}</span>
-            <button v-if="form.licenses.length > 1" type="button" @click="removeLicense(index)" class="text-red-400 hover:text-red-600 p-1">
-              <X class="w-3.5 h-3.5" />
-            </button>
+      <div v-for="(license, index) in form.licenses" :key="index" class="border border-gray-100 rounded-lg p-4 bg-gray-50 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">ライセンス {{ index + 1 }}</span>
+          <button v-if="form.licenses.length > 1" type="button" @click="removeLicense(index)" class="text-red-400 hover:text-red-600 p-1">
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-gray-500">役職</label>
+            <input v-model="license.position" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" :placeholder="index === 0 ? '院長・理事長 等' : '役職'" />
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-gray-500">役職</label>
-              <input v-model="license.position" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" :placeholder="index === 0 ? '院長・理事長 等' : '役職'" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-gray-500">姓 <span class="text-red-500">*</span></label>
-              <input v-model="license.last_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="山田" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-gray-500">名 <span class="text-red-500">*</span></label>
-              <input v-model="license.first_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="太郎" />
-            </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-gray-500">姓 <span class="text-red-500">*</span></label>
+            <input v-model="license.last_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="山田" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-gray-500">名 <span class="text-red-500">*</span></label>
+            <input v-model="license.first_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="太郎" />
           </div>
         </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-gray-500">医師番号</label>
+          <input
+            v-model="license.doctor_number"
+            @input="(e) => { license.doctor_number = normalizeDoctorNumber(e.target.value) }"
+            maxlength="6"
+            inputmode="numeric"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+            placeholder="123456"
+          />
+        </div>
       </div>
-
+    </div>
       <!-- 送信ボタン -->
       <div class="flex justify-end">
         <button type="button" @click="handleSubmit" :disabled="form.processing" class="text-sm flex items-center gap-2 px-8 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
@@ -248,10 +258,10 @@ const form = useForm({
   contact_tel:          props.data.contact_tel          ?? '',
   contact_email:        props.data.contact_email        ?? '',
   same_as_clinic:       props.data.same_as_clinic       ?? false,
-  licenses:             props.data.licenses             ?? [
-    { position: '', last_name: '', first_name: '' },
-    { position: '', last_name: '', first_name: '' },
-    { position: '', last_name: '', first_name: '' },
+  licenses: props.data.licenses ?? [
+    { position: '', last_name: '', first_name: '', doctor_number: '' },
+    { position: '', last_name: '', first_name: '', doctor_number: '' },
+    { position: '', last_name: '', first_name: '', doctor_number: '' },
   ],
   corporate_fee:        props.data.corporate_fee,
   personal_fee:         props.data.personal_fee,
@@ -305,7 +315,7 @@ useZipcode(toRef(form, 'contact_postal_code'), {
 })
 
 const addLicense = () => {
-  form.licenses.push({ position: '', last_name: '', first_name: '' })
+  form.licenses.push({ position: '', last_name: '', first_name: '', doctor_number: '' })
 }
 
 const removeLicense = (index: number) => {
@@ -329,10 +339,27 @@ const handleSubmit = () => {
   form.total    = fee.value.total
   form.base     = fee.value.base
   form.extra    = fee.value.extra
+  // 医師番号を6桁ゼロ埋め（4〜6桁の入力値のみ対象）
+  form.licenses = form.licenses.map(license => ({
+    ...license,
+    doctor_number: license.doctor_number
+      ? license.doctor_number.padStart(6, '0')
+      : license.doctor_number,
+  }))
   form.post(route('applications.register.store'), {
     onError: (errors) => {
       console.log(errors)
     }
   })
 }
+const normalizeDoctorNumber = (value: string) => {
+  if (!value) return ''
+  // 全角数字を半角に変換
+  value = value.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+  // 数字以外を除去
+  value = value.replace(/[^0-9]/g, '')
+  // 6桁までに制限
+  return value.slice(0, 6)
+}
+
 </script>

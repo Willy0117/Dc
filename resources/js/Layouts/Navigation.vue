@@ -5,19 +5,17 @@ import { useI18n } from 'vue-i18n'
 
 // Heroicons
 import {
-  HomeIcon, DocumentCurrencyYenIcon,
-  UserIcon, DocumentIcon,
-  ServerIcon,
-  UsersIcon,
-  PlusIcon,
-  BuildingOfficeIcon,
-  TicketIcon,
-  ArrowRightOnRectangleIcon,
-  Cog6ToothIcon,
-  CubeIcon,
-  BeakerIcon,Bars3Icon, XMarkIcon,
-  ShieldCheckIcon, // ← 追加
-} from '@heroicons/vue/24/outline'
+  Home, Users, User, ShieldCheck, Award, ClipboardList,
+  Building2, Menu, KeyRound, UserCog,
+  X, Key, GraduationCap, Receipt, Video,
+  FileCheck,
+  RefreshCw,
+  FileText, BadgeDollarSign,
+  CreditCard,
+  Calendar,
+  CheckCircle2,
+  ArrowLeft, Settings, HardDrive
+} from 'lucide-vue-next'
 
 const page = usePage()
 
@@ -253,7 +251,13 @@ const showAccessControl = computed(() => {
               <CubeIcon class="w-5 h-5"/>
               <span v-if="!collapsed" class="ml-2">{{ t('exams.reports') }}</span>
             </Link>
-        
+            <Link
+                :href="route('procedure-videos.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+                :class="isActive('procedure-videos.index') ? 'bg-gray-300 font-semibold' : ''">
+                <Video class="w-5 h-54 mr-1"/>
+                手技動画アップロード
+            </Link>        
          </div>   
         </transition>
       </div>
