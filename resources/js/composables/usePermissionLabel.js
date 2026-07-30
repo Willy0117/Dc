@@ -5,6 +5,8 @@ const resourceLabels = {
   'member':        '会員',
   'invoice':       '請求書',
   'stripe':        'Stripe支払い',
+  'reference':     '契約動画',
+  'resource':      '契約資料',
   'tenant':        'テナント',
   'license-fee':   'ライセンス料',
   'role':          'ロール',

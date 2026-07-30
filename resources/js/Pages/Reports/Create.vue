@@ -31,7 +31,22 @@
       </div>
 
       <!-- Step 1: 基本情報 -->
+<!-- Step 1: 基本情報 -->
       <div v-if="currentStep === 1" class="space-y-6">
+        <div class="space-y-2" v-if="props.members?.length">
+          <Label>先生（任意）</Label>
+          <Select v-model="form.member_id">
+            <SelectTrigger>
+              <SelectValue placeholder="選択しない" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="m in props.members" :key="m.id" :value="m.id">
+                {{ m.last_name }} {{ m.first_name }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div class="space-y-2">
           <Label>患者性別 <span class="text-destructive">*</span></Label>
           <div class="flex gap-4">
@@ -142,6 +157,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const props = defineProps({
   options: { type: Object, default: () => ({}) },
+  members: { type: Array, default: () => [] },
 })
 
 const currentStep = ref(1)
@@ -156,6 +172,7 @@ const areaFields = computed(() => props.options?.[form.value.treatment_area] ?? 
 const complicationOptions = computed(() => props.options?.['共通']?.['トラブル・合併症']?.options ?? [])
 
 const form = ref({
+  member_id:          null,
   patient_gender:     '',
   patient_age_group:  '',
   treatment_area:     '',

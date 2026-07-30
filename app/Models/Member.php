@@ -94,7 +94,11 @@ class Member extends Model
     {
         return $this->hasOne(User::class);
     }
-
+    
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(ElearningAttempt::class, 'member_id');
+    }
     /**
      * 住所（自宅・送付先）
      */

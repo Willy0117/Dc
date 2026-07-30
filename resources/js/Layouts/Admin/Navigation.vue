@@ -210,6 +210,119 @@
             </div>
           </transition>
         </div>
+        <!-- Reference Video サブメニュー -->
+        <div v-if="canAccessMenu('references')" class="mt-2">
+          <button
+            @click="toggleSubMenu('references')"
+            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          >
+            <div class="flex items-center">
+              <Video class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">動注ライセンス契約動画</span>
+            </div>
+            <svg
+              v-if="!collapsed"
+              :class="{ 'rotate-90': openSubMenu === 'references' }"
+              class="w-4 h-4 transform transition-transform duration-200"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <transition name="slide-fade">
+            <div v-show="openSubMenu === 'references' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <Link
+                :href="route('admin.reference-videos.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.reference-videos.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <Video class="w-4 h-4 mr-1"/>
+                契約動画一覧
+              </Link>
+
+              <Link
+                :href="route('admin.reference-videos.views')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.reference-videos.views') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <Eye class="w-4 h-4 mr-1"/>
+                視聴状況一覧
+              </Link>
+            </div>
+          </transition>
+        </div>
+        <!-- Reference Document サブメニュー -->
+        <div v-if="canAccessMenu('resources')" class="mt-2">
+          <button
+            @click="toggleSubMenu('resources')"
+            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          >
+            <div class="flex items-center">
+              <FileText class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">動注ライセンス契約資料</span>
+            </div>
+            <svg
+              v-if="!collapsed"
+              :class="{ 'rotate-90': openSubMenu === 'resources' }"
+              class="w-4 h-4 transform transition-transform duration-200"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <transition name="slide-fade">
+            <div v-show="openSubMenu === 'resources' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <Link
+                :href="route('admin.resource-documents.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.resource-documents.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <FileText class="w-4 h-4 mr-1"/>
+                契約資料一覧
+              </Link>
+           </div>
+          </transition>
+        </div>
+        <!-- e-ラーニング サブメニュー -->
+        <div v-if="canAccessMenu('elearnings')" class="mt-2">
+          <button
+            @click="toggleSubMenu('elearnings')"
+            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          >
+            <div class="flex items-center">
+              <ClipboardList class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">e-ラーニング</span>
+            </div>
+            <svg
+              v-if="!collapsed"
+              :class="{ 'rotate-90': openSubMenu === 'elearnings' }"
+              class="w-4 h-4 transform transition-transform duration-200"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <transition name="slide-fade">
+            <div v-show="openSubMenu === 'elearnings' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <Link
+                :href="route('admin.elearning-questions.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.elearning-questions.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <FileText class="w-4 h-4 mr-1"/>
+                問題一覧
+              </Link>
+              <Link
+                :href="route('admin.elearning-attempts.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.elearning-attempts.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <ClipboardList class="w-4 h-4 mr-1"/>
+                受験結果一覧
+              </Link>
+            </div>
+          </transition>
+        </div>        
         <!-- ライセンス料 サブメニュー -->
         <div v-if="canAccessMenu('license_fees')" class="mt-2">
           <button
@@ -375,7 +488,7 @@ import { ref, onMounted, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import {
   Home, Users, User, ShieldCheck, Award, ClipboardList,
-  Building2, Menu, KeyRound, UserCog,
+  Building2, Menu, KeyRound, UserCog, Eye,
   X, Key, GraduationCap, Receipt, Video,
   FileCheck,
   RefreshCw,
@@ -415,6 +528,9 @@ const menuPermissions = {
   admins:        ['admin.view',        'admin.edit'],
   users:         ['user.view',         'user.edit'],
   case_reports:  ['case_report.view',  'case_report.edit'],
+  references:    ['reference.view',    'reference.edit'],  
+  resources:     ['resource.view',     'resource.edit'],
+  elearnings:    ['elearning.view',    'elearning.edit'],  
 }
 
 // いずれか1つでも持っていればtrue
@@ -437,9 +553,12 @@ const groupMap = {
   case_reports:  'case_reports',
   form_fields:   'case_reports',
   procedure_videos: 'case_reports',
+  references:    'references',
+  resources:     'resources',
+  elearnings:    'elearnings',
 }
 
-const validMenus = ['members', 'organizations', 'users', 'access', 'billing', 'license_fees', 'admins', 'case_reports']
+const validMenus = ['members', 'organizations', 'users', 'access', 'billing', 'license_fees', 'admins', 'case_reports', 'references','resources','elearnings']
 
 const detectMenu = () => {
   const current = route().current()

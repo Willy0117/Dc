@@ -26,6 +26,17 @@ use App\Http\Controllers\Admin\FormFieldController as AdminFormFieldController;
 
 use App\Http\Controllers\ProcedureVideoController;
 use App\Http\Controllers\Admin\ProcedureVideoController as AdminProcedureVideoController;
+use App\Http\Controllers\ReferenceVideoController;
+use App\Http\Controllers\Admin\ReferenceVideoController as AdminReferenceVideoController;
+
+use App\Http\Controllers\ResourceDocumentController;
+use App\Http\Controllers\Admin\ResourceDocumentController as AdminResourceDocumentController;
+use App\Http\Controllers\Admin\ResourceDocumentCategoryController as AdminResourceDocumentCategoryController;
+use App\Http\Controllers\LicenseController;
+
+use App\Http\Controllers\Admin\ElearningAttemptController as AdminElearningAttemptController;
+use App\Http\Controllers\Admin\ElearningQuestionController as AdminElearningQuestionController;
+use App\Http\Controllers\ElearningController;
 
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
@@ -153,6 +164,42 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // ──────────────────────────────────────────
         Route::get('procedure-videos', [App\Http\Controllers\Admin\ProcedureVideoController::class, 'index'])->name('procedure-videos.index');
         Route::delete('procedure-videos/{procedureVideo}', [App\Http\Controllers\Admin\ProcedureVideoController::class, 'destroy'])->name('procedure-videos.destroy');
+        // ──────────────────────────────────────────
+        // 参考動画（管理画面側）※admin.プレフィックスの既存グループに追加
+        // ──────────────────────────────────────────
+        Route::get('/reference-videos', [AdminReferenceVideoController::class, 'index'])->name('reference-videos.index');
+        Route::post('/reference-videos', [AdminReferenceVideoController::class, 'store'])->name('reference-videos.store');
+        Route::put('/reference-videos/{referenceVideo}', [AdminReferenceVideoController::class, 'update'])->name('reference-videos.update');
+        Route::delete('/reference-videos/{referenceVideo}', [AdminReferenceVideoController::class, 'destroy'])->name('reference-videos.destroy');
+        Route::post('/reference-videos/reorder', [AdminReferenceVideoController::class, 'reorder'])->name('reference-videos.reorder');
+        Route::get('/reference-videos-views', [AdminReferenceVideoController::class, 'views'])->name('reference-videos.views');
+
+        // ──────────────────────────────────────────
+        // 資料（管理画面側）※admin.プレフィックスの既存グループに追加
+        // ──────────────────────────────────────────
+        Route::get('/resource-documents', [AdminResourceDocumentController::class, 'index'])->name('resource-documents.index');
+        Route::post('/resource-documents', [AdminResourceDocumentController::class, 'store'])->name('resource-documents.store');
+        Route::put('/resource-documents/{resourceDocument}', [AdminResourceDocumentController::class, 'update'])->name('resource-documents.update');
+        Route::delete('/resource-documents/{resourceDocument}', [AdminResourceDocumentController::class, 'destroy'])->name('resource-documents.destroy');
+        Route::post('/resource-documents/reorder', [AdminResourceDocumentController::class, 'reorder'])->name('resource-documents.reorder');
+        
+        // 資料カテゴリー（管理画面側）
+        Route::post('/resource-document-categories', [AdminResourceDocumentCategoryController::class, 'store'])->name('resource-document-categories.store');
+        Route::put('/resource-document-categories/{resourceDocumentCategory}', [AdminResourceDocumentCategoryController::class, 'update'])->name('resource-document-categories.update');
+        Route::delete('/resource-document-categories/{resourceDocumentCategory}', [AdminResourceDocumentCategoryController::class, 'destroy'])->name('resource-document-categories.destroy');
+        Route::post('/resource-document-categories/reorder', [AdminResourceDocumentCategoryController::class, 'reorder'])->name('resource-document-categories.reorder');
+        // ──────────────────────────────────────────
+        // e-ラーニング問題管理（管理画面側）※admin.プレフィックスの既存グループに追加
+        // ──────────────────────────────────────────
+        Route::get('/elearning-questions', [AdminElearningQuestionController::class, 'index'])->name('elearning-questions.index');
+        Route::post('/elearning-questions', [AdminElearningQuestionController::class, 'store'])->name('elearning-questions.store');
+        Route::put('/elearning-questions/{elearningQuestion}', [AdminElearningQuestionController::class, 'update'])->name('elearning-questions.update');
+        Route::delete('/elearning-questions/{elearningQuestion}', [AdminElearningQuestionController::class, 'destroy'])->name('elearning-questions.destroy');
+        Route::post('/elearning-questions/{elearningQuestion}/toggle-active', [AdminElearningQuestionController::class, 'toggleActive'])->name('elearning-questions.toggle-active');
+        
+        // e-ラーニング受験結果（管理画面側）
+        Route::get('/elearning-attempts', [AdminElearningAttemptController::class, 'index'])->name('elearning-attempts.index');
+        Route::get('/elearning-attempts/organizations/{organization}', [AdminElearningAttemptController::class, 'byOrganization'])->name('elearning-attempts.by-organization');
 
         Route::prefix('member')->name('member.')->group(function () {
 
@@ -255,5 +302,30 @@ Route::middleware([
     Route::get('/procedure-videos', [ProcedureVideoController::class, 'index'])->name('procedure-videos.index');
     Route::post('/procedure-videos/presign', [ProcedureVideoController::class, 'presign'])->name('procedure-videos.presign');
     Route::post('/procedure-videos', [ProcedureVideoController::class, 'store'])->name('procedure-videos.store');
+    // ──────────────────────────────────────────
+    // 参考動画（My Page側）※認証ミドルウェア配下の既存グループに追加
+    // ──────────────────────────────────────────
+    Route::get('/reference-videos', [ReferenceVideoController::class, 'index'])->name('reference-videos.index');
+    Route::post('/reference-videos/{referenceVideo}/mark-watched', [ReferenceVideoController::class, 'markWatched'])->name('reference-videos.mark-watched');
+
+    // ──────────────────────────────────────────
+    // 資料（My Page側）※認証ミドルウェア配下の既存グループに追加
+    // ──────────────────────────────────────────
+    Route::get('/resource-documents', [ResourceDocumentController::class, 'index'])->name('resource-documents.index');
+    // ──────────────────────────────────────────
+    // ライセンス証（My Page側）※認証ミドルウェア配下の既存グループに追加
+    // ──────────────────────────────────────────
+    Route::get('/licenses', [LicenseController::class, 'index'])->name('licenses.index');
+
+    // ──────────────────────────────────────────
+    // e-ラーニング（My Page側）※認証ミドルウェア配下の既存グループに追加
+    // ──────────────────────────────────────────
+    Route::get('/elearning', [ElearningController::class, 'index'])->name('elearning.index');
+    Route::get('/elearning/history', [ElearningController::class, 'history'])->name('elearning.history');
+    Route::post('/elearning/start', [ElearningController::class, 'start'])->name('elearning.start');
+    Route::get('/elearning/{attempt}', [ElearningController::class, 'show'])->name('elearning.show');
+    Route::post('/elearning/{attempt}/submit', [ElearningController::class, 'submit'])->name('elearning.submit');
+    Route::get('/elearning/{attempt}/result', [ElearningController::class, 'result'])->name('elearning.result');
+ 
 
 });

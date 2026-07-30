@@ -25,6 +25,7 @@
           <thead class="bg-muted border-b">
             <tr>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">報告日</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">先生</th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">治療部位</th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">患者性別</th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">年代</th>
@@ -45,6 +46,7 @@
               <td class="px-4 py-2.5 text-sm">
                 {{ report.submitted_at ? dayjs(report.submitted_at).format('YYYY/MM/DD') : '-' }}
               </td>
+              <td class="px-4 py-2.5 text-sm">{{ report.member_name ?? '-' }}</td>
               <td class="px-4 py-2.5">
                 <Badge variant="outline">{{ report.treatment_area }}</Badge>
               </td>

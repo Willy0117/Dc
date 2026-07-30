@@ -20,19 +20,27 @@ class ProcedureVideoController extends Controller
     {
         $organizationId = $request->user()->organization_id;
 
-        $videos = ProcedureVideo::where('organization_id', $organizationId)
+        $videos = ProcedureVideo::with('member')
+            ->where('organization_id', $organizationId)
             ->orderByDesc('created_at')
             ->get()
             ->map(fn($v) => [
-                'id'         => $v->id,
-                'title'      => $v->title,
-                'file_url'   => $this->fileService->getUrl($v->file_path),
-                'file_size'  => $v->file_size,
-                'created_at' => $v->created_at->format('Y-m-d H:i'),
+                'id'            => $v->id,
+                'title'         => $v->title,
+                'member_name'   => $v->member?->full_name,
+                'file_url'      => $this->fileService->getUrl($v->file_path),
+                'thumbnail_url' => $v->thumbnail_path ? $this->fileService->getUrl($v->thumbnail_path) : null,
+                'file_size'     => $v->file_size,
+                'created_at'    => $v->created_at->format('Y-m-d H:i'),
             ]);
 
+        $members = \App\Models\Member::where('organization_id', $organizationId)
+            ->orderBy('last_name')
+            ->get(['id', 'last_name', 'first_name']);
+
         return Inertia::render('ProcedureVideos/Index', [
-            'videos' => $videos,
+            'videos'  => $videos,
+            'members' => $members,
         ]);
     }
 
@@ -43,15 +51,18 @@ class ProcedureVideoController extends Controller
     {
         $request->validate([
             'filename'  => 'required|string|max:255',
-            'file_size' => 'required|integer|min:1|max:524288000', // TODO: 上限確定後に調整（現在は仮で500MB）
+            'file_size' => 'required|integer|min:1|max:524288000',
+            'kind'      => 'nullable|in:video,thumbnail',
         ]);
 
+        $kind = $request->input('kind', 'video');
         $extension = pathinfo($request->filename, PATHINFO_EXTENSION);
-        $key = 'procedure_videos/' . date('Y/m') . '/' . Str::uuid() . '.' . $extension;
+        $dir = $kind === 'thumbnail' ? 'procedure_videos/thumbnails' : 'procedure_videos';
+        $key = $dir . '/' . date('Y/m') . '/' . Str::uuid() . '.' . $extension;
 
         $uploadUrl = Storage::disk('s3')->temporaryUploadUrl(
             $key,
-            now()->addMinutes(15),
+            now()->addMinutes(30),
             ['ContentType' => $request->input('content_type', 'video/mp4')]
         );
 
@@ -68,9 +79,11 @@ class ProcedureVideoController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title'     => 'nullable|string|max:255',
-            'key'       => 'required|string',
-            'file_size' => 'required|integer',
+            'title'         => 'nullable|string|max:255',
+            'member_id'     => 'nullable|exists:members,id',
+            'key'           => 'required|string',
+            'thumbnail_key' => 'nullable|string',
+            'file_size'     => 'required|integer|max:524288000',
         ]);
 
         if (!Storage::disk('s3')->exists($request->key)) {
@@ -79,12 +92,14 @@ class ProcedureVideoController extends Controller
 
         ProcedureVideo::create([
             'organization_id' => $request->user()->organization_id,
+            'member_id'       => $request->member_id,
             'title'           => $request->title,
             'file_path'       => $request->key,
+            'thumbnail_path'  => $request->thumbnail_key,
             'file_size'       => $request->file_size,
             'uploaded_by'     => $request->user()->id,
         ]);
 
-        return redirect()->back()->with('success', '動画をアップロードしました。');
+        return response()->json(['message' => 'アップロードしました。']);
     }
 }

@@ -39,7 +39,7 @@
                 契約先
               </th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                アップロード者
+                先生
               </th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 サイズ
@@ -66,8 +66,9 @@
             >
               <td class="px-3 py-2.5">
                 <a :href="video.file_url" target="_blank"
-                   class="flex items-center justify-center w-12 h-12 rounded-lg bg-muted text-muted-foreground hover:bg-muted/70">
-                  <Video class="w-5 h-5" />
+                  class="flex items-center justify-center w-12 h-12 rounded-lg bg-muted text-muted-foreground hover:bg-muted/70 overflow-hidden">
+                  <img v-if="video.thumbnail_url" :src="video.thumbnail_url" class="w-full h-full object-cover" />
+                  <Video v-else class="w-5 h-5" />
                 </a>
               </td>
               <td class="px-3 py-2.5">
@@ -79,7 +80,7 @@
                 {{ video.organization_name ?? '-' }}
               </td>
               <td class="px-3 py-2.5 text-sm text-muted-foreground">
-                {{ video.uploaded_by_name ?? '-' }}
+                {{ video.member_name ?? '-' }}
               </td>
               <td class="px-3 py-2.5 text-sm text-muted-foreground">
                 {{ formatFileSize(video.file_size) }}

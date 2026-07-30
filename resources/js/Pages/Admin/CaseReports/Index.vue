@@ -47,6 +47,7 @@
             <tr>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">報告日</th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">施設名</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">先生</th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">治療部位</th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">患者</th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">トラブル</th>
@@ -55,7 +56,7 @@
           </thead>
           <tbody>
             <tr v-if="reports.data.length === 0">
-              <td colspan="6" class="px-4 py-12 text-center text-muted-foreground">
+              <td colspan="7" class="px-4 py-12 text-center text-muted-foreground">
                 症例報告が見つかりません
               </td>
             </tr>
@@ -69,6 +70,9 @@
               </td>
               <td class="px-4 py-2.5 text-sm">
                 {{ report.organization?.name ?? report.facility_name_raw ?? '-' }}
+              </td>
+              <td class="px-4 py-2.5 text-sm">
+                {{ report.member?.full_name ?? '-' }}
               </td>
               <td class="px-4 py-2.5">
                 <Badge variant="outline">{{ report.treatment_area }}</Badge>

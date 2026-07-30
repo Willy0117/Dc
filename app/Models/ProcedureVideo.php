@@ -11,6 +11,7 @@ class ProcedureVideo extends Model
 
     protected $fillable = [
         'organization_id',
+        'member_id',
         'title',
         'file_path',
         'thumbnail_path',
@@ -21,6 +22,11 @@ class ProcedureVideo extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function member(): BelongsTo
+    {
+        return $this->belongsTo(Member::class);
     }
 
     public function uploader(): BelongsTo

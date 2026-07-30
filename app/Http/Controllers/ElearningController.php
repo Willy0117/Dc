@@ -1,0 +1,292 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ElearningAttempt;
+use App\Models\ElearningAttemptAnswer;
+use App\Models\ElearningQuestion;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+
+class ElearningController extends Controller
+{
+    // ──────────────────────────────────────────
+    // トップ画面（受験可否・過去の合格状況を表示）
+    // ──────────────────────────────────────────
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        $member = $user->member;
+
+        if (!$member || !$member->organization) {
+            return Inertia::render('Elearning/Index', [
+                'isEligible' => false,
+            ]);
+        }
+
+        $organization = $member->organization;
+        $periodKey = ElearningAttempt::calculatePeriodKey($organization->contract_date);
+
+        // 同一先生（doctor_number一致）が、期間を問わずどこかで合格していれば合格扱い
+        $isPassed = ElearningAttempt::hasPassedByDoctorNumber($member->doctor_number, $member->id);
+
+        $recentAttempts = ElearningAttempt::where('member_id', $member->id)
+            ->inPeriod($periodKey)
+            ->orderByDesc('id')
+            ->get(['id', 'correct_count', 'total_questions', 'is_passed', 'submitted_at']);
+
+        return Inertia::render('Elearning/Index', [
+            'isEligible'     => true,
+            'isPassed'       => $isPassed,
+            'recentAttempts' => $recentAttempts,
+            'periodLabel'    => $this->periodLabel($organization->contract_date, $periodKey),
+        ]);
+    }
+
+    // ──────────────────────────────────────────
+    // 受験開始（15問ランダム抽出してセッション作成）
+    // ──────────────────────────────────────────
+    public function start(Request $request)
+    {
+        $user = $request->user();
+        $member = $user->member;
+
+        if (!$member || !$member->organization) {
+            return redirect()->route('elearning.index');
+        }
+
+        $organization = $member->organization;
+        $periodKey = ElearningAttempt::calculatePeriodKey($organization->contract_date);
+
+        $questions = ElearningQuestion::active()->inRandomOrder()->limit(15)->get();
+
+        if ($questions->count() < 15) {
+            return back()->withErrors(['error' => '出題可能な問題数が不足しています。運営にお問い合わせください。']);
+        }
+
+        $attempt = DB::transaction(function () use ($user, $member, $organization, $periodKey, $questions) {
+            $attempt = ElearningAttempt::create([
+                'user_id'         => $user->id,
+                'member_id'       => $member->id,
+                'organization_id' => $organization->id,
+                'total_questions' => $questions->count(),
+                'period_key'      => $periodKey,
+                'started_at'      => now(),
+            ]);
+
+            foreach ($questions->values() as $index => $q) {
+                ElearningAttemptAnswer::create([
+                    'attempt_id'  => $attempt->id,
+                    'question_id' => $q->id,
+                    'sort_order'  => $index + 1,
+                ]);
+            }
+
+            return $attempt;
+        });
+
+        return redirect()->route('elearning.show', $attempt->id);
+    }
+
+    // ──────────────────────────────────────────
+    // 受験画面（設問一覧表示）
+    // ──────────────────────────────────────────
+    public function show(Request $request, ElearningAttempt $attempt)
+    {
+        $this->authorizeAttempt($request, $attempt);
+
+        if ($attempt->submitted_at) {
+            return redirect()->route('elearning.result', $attempt->id);
+        }
+
+        $questions = $attempt->answers()
+            ->with('question:id,question,choice_a,choice_b,choice_c,choice_d')
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn($a) => [
+                'sort_order' => $a->sort_order,
+                'question_id' => $a->question_id,
+                'question'   => $a->question->question,
+                'choices'    => [
+                    'A' => $a->question->choice_a,
+                    'B' => $a->question->choice_b,
+                    'C' => $a->question->choice_c,
+                    'D' => $a->question->choice_d,
+                ],
+            ]);
+
+        return Inertia::render('Elearning/Show', [
+            'attemptId' => $attempt->id,
+            'questions' => $questions,
+        ]);
+    }
+
+    // ──────────────────────────────────────────
+    // 回答提出・採点
+    // ──────────────────────────────────────────
+    public function submit(Request $request, ElearningAttempt $attempt)
+    {
+        $this->authorizeAttempt($request, $attempt);
+
+        if ($attempt->submitted_at) {
+            return redirect()->route('elearning.result', $attempt->id);
+        }
+
+        $validated = $request->validate([
+            'answers'             => 'required|array',
+            'answers.*.question_id' => 'required|integer|exists:elearning_questions,id',
+            'answers.*.selected'    => 'required|in:A,B,C,D',
+        ]);
+
+        DB::transaction(function () use ($attempt, $validated) {
+            $correctCount = 0;
+
+            $questionMap = ElearningQuestion::whereIn('id', collect($validated['answers'])->pluck('question_id'))
+                ->get()
+                ->keyBy('id');
+
+            foreach ($validated['answers'] as $ans) {
+                $question = $questionMap->get($ans['question_id']);
+                $isCorrect = $question && $question->correct_answer === $ans['selected'];
+                if ($isCorrect) $correctCount++;
+
+                ElearningAttemptAnswer::where('attempt_id', $attempt->id)
+                    ->where('question_id', $ans['question_id'])
+                    ->update([
+                        'selected_answer' => $ans['selected'],
+                        'is_correct'      => $isCorrect,
+                    ]);
+            }
+
+            $attempt->update([
+                'correct_count' => $correctCount,
+                'is_passed'     => $correctCount >= ElearningAttempt::PASS_THRESHOLD,
+                'submitted_at'  => now(),
+            ]);
+        });
+
+        return redirect()->route('elearning.result', $attempt->id);
+    }
+
+    // ──────────────────────────────────────────
+    // 結果画面（正誤・解説表示）
+    // ──────────────────────────────────────────
+    public function result(Request $request, ElearningAttempt $attempt)
+    {
+        $this->authorizeAttempt($request, $attempt);
+
+        if (!$attempt->submitted_at) {
+            return redirect()->route('elearning.show', $attempt->id);
+        }
+
+        $answers = $attempt->answers()
+            ->with('question')
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn($a) => [
+                'question'        => $a->question->question,
+                'choices'         => [
+                    'A' => $a->question->choice_a,
+                    'B' => $a->question->choice_b,
+                    'C' => $a->question->choice_c,
+                    'D' => $a->question->choice_d,
+                ],
+                'selected_answer' => $a->selected_answer,
+                'correct_answer'  => $a->question->correct_answer,
+                'is_correct'      => $a->is_correct,
+                'explanation'     => $a->question->explanation,
+            ]);
+
+        return Inertia::render('Elearning/Result', [
+            'correctCount'    => $attempt->correct_count,
+            'totalQuestions'  => $attempt->total_questions,
+            'isPassed'        => $attempt->is_passed,
+            'answers'         => $answers,
+        ]);
+    }
+
+    // ──────────────────────────────────────────
+    // 受験結果一覧
+    // ──────────────────────────────────────────
+    public function history(Request $request)
+    {
+        $user = $request->user();
+
+        // 病院代表アカウント：所属する全先生分の受験結果一覧
+        if ((int) $user->type === 1) {
+            $organization = $user->organization;
+
+            if (!$organization) {
+                return Inertia::render('Elearning/History', ['isEligible' => false]);
+            }
+
+            $attempts = ElearningAttempt::whereHas('member', fn($q) => $q->where('organization_id', $organization->id))
+                ->whereNotNull('submitted_at')
+                ->with('member:id,last_name,first_name')
+                ->orderByDesc('submitted_at')
+                ->get()
+                ->map(fn($a) => [
+                    'id'              => $a->id,
+                    'member_name'     => $a->member ? "{$a->member->last_name} {$a->member->first_name}" : '-',
+                    'correct_count'   => $a->correct_count,
+                    'total_questions' => $a->total_questions,
+                    'is_passed'       => $a->is_passed,
+                    'submitted_at'    => $a->submitted_at->format('Y-m-d H:i'),
+                ]);
+
+            return Inertia::render('Elearning/History', [
+                'isEligible' => true,
+                'viewType'   => 'organization',
+                'attempts'   => $attempts,
+            ]);
+        }
+
+        // 先生個人アカウント：自分自身の全期間分の受験結果一覧
+        $member = $user->member;
+
+        if (!$member) {
+            return Inertia::render('Elearning/History', ['isEligible' => false]);
+        }
+
+        $attempts = ElearningAttempt::where('member_id', $member->id)
+            ->whereNotNull('submitted_at')
+            ->orderByDesc('submitted_at')
+            ->get()
+            ->map(fn($a) => [
+                'id'              => $a->id,
+                'correct_count'   => $a->correct_count,
+                'total_questions' => $a->total_questions,
+                'is_passed'       => $a->is_passed,
+                'submitted_at'    => $a->submitted_at->format('Y-m-d H:i'),
+            ]);
+
+        return Inertia::render('Elearning/History', [
+            'isEligible' => true,
+            'viewType'   => 'member',
+            'attempts'   => $attempts,
+        ]);
+    }
+
+    // ──────────────────────────────────────────
+    // Private: 本人の受験セッションかチェック
+    // ──────────────────────────────────────────
+    private function authorizeAttempt(Request $request, ElearningAttempt $attempt): void
+    {
+        if ($attempt->user_id !== $request->user()->id) {
+            abort(403);
+        }
+    }
+
+    // ──────────────────────────────────────────
+    // Private: 期間の表示ラベル生成（例: 2026/02/09 〜 2026/08/08）
+    // ──────────────────────────────────────────
+    private function periodLabel($contractDate, string $periodKey): string
+    {
+        $index = (int) substr($periodKey, strrpos($periodKey, '_') + 1);
+        $start = \Carbon\Carbon::parse($contractDate)->addMonths($index * 6);
+        $end = $start->copy()->addMonths(6)->subDay();
+
+        return $start->format('Y/m/d') . ' 〜 ' . $end->format('Y/m/d');
+    }
+}

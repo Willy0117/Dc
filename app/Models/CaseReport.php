@@ -10,6 +10,7 @@ class CaseReport extends Model
 {
     protected $fillable = [
         'organization_id',
+        'member_id',
         'facility_name_raw',
         'patient_gender',
         'patient_age_group',
@@ -33,6 +34,11 @@ class CaseReport extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function member(): BelongsTo
+    {
+        return $this->belongsTo(Member::class);
     }
 
     public function detail(): HasOne

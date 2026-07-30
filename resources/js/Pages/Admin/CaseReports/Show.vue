@@ -22,6 +22,7 @@
         <div class="divide-y">
           <Row label="報告日" :value="report.submitted_at ? dayjs(report.submitted_at).format('YYYY/MM/DD HH:mm') : '-'" />
           <Row label="施設名" :value="report.organization?.name ?? report.facility_name_raw ?? '-'" />
+          <Row label="先生" :value="report.member?.full_name ?? '-'" />
           <Row label="患者性別" :value="report.patient_gender ?? '-'" />
           <Row label="年代" :value="report.patient_age_group ?? '-'" />
           <Row label="治療部位" :value="report.treatment_area" />

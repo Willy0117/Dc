@@ -15,7 +15,7 @@ class ProcedureVideoController extends Controller
 
     public function index(Request $request)
     {
-        $videos = ProcedureVideo::with('organization', 'uploader')
+        $videos = ProcedureVideo::with('organization', 'member')
             ->when($request->organization_id && $request->organization_id !== 'all',
                 fn($q, $id) => $q->where('organization_id', $id)
             )
@@ -26,10 +26,11 @@ class ProcedureVideoController extends Controller
         $videos->getCollection()->transform(fn($v) => [
             'id'                => $v->id,
             'title'             => $v->title,
+            'member_name'       => $v->member?->full_name,
             'file_url'          => $this->fileService->getUrl($v->file_path),
+            'thumbnail_url'     => $v->thumbnail_path ? $this->fileService->getUrl($v->thumbnail_path) : null,
             'file_size'         => $v->file_size,
             'organization_name' => $v->organization?->name,
-            'uploaded_by_name'  => $v->uploader?->name,
             'created_at'        => $v->created_at->format('Y-m-d H:i'),
         ]);
 

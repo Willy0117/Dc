@@ -16,7 +16,7 @@ class CaseReportController extends Controller
     public function index(Request $request)
     {
         $reports = CaseReport::query()
-            ->with(['organization'])
+            ->with(['organization', 'member'])
             ->when($request->organization_id, fn($q) =>
                 $q->where('organization_id', $request->organization_id)
             )
@@ -54,7 +54,7 @@ class CaseReportController extends Controller
     // ──────────────────────────────────────────
     public function show(CaseReport $caseReport)
     {
-        $caseReport->load(['organization', 'detail']);
+        $caseReport->load(['organization', 'member', 'detail']);
 
         return Inertia::render('Admin/CaseReports/Show', [
             'report' => $caseReport,

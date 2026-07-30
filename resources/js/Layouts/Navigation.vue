@@ -7,10 +7,10 @@ import { useI18n } from 'vue-i18n'
 import {
   Home, Users, User, ShieldCheck, Award, ClipboardList,
   Building2, Menu, KeyRound, UserCog,
-  X, Key, GraduationCap, Receipt, Video,
-  FileCheck,
+  X, Key, GraduationCap, Receipt, Video, Eye,
+  FileCheck, Download,
   RefreshCw,
-  FileText, BadgeDollarSign,
+  FileText, BadgeDollarSign, 
   CreditCard,
   Calendar,
   CheckCircle2,
@@ -177,52 +177,48 @@ const showAccessControl = computed(() => {
       <Link :href="route('dashboard')"
             class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
             :class="isActive('dashboard') ? 'bg-gray-300 font-semibold' : ''">
-        <HomeIcon class="w-5 h-5"/>
+        <Home class="w-5 h-5"/>
         <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
       </Link>
 
-      <!-- div class="mt-2">
-        <button
-          @click="toggleSubMenu('exams')"
-          class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-        >
-          <div class="flex items-center">
-            <UsersIcon class="w-5 h-5"/>
-            <span v-if="!collapsed" class="ml-2">{{ t('exams.application') }}</span>
-          </div>
-          <svg
-            v-if="!collapsed"
-            :class="{ 'rotate-90': openSubMenu === 'exams' }"
-            class="w-4 h-4 transform transition-transform duration-200"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-        <transition name="slide-fade">
-          <div v-show="openSubMenu === 'exams' && !collapsed" class="pl-6 mt-1 space-y-1">     
-            <Link :href="route('exams.create')"
-                  class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-                  :class="isActive('exams.create') ? 'bg-gray-300 font-semibold' : ''">
-              <CubeIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('applications.create') }}</span>
-            </Link>        
-       
-         </div>   
-        </transition>
-      </div>
--->
+      <Link
+          :href="route('elearning.history')"
+          class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          :class="isActive('elearning.history') ? 'bg-gray-300 font-semibold' : ''">
+          <ClipboardList class="w-5 h-5 mr-1"/>
+          受験結果一覧
+      </Link>
+      
+      <Link
+          :href="route('elearning.index')"
+          class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          :class="isActive('elearning.index') ? 'bg-gray-300 font-semibold' : ''">
+          <ClipboardList class="w-5 h-5 mr-1"/>
+          e-ラーニング確認テスト
+      </Link>
+      
+      <Link :href="route('reference-videos.index')"
+            class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+            :class="isActive('reference-videos.index') ? 'bg-gray-300 font-semibold' : ''">
+        <Video class="w-5 h-5"/>
+        <span v-if="!collapsed" class="ml-2">動注ライセンス契約動画一覧</span>
+      </Link>
+
+      <Link :href="route('resource-documents.index')"
+            class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+            :class="isActive('resource-documents.index') ? 'bg-gray-300 font-semibold' : ''">
+        <FileText class="w-5 h-5"/>
+        <span v-if="!collapsed" class="ml-2">動注ライセンス契約資料一覧</span>
+      </Link>
+
       <div class="mt-2">
         <button
           @click="toggleSubMenu('reports')"
           class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
         >
           <div class="flex items-center">
-            <UsersIcon class="w-5 h-5"/>
-            <span v-if="!collapsed" class="ml-2">{{ t('rehabs.self_report') }}</span>
+            <ClipboardList class="w-5 h-5"/>
+            <span v-if="!collapsed" class="ml-2">動注ライセンス症例報告</span>
           </div>
           <svg
             v-if="!collapsed"
@@ -241,15 +237,15 @@ const showAccessControl = computed(() => {
             <Link :href="route('reports.index')"
                   class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
                   :class="isActive('reports.index') ? 'bg-gray-300 font-semibold' : ''">
-              <CubeIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('rehabs.list') }}</span>
+              <ClipboardList class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">動注ライセンス症例報告一覧</span>
             </Link>
           
             <Link :href="route('reports.create')"
                   class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
                   :class="isActive('reports.create') ? 'bg-gray-300 font-semibold' : ''">
-              <CubeIcon class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('exams.reports') }}</span>
+              <ClipboardList class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">動注ライセンス症例報告</span>
             </Link>
             <Link
                 :href="route('procedure-videos.index')"
@@ -261,6 +257,14 @@ const showAccessControl = computed(() => {
          </div>   
         </transition>
       </div>
+
+      <Link :href="route('licenses.index')"
+            class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+            :class="isActive('licenses.index') ? 'bg-gray-300 font-semibold' : ''">
+        <Download class="w-5 h-5"/>
+        <span v-if="!collapsed" class="ml-2">ライセンス証ダウンロード</span>
+      </Link>
+
 <!--      
       <Link :href="route('pdf-uploads.create')"
             class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"

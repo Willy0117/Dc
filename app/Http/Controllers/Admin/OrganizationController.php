@@ -828,7 +828,7 @@ class OrganizationController extends Controller
         }
     
         // 件数条件チェック
-        $required = $newTier === 3 ? 90 : 120;
+        $required = $newTier === 3 ? 75 : 120;
         if ($history->case_count < $required) {
             return back()->withErrors([
                 'error' => "昇格には年間{$required}件以上の症例報告が必要です。（現在: {$history->case_count}件）"
