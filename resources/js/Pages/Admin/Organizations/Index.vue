@@ -99,32 +99,34 @@
                   @update:model-value="selectAll = $event"
                 />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer" @click="sortBy('contract_no')">
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('contract_no')">
                 契約No.
                 <SortIcon field="contract_no" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer" @click="sortBy('name')">
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('name')">
                 組織名
                 <SortIcon field="name" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 所在地
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer" @click="sortBy('tel')">
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('tel')">
                 電話
                 <SortIcon field="tel" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer" @click="sortBy('contract_status')">
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('contract_status')">
                 契約状況
                 <SortIcon field="contract_status" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('payment_method')">
                 支払方法
+                <SortIcon field="payment_method" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('tier')">
                 Tier
+                <SortIcon field="tier" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer" @click="sortBy('contract_date')">
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('contract_date')">
                 契約日 / 次回請求日
                 <SortIcon field="contract_date" :current="form.sort_by" :dir="form.sort_dir" />
               </th>

@@ -33,7 +33,7 @@ class OrganizationController extends Controller
         $sortDir = $request->input('sort_dir', 'desc') === 'asc' ? 'asc' : 'desc';
         $perPage = (int) $request->input('per_page', 20);
 
-        $allowedSorts = ['id', 'name', 'contract_no', 'contract_status', 'contract_date', 'tel'];
+        $allowedSorts = ['id', 'name', 'contract_no', 'contract_status', 'contract_date', 'tel', 'tier', 'payment_method'];
         if (!in_array($sortBy, $allowedSorts)) $sortBy = 'contract_date';
 
         $organizations = Organization::query()
@@ -787,7 +787,9 @@ class OrganizationController extends Controller
         ]);
     }
  
-## 3. Private セクションに追加（validateOrganization()の前あたり）
+    // ──────────────────────────────────────────
+    // Private: 料金マスタ取得
+    // ──────────────────────────────────────────
  
     private function getFeeMaster(Organization $organization)
     {

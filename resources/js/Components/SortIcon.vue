@@ -1,26 +1,20 @@
 <template>
-  <span class="inline-flex flex-col ml-1 -space-y-1">
-    <ChevronUp
-      class="w-3 h-3 transition-colors"
-      :class="current === field && dir === 'asc'
-        ? 'text-foreground opacity-100'
-        : 'text-muted-foreground/30'"
-    />
-    <ChevronDown
-      class="w-3 h-3 transition-colors"
-      :class="current === field && dir === 'desc'
-        ? 'text-foreground opacity-100'
-        : 'text-muted-foreground/30'"
-    />
-  </span>
+  <Triangle
+    v-if="isActive"
+    class="w-2.5 h-2.5 ml-1 inline-block text-foreground fill-foreground transition-transform"
+    :class="dir === 'asc' ? '' : 'rotate-180'"
+  />
 </template>
- 
+
 <script setup>
-import { ChevronUp, ChevronDown } from 'lucide-vue-next'
- 
-defineProps({
+import { computed } from 'vue'
+import { Triangle } from 'lucide-vue-next'
+
+const props = defineProps({
   field:   { type: String, required: true },
   current: { type: String, default: '' },
   dir:     { type: String, default: 'desc' },
 })
+
+const isActive = computed(() => props.current === props.field)
 </script>

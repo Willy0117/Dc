@@ -19,17 +19,46 @@
           </SelectContent>
         </Select>
 
-        <Select v-model="form.organization_id" @update:modelValue="submitSearch">
-          <SelectTrigger class="w-48 h-9">
-            <SelectValue placeholder="施設を選択" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべての施設</SelectItem>
-            <SelectItem v-for="org in organizations" :key="org.id" :value="org.id">
-              {{ org.name }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <!-- 契約先：コンボボックス（入力で絞り込み） -->
+        <Popover v-model:open="orgPopoverOpen">
+          <PopoverTrigger as-child>
+            <Button
+              variant="outline"
+              role="combobox"
+              :aria-expanded="orgPopoverOpen"
+              class="w-56 h-9 justify-between font-normal"
+            >
+              <span class="truncate">{{ selectedOrgLabel }}</span>
+              <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-56 p-0">
+            <Command>
+              <CommandInput placeholder="施設名で検索..." />
+              <CommandList>
+                <CommandEmpty>該当する施設がありません</CommandEmpty>
+                <CommandGroup>
+                  <CommandItem
+                    value="all"
+                    @select="selectOrganization('all')"
+                  >
+                    <Check class="mr-2 h-4 w-4" :class="form.organization_id === 'all' ? 'opacity-100' : 'opacity-0'" />
+                    すべての施設
+                  </CommandItem>
+                  <CommandItem
+                    v-for="org in organizations"
+                    :key="org.id"
+                    :value="org.name"
+                    @select="selectOrganization(org.id)"
+                  >
+                    <Check class="mr-2 h-4 w-4" :class="form.organization_id === org.id ? 'opacity-100' : 'opacity-0'" />
+                    {{ org.name }}
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
         <Input v-model="form.submitted_from" type="date" class="h-9 w-40" @change="submitSearch" />
         <span class="text-muted-foreground text-sm">〜</span>
@@ -45,11 +74,30 @@
         <table class="w-full text-sm">
           <thead class="bg-muted border-b">
             <tr>
-              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">報告日</th>
-              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">施設名</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('submitted_at')">
+                報告日
+                <SortIcon field="submitted_at" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('organization_name')">
+                施設名
+                <SortIcon field="organization_name" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">先生</th>
-              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">治療部位</th>
-              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">患者</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('treatment_area')">
+                治療部位
+                <SortIcon field="treatment_area" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">
+                患者
+                <span class="inline-flex items-center gap-2 ml-1">
+                  <span class="cursor-pointer hover:text-foreground transition-colors" @click="sortBy('patient_gender')">
+                    性別<SortIcon field="patient_gender" :current="form.sort_by" :dir="form.sort_dir" />
+                  </span>
+                  <span class="cursor-pointer hover:text-foreground transition-colors" @click="sortBy('patient_age_group')">
+                    年代<SortIcon field="patient_age_group" :current="form.sort_by" :dir="form.sort_dir" />
+                  </span>
+                </span>
+              </th>
               <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">トラブル</th>
               <th class="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">操作</th>
             </tr>
@@ -121,16 +169,19 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import dayjs from 'dayjs'
-import { Eye, Trash2 } from 'lucide-vue-next'
+import { Eye, Trash2, ChevronsUpDown, Check } from 'lucide-vue-next'
 import AppLayout  from '@/Layouts/Admin/AppLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
+import SortIcon   from '@/Components/SortIcon.vue'
 import { Button } from '@/components/ui/button'
 import { Badge }  from '@/components/ui/badge'
 import { Input }  from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 
 const props = defineProps({
   reports:        Object,
@@ -144,7 +195,23 @@ const form = reactive({
   organization_id: props.filters.organization_id ?? 'all',
   submitted_from:  props.filters.submitted_from  ?? '',
   submitted_to:    props.filters.submitted_to    ?? '',
+  sort_by:         props.filters.sort_by         ?? 'submitted_at',
+  sort_dir:        props.filters.sort_dir        ?? 'desc',
 })
+
+const orgPopoverOpen = ref(false)
+
+const selectedOrgLabel = computed(() => {
+  if (form.organization_id === 'all' || !form.organization_id) return 'すべての施設'
+  const org = props.organizations.find(o => o.id === form.organization_id)
+  return org?.name ?? 'すべての施設'
+})
+
+function selectOrganization(id) {
+  form.organization_id = id
+  orgPopoverOpen.value = false
+  submitSearch()
+}
 
 const submitSearch = () => {
   router.get(route('admin.case-reports.index'), {
@@ -159,11 +226,23 @@ const resetSearch = () => {
   form.organization_id = 'all'
   form.submitted_from  = ''
   form.submitted_to    = ''
+  form.sort_by         = 'submitted_at'
+  form.sort_dir         = 'desc'
   submitSearch()
 }
 
 const goPage = (page) => {
   router.get(route('admin.case-reports.index'), { ...form, page }, { preserveState: true })
+}
+
+const sortBy = (field) => {
+  if (form.sort_by === field) {
+    form.sort_dir = form.sort_dir === 'asc' ? 'desc' : 'asc'
+  } else {
+    form.sort_by  = field
+    form.sort_dir = 'desc'
+  }
+  submitSearch()
 }
 
 const destroy = (report) => {
