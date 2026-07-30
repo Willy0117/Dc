@@ -9,32 +9,60 @@ use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SetLocaleController;
 use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\Admin\MemberController as AdminMemberController;
-use App\Http\Controllers\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Admin\WebhookLogController;
-use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\StripeController;
-use App\Http\Controllers\Admin\LicenseFeeController;
+use App\Http\Controllers\Admin\StorageController;
+use App\Http\Controllers\Admin\CertificateController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\QuestionController;
+use App\Http\Controllers\Admin\VideoController;
+use App\Http\Controllers\Admin\VideoSetController;
 
-use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\ProductController;
 
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 
-Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\ViewingController;
+use App\Http\Controllers\CertificateDownloadController;
+use App\Http\Controllers\VideoDownloadController;
 
-Route::get('/compose-image', [\App\Http\Controllers\PrintController::class, 'composeImage'])->name('composeImage');
+// ── 商品ページ・決済 ─────────────────────────
+Route::post('/products/{videoSet}/checkout', [ProductController::class, 'checkout'])->name('products.checkout');
 
-Route::prefix('applications')->name('applications.')->group(function () {
-    Route::get('/register',  [\App\Http\Controllers\ApplicationController::class, 'register'])->name('register');
-    Route::post('/register', [\App\Http\Controllers\ApplicationController::class, 'registerStore'])->name('register.store');
-    Route::get('/confirm',   [\App\Http\Controllers\ApplicationController::class, 'confirm'])->name('confirm');
-    Route::get('/contract',  [\App\Http\Controllers\ApplicationController::class, 'contract'])->name('contract');
-    Route::post('/sign',     [\App\Http\Controllers\ApplicationController::class, 'sign'])->name('sign');
-    Route::get('/complete',  [\App\Http\Controllers\ApplicationController::class, 'complete'])->name('complete');
-    Route::get('/stripe-complete', [\App\Http\Controllers\ApplicationController::class, 'stripeComplete'])->name('stripe_complete');
+Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
+
+// ── Stripe Webhook（CSRF除外が必要。bootstrap/app.php or VerifyCsrfToken参照）
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
+
+// ── 証明書デザイン確認用（購入・視聴・テストを経由せずPDFを直接プレビュー）
+// 本番公開後は削除するか、認証必須に変更することを推奨
+Route::get('/dev/certificate-preview/{video}', [App\Http\Controllers\CertificatePreviewController::class, 'show'])->name('dev.certificate.preview');
+
+
+// ── 視聴サイト（token付きURL・ミドルウェアで認証）─────
+// テスト・証明書は「動画(講義)単位」。1講義＝1テスト＝1証明書。
+Route::middleware('order.token')->group(function () {
+    Route::get('/watch/{token}', [ViewingController::class, 'index'])->name('watch.index');
+    Route::post('/watch/{token}/complete', [ViewingController::class, 'markComplete'])->name('watch.complete');
+
+    Route::get('/watch/{token}/quiz/{video}', [QuizController::class, 'show'])->name('quiz.show');
+    Route::post('/watch/{token}/quiz/{video}/answer', [QuizController::class, 'answer'])->name('quiz.answer');
+
+    Route::get('/watch/{token}/certificate/{video}/download', [CertificateDownloadController::class, 'download'])->name('certificate.download');
+
+    // 視聴完了済みの動画のみダウンロード可能
+    Route::get('/watch/{token}/video/{video}/download', [VideoDownloadController::class, 'download'])->name('video.download');
+
+    Route::get('/watch/{token}/video/{video}/material', [VideoDownloadController::class, 'material'])->name('video.material');
 });
+
+
+Route::get('/', [ProductController::class, 'index'])->name('products.index');
+
 
 Route::prefix('admin')->name('admin.')->group(function () {
 
@@ -51,8 +79,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\Admin\AuthController::class, 'logout'])
             ->name('logout');
 
-        Route::get('/dashboard', fn () => inertia('Admin/Dashboard'))
-            ->name('dashboard');
+        Route::get('/dashboard', [OrderController::class, 'dashboard'])->name('dashboard');
+
+//        Route::get('/dashboard', fn () => inertia('Admin/Dashboard'))
+//            ->name('dashboard');
         // Tenant
         Route::resource('tenants', \App\Http\Controllers\Admin\TenantController::class);
         Route::post('tenants/bulk-delete', [\App\Http\Controllers\Admin\TenantController::class, 'bulkDelete'])->name('tenants.bulkDelete');
@@ -63,54 +93,29 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('permissions', \App\Http\Controllers\Admin\PermissionController::class);
         Route::post('permissions/bulk-delete', [\App\Http\Controllers\Admin\PermissionController::class, 'bulkDelete'])->name('permissions.bulkDelete');
         Route::post('permissions/assign', [\App\Http\Controllers\Admin\PermissionController::class, 'assign'])->name('permissions.assign');
-        // user
-        Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+            Route::resource('video-sets', VideoSetController::class)
+        ->except(['show']); // 一覧・作成・編集・更新・削除
+
+        Route::post('video-sets/{videoSet}/videos', [VideoController::class, 'store'])->name('video-sets.videos.store');
+        Route::put('video-sets/{videoSet}/videos/{video}', [VideoController::class, 'update'])->name('video-sets.videos.update');
+        Route::delete('video-sets/{videoSet}/videos/{video}', [VideoController::class, 'destroy'])->name('video-sets.videos.destroy');
+
+        Route::post('video-sets/{videoSet}/videos/{video}/questions', [QuestionController::class, 'store'])->name('video-sets.videos.questions.store');
+        Route::put('video-sets/{videoSet}/videos/{video}/questions/{question}', [QuestionController::class, 'update'])->name('video-sets.videos.questions.update');
+        Route::delete('video-sets/{videoSet}/videos/{video}/questions/{question}', [QuestionController::class, 'destroy'])->name('video-sets.videos.questions.destroy');
+
+        Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/export', [OrderController::class, 'export'])->name('orders.export');
+        Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+        Route::get('certificates', [CertificateController::class, 'index'])->name('certificates.index');
+        Route::get('certificates/{certificate}/download', [CertificateController::class, 'download'])->name('certificates.download');
         // admin
         Route::resource('admins', \App\Http\Controllers\Admin\AdminController::class);
-        // Members
-        Route::get('members/organizations/search', [\App\Http\Controllers\Admin\MemberController::class, 'searchOrganizations'])->name('members.organizations.search');
-        Route::post('members/bulk-delete', [\App\Http\Controllers\Admin\MemberController::class, 'bulkDelete'])->name('members.bulkDelete');
-        Route::patch('members/{member}/status', [\App\Http\Controllers\Admin\MemberController::class, 'updateStatus'])->name('members.updateStatus');
-        Route::resource('members', \App\Http\Controllers\Admin\MemberController::class);
-
-        // Organizations
-        Route::get('organizations/create', [\App\Http\Controllers\Admin\OrganizationController::class, 'edit'])->name('organizations.create');
-        Route::resource('organizations', \App\Http\Controllers\Admin\OrganizationController::class)->except(['create']);
-        Route::post('organizations/bulk-delete', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkDelete'])->name('organizations.bulkDelete');
-        Route::post('organizations/{organization}/send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'sendInvitation'])->name('organizations.send-invitation');
-        Route::post('organizations/bulk-send-invitation', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendInvitation'])->name('organizations.bulk-send-invitation');
-        // ━━━ リマインダーメール一括送信 ━━━
-        Route::post('organizations/bulk-send-reminder', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendReminder'])
-            ->name('organizations.bulk-send-reminder');
-
-        // ━━━ 自由記述メール一括送信 ━━━
-        Route::post('organizations/bulk-send-mail', [\App\Http\Controllers\Admin\OrganizationController::class, 'bulkSendMail'])
-            ->name('organizations.bulk-send-mail');
-            
-        Route::get('organizations/{organization}/fee', [\App\Http\Controllers\Admin\OrganizationController::class, 'fee'])->name('organizations.fee');
-        Route::post('organizations/{id}/license', [\App\Http\Controllers\Admin\OrganizationController::class, 'issueLicense'])->name('organizations.license');
-        Route::post('organizations/{id}/license/mail', [\App\Http\Controllers\Admin\OrganizationController::class, 'mailLicense'])->name('organizations.license.mail');
-        Route::post('organizations/invoice', [\App\Http\Controllers\Admin\OrganizationController::class, 'createInvoice'])->name('organizations.invoice');
-
-        Route::post('organizations/stripe-payment', [\App\Http\Controllers\Admin\OrganizationController::class, 'createStripePayment'])->name('organizations.stripe_payment');
         //        Route::resource('organizations', \App\Http\Controllers\Admin\OrganizationController::class);
         Route::get('webhook-logs/unread-count', [WebhookLogController::class, 'unreadCount'])->name('webhook_logs.unread_count');
         Route::get('webhook-logs', [WebhookLogController::class, 'index'])->name('webhook_logs.index');
         Route::post('webhook-logs/mark-all-read', [WebhookLogController::class, 'markAllRead'])->name('webhook_logs.mark_all_read');
-        // ──────────────────────────────────────────────────────────────
-        // ライセンス料金マスター
-        // ──────────────────────────────────────────────────────────────
-        Route::get('license-fees', [LicenseFeeController::class, 'index'])->name('license-fees.index');
-        Route::post('license-fees', [LicenseFeeController::class, 'store'])->name('license-fees.store');
-        // ──────────────────────────────────────────────────────────────
-        // 請求書
-        // ──────────────────────────────────────────────────────────────
-        Route::resource('invoices', InvoiceController::class)
-            ->only(['index', 'show', 'update', 'destroy']);
-        
-        Route::post('invoices/{invoice}/resend-email',
-            [InvoiceController::class, 'resendEmail']
-        )->name('invoices.resendEmail');
         
         // ──────────────────────────────────────────────────────────────
         // Stripe 管理
@@ -123,83 +128,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::post('stripe/{invoice}/resend-email', [\App\Http\Controllers\Admin\StripeController::class, 'resendEmail'])->name('stripe.resendEmail');
 
-        Route::prefix('member')->name('member.')->group(function () {
+        Route::get('storage', [\App\Http\Controllers\Admin\StorageController::class, 'index'])->name('storage.index');
 
-        Route::get('/', [AdminMemberController::class, 'index'])->name('index');
-            Route::get('/pdf/{id}', [AdminMemberController::class, 'pdfPreview'])->name('pdf.preview');
-            Route::get('/{member}', [AdminMemberController::class, 'show'])->name('show');
-            Route::get('/{member}/edit', [AdminMemberController::class, 'edit'])->name('edit');
-            Route::put('/{member}', [AdminMemberController::class, 'update'])->name('update');
-            // routes/admin
-            Route::get('{member}/status/edit', [AdminMemberController::class, 'editStatus'])
-                ->name('editStatus');
-
-            Route::put('{member}/status', [AdminMemberController::class, 'updateStatus'])
-                ->name('updateStatus');
-
-            Route::get('/{member}/progress/edit', [AdminMemberController::class, 'editProgress'])
-                ->name('editProgress');
-            Route::put('/{member}/progress', [AdminMemberController::class, 'updateProgress'])
-                ->name('updateProgress');
-            Route::post('/{member}/upload-document', [AdminMemberController::class, 'uploadDocument'])
-                ->name('uploadDocument');
-              
-        });
     });
 });
 
-// 未ログインユーザー用
-//Route::middleware('guest:web')->group(function () {
-//    Route::get('/login', [\App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
-//    Route::post('/login', [\App\Http\Controllers\Auth\LoginController::class, 'login']);
-//});
-
-
-
-Route::get('/test-mail', function () {
-    $pdfPath = 'poem/pdf/P00000002.pdf';
-    $filePath = Storage::path($pdfPath);
-
-    // 確認（最初だけ）
-    if (!file_exists($filePath)) {
-        dd('ファイルが存在しない', $filePath);
-    }
-
-    \Mail::raw('PDF添付テストです', function ($message) use ($filePath) {
-        $message->to('dev@coo-net.co.jp')
-                ->subject('PDF添付テスト')
-                ->attach($filePath);
-    });
-
-    return 'sent';
-});
-
-Route::get('/debug-secure', function () {
-    return [
-        'secure' => request()->secure(),
-        'url' => request()->fullUrl(),
-        'scheme' => request()->getScheme(),
-    ];
-});
-
-Route::get('/zipcode/{zip}', function ($zip) {
-    $zip = preg_replace('/[^0-9]/', '', $zip);
-
-    if (strlen($zip) !== 7) {
-        return response()->json(['results' => []]);
-    }
-
-    $response = Http::get(
-        'https://zipcloud.ibsnet.co.jp/api/search',
-        ['zipcode' => $zip]
-    );
-
-    return $response->json();
-});
-
-Route::get('/insurance-simulation', function () {
-    return Inertia::render('InsuranceSimulation');
-});
 
 Route::post('/locale', function (Request $request) {
     $locale = $request->input('locale', 'en');
@@ -216,12 +149,3 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 });
-/*
-Route::middleware([
-    'auth:sanctum',
-    config('jetstream.auth_session'),
-    'verified',
-])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-});
-*/

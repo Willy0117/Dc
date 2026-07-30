@@ -10,11 +10,6 @@ use App\Http\Controllers\InsuranceSimulationController;
 use App\Models\Organization;
 use App\Models\Member;
 use App\Models\PdfUpload;
-use App\Http\Controllers\CloudSignWebhookController;
-
-// CSRFを除外するためapi.phpに記載
-Route::post('/webhook/cloudsign', [CloudSignWebhookController::class, 'handle']);
-// routes/web.php の admin グループ内に追記
 
 Route::get('/dashboard/stats', function () {
     return response()->json([

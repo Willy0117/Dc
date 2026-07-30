@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>オンデマンドセミナー申込サイト デザイン案</title>
+<style>
+@page { size: A4; margin: 12mm; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Noto Sans CJK JP", "Noto Sans JP", "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
+  color: #24313d;
+  background: #ffffff;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.page {
+  min-height: calc(297mm - 24mm);
+  page-break-after: always;
+  background: linear-gradient(180deg, #f2f8fb 0%, #ffffff 72%);
+  border: 1px solid #d8e8ef;
+  border-radius: 16px;
+  padding: 18px 22px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.page:last-child { page-break-after: auto; }
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.logo { width: 230px; height: auto; display: block; }
+.kicker {
+  display: inline-block;
+  background: #0a6fae;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.hero {
+  background: #ffffff;
+  border: 1px solid #d5e9f0;
+  border-radius: 18px;
+  padding: 28px 28px 24px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(23, 83, 112, .07);
+}
+h1 {
+  margin: 12px 0 14px;
+  font-size: 29px;
+  line-height: 1.45;
+  color: #005a91;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.lead {
+  max-width: 820px;
+  margin: 0 auto;
+  font-size: 15.5px;
+  color: #374553;
+}
+.points {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 18px 0 22px;
+}
+.point {
+  background: #ffffff;
+  border: 1px solid #d5e9f0;
+  border-radius: 14px;
+  padding: 13px 10px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(23, 83, 112, .05);
+  min-height: 76px;
+}
+.point .big { color: #007096; font-weight: 800; font-size: 15px; display: block; margin-bottom: 4px; }
+.point .small { font-size: 12.5px; color: #53616d; }
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 16px;
+  color: #005a91;
+  font-size: 22px;
+  font-weight: 800;
+}
+.section-title::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 28px;
+  border-radius: 99px;
+  background: #78c2b3;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.summary-card {
+  background: #fff;
+  border: 1px solid #d5e9f0;
+  border-radius: 14px;
+  padding: 15px 12px;
+  min-height: 126px;
+}
+.summary-card strong { display: block; color: #005a91; font-size: 16px; margin-bottom: 7px; }
+.summary-card span { font-size: 12.5px; color: #53616d; }
+.flow-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+.flow-step {
+  background: #ffffff;
+  border: 1px solid #d5e9f0;
+  border-radius: 16px;
+  padding: 17px;
+  position: relative;
+  min-height: 122px;
+}
+.step-no {
+  width: 32px; height: 32px; border-radius: 50%; background: #78c2b3; color: white;
+  font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 9px;
+}
+.flow-step h3 { margin: 0 0 8px; color: #005a91; font-size: 17px; }
+.flow-step p { margin: 0; font-size: 12.8px; color: #485662; }
+.note {
+  margin-top: 16px;
+  background: #fff8e8;
+  border-left: 5px solid #e8bb52;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #5e4a1a;
+  font-size: 13px;
+}
+.card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.set-card {
+  page-break-inside: avoid;
+  break-inside: avoid;
+  background: #ffffff;
+  border: 1.5px solid #d5e9f0;
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 8px 22px rgba(23, 83, 112, .07);
+  min-height: 505px;
+  display: flex;
+  flex-direction: column;
+}
+.badge {
+  display: inline-block;
+  width: fit-content;
+  color: #fff;
+  background: #0a6fae;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+.set-card h2 { margin: 0 0 6px; color: #005a91; font-size: 22px; line-height: 1.35; }
+.theme { color: #53616d; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+.set-card ul { margin: 8px 0 14px; padding-left: 1.2em; }
+.set-card li { margin: 6px 0; font-size: 13.4px; line-height: 1.55; }
+.meta {
+  margin-top: auto;
+  background: #f2f8fb;
+  color: #005a91;
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-size: 14px;
+  font-weight: 800;
+}
+.btn {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  background: #9ed9cc;
+  border: 1px solid #78c2b3;
+  color: #0b4c5d;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 4px 0 rgba(120, 194, 179, .35);
+}
+.btn::after { content: " ＞"; }
+.form-panel {
+  background: #fff;
+  border: 1px solid #d5e9f0;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 8px 22px rgba(23, 83, 112, .06);
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.field {
+  background: #f9fcfd;
+  border: 1px dashed #b7d7df;
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 58px;
+}
+.field strong { display: block; color: #005a91; font-size: 13px; margin-bottom: 3px; }
+.field span { color: #7b8790; font-size: 12px; }
+.warning {
+  margin-top: 15px;
+  background: #fff4f4;
+  border: 1px solid #efc4c4;
+  border-radius: 14px;
+  padding: 13px 15px;
+  color: #9a2b2b;
+  font-weight: 700;
+  font-size: 13px;
+}
+.footer {
+  position: static;
+  margin-top: 18px;
+  border-top: 1px solid #dcebf0;
+  padding-top: 8px;
+  color: #7b8790;
+  font-size: 10.5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.footer b { color: #005a91; }
+</style>
+</head>
+<body>
+<section class="page">
+  <div class="header">
+    <span class="kicker">オンデマンド配信 / 申込サイトデザイン案</span>
+    <img class="logo" src="qsh_logo_crop.png" alt="医療の質・安全学会 ロゴ">
+  </div>
+  <div class="hero">
+    <span class="kicker">これから医療安全管理に携わる方へ</span>
+    <h1>これから医療安全管理に携わる方のための<br>オンデマンドセミナー</h1>
+    <p class="lead">医療安全管理に必要な基本的知識を、テーマ別の4セットに分けて学べるオンデマンドセミナーです。各セットは配信期間内であれば繰り返し視聴可能です。</p>
+  </div>
+  <div class="points">
+    <div class="point"><span class="big">各セット 9,900円</span><span class="small">税込価格</span></div>
+    <div class="point"><span class="big">学会員以外も受講可能</span><span class="small">どなたでも申込可能</span></div>
+    <div class="point"><span class="big">受講証明書を発行</span><span class="small">受講講義ごとに対応</span></div>
+    <div class="point"><span class="big">繰り返し視聴可能</span><span class="small">配信期間内のみ</span></div>
+  </div>
+  <h2 class="section-title">受講セットを選択してください</h2>
+  <div class="summary-grid">
+    <div class="summary-card"><strong>セットA</strong><span>医療安全の基本的知識<br>基礎知識・ヒューマンエラー・質改善</span></div>
+    <div class="summary-card"><strong>セットB</strong><span>医療安全の基本的知識<br>制度・事業・地域連携</span></div>
+    <div class="summary-card"><strong>セットC</strong><span>安全管理体制の構築<br>リーダーシップ・役割・実践</span></div>
+    <div class="summary-card"><strong>セットD</strong><span>安全管理体制の構築<br>組織的な安全対策</span></div>
+  </div>
+  <h2 class="section-title">お申込みの流れ</h2>
+  <div class="flow-wrap">
+    <div class="flow-step"><div class="step-no">1</div><h3>セット選択</h3><p>A・B・C・Dから希望するセットを選択します。</p></div>
+    <div class="flow-step"><div class="step-no">2</div><h3>申込者情報入力</h3><p>氏名、所属、TEL、E-mailを入力します。</p></div>
+    <div class="flow-step"><div class="step-no">3</div><h3>決済フォームへ</h3><p>入力内容を確認後、決済フォームへ進みます。</p></div>
+  </div>
+  <div class="note">このPDFはWebデザイナー・システムエンジニア向けの画面イメージです。実装時は各ボタンを実際の申込フォームまたは決済連携URLに接続してください。</div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <span class="kicker">受講セット詳細</span>
+    <img class="logo" src="qsh_logo_crop.png" alt="医療の質・安全学会 ロゴ">
+  </div>
+  <h2 class="section-title">医療安全の基本的知識</h2>
+  <div class="card-grid">
+    <article class="set-card">
+      <span class="badge">セットA</span>
+      <h2>医療安全の基本的知識</h2>
+      <div class="theme">基礎知識・ヒューマンエラー・質改善</div>
+      <ul>
+        <li>医療安全の歴史から理解する基本知識</li>
+        <li>ヒューマンエラー防止の心理学</li>
+        <li>レジリエンス・エンジニアリング</li>
+        <li>質改善・品質管理</li>
+        <li>業務プロセスの整備</li>
+      </ul>
+      <div class="meta">全5講義 / 合計315分</div>
+      <a class="btn" href="#">このセットを申し込む</a>
+    </article>
+    <article class="set-card">
+      <span class="badge">セットB</span>
+      <h2>医療安全の基本的知識</h2>
+      <div class="theme">制度・事業・地域連携</div>
+      <ul>
+        <li>医療安全施策の動向</li>
+        <li>医療事故情報収集等事業</li>
+        <li>医薬品副作用被害救済制度</li>
+        <li>医療事故調査制度</li>
+        <li>労働衛生</li>
+        <li>地域連携</li>
+      </ul>
+      <div class="meta">全6講義 / 合計210分</div>
+      <a class="btn" href="#">このセットを申し込む</a>
+    </article>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <span class="kicker">受講セット詳細</span>
+    <img class="logo" src="qsh_logo_crop.png" alt="医療の質・安全学会 ロゴ">
+  </div>
+  <h2 class="section-title">安全管理体制の構築</h2>
+  <div class="card-grid">
+    <article class="set-card">
+      <span class="badge">セットC</span>
+      <h2>安全管理体制の構築</h2>
+      <div class="theme">リーダーシップ・役割・実践</div>
+      <ul>
+        <li>医療安全管理者のリーダーシップ</li>
+        <li>医療安全管理者に求められる能力と役割</li>
+        <li>チーム医療と心理的安全性</li>
+        <li>医療安全管理者としての実践</li>
+        <li>少人数体制で実践する医療安全管理</li>
+      </ul>
+      <div class="meta">全5講義 / 合計270分</div>
+      <a class="btn" href="#">このセットを申し込む</a>
+    </article>
+    <article class="set-card">
+      <span class="badge">セットD</span>
+      <h2>安全管理体制の構築</h2>
+      <div class="theme">組織的な安全対策</div>
+      <ul>
+        <li>医療機器の安全管理</li>
+        <li>医薬品の安全管理</li>
+        <li>診療用放射線の安全管理</li>
+        <li>診療情報と安全管理</li>
+        <li>高難度新規医療技術</li>
+      </ul>
+      <div class="meta">全5講義 / 合計210分</div>
+      <a class="btn" href="#">このセットを申し込む</a>
+    </article>
+  </div>
+</section>
+
+<section class="page">
+  <div class="header">
+    <span class="kicker">申込フォーム・決済導線</span>
+    <img class="logo" src="qsh_logo_crop.png" alt="医療の質・安全学会 ロゴ">
+  </div>
+  <h2 class="section-title">申込者情報入力フォーム</h2>
+  <div class="form-panel">
+    <p>ご希望のセットを選択すると、申込者情報の入力フォームへ進みます。以下の項目を入力後、決済フォームに進む構成を想定しています。</p>
+    <div class="form-grid">
+      <div class="field"><strong>選択セット</strong><span>A / B / C / Dを自動反映</span></div>
+      <div class="field"><strong>申込者氏名</strong><span>例：山田 太郎</span></div>
+      <div class="field"><strong>所属</strong><span>例：○○病院 医療安全管理室</span></div>
+      <div class="field"><strong>TEL</strong><span>例：03-0000-0000</span></div>
+      <div class="field"><strong>E-mail</strong><span>例：sample@example.com</span></div>
+      <div class="field"><strong>決済連携</strong><span>入力内容確認後、決済フォームへ遷移</span></div>
+    </div>
+    <div class="note">決済完了後、視聴方法に関する案内メールを送信します。実装時は、自動返信メール・決済完了通知・管理者通知の3点を確認してください。</div>
+    <div class="warning">注意：本研修を受講しても、診療報酬「医療安全対策加算」の施設基準に必要な医療安全管理者養成研修を受講したことにはなりません。</div>
+  </div>
+  <h2 class="section-title">実装時の確認事項</h2>
+  <div class="summary-grid">
+    <div class="summary-card"><strong>フォーム</strong><span>セット名を自動取得し、申込者情報と紐づける。</span></div>
+    <div class="summary-card"><strong>決済</strong><span>各セット税込9,900円で決済画面へ接続する。</span></div>
+    <div class="summary-card"><strong>通知</strong><span>申込者・管理者双方に確認メールを送信する。</span></div>
+    <div class="summary-card"><strong>視聴案内</strong><span>決済完了後に視聴URLまたはログイン案内を送付する。</span></div>
+  </div>
+</section>
+</body>
+</html>

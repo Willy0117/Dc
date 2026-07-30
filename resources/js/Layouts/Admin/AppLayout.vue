@@ -126,7 +126,7 @@
     </div>
     </div>
     <!-- footer -->
-    <ApplicationFooter />
+    <!-- ApplicationFooter / -->
   </div>    
 </template>
 

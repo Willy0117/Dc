@@ -44,19 +44,19 @@
           <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
         </Link>
 
-        <!-- Members サブメニュー -->
-        <div v-if="canAccessMenu('members')" class="mt-2">
+        <!-- 動画講習 サブメニュー -->
+        <div v-if="canAccessMenu('video_seminar')" class="mt-2">
           <button
-            @click="toggleSubMenu('members')"
+            @click="toggleSubMenu('video_seminar')"
             class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
           >
             <div class="flex items-center">
-              <Users class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('member') }}</span>
+              <GraduationCap class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">動画講習</span>
             </div>
             <svg
               v-if="!collapsed"
-              :class="{ 'rotate-90': openSubMenu === 'members' }"
+              :class="{ 'rotate-90': openSubMenu === 'video_seminar' }"
               class="w-4 h-4 transform transition-transform duration-200"
               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
             >
@@ -64,90 +64,33 @@
             </svg>
           </button>
           <transition name="slide-fade">
-            <div v-show="openSubMenu === 'members' && !collapsed" class="pl-6 mt-1 space-y-1">
+            <div v-show="openSubMenu === 'video_seminar' && !collapsed" class="pl-6 mt-1 space-y-1">
               <Link
-                :href="route('admin.members.index')"
+                v-if="can('video-sets.view') || can('video-sets.update')"
+                :href="route('admin.video-sets.index')"
                 class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                :class="isActive('admin.members.index') ? 'bg-gray-200 font-semibold' : ''"
+                :class="isActive('admin.video-sets.index') ? 'bg-gray-200 font-semibold' : ''"
               >
-                <Users class="w-4 h-4 mr-1"/>
-                {{ t('member') }}
-              </Link>
-            </div>
-          </transition>
-        </div>
-
-        <!-- Organizations サブメニュー -->
-        <div v-if="canAccessMenu('organizations')" class="mt-2">
-          <button
-            @click="toggleSubMenu('organizations')"
-            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-          >
-            <div class="flex items-center">
-              <Building2 class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('契約先') }}</span>
-            </div>
-            <svg
-              v-if="!collapsed"
-              :class="{ 'rotate-90': openSubMenu === 'organizations' }"
-              class="w-4 h-4 transform transition-transform duration-200"
-              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <transition name="slide-fade">
-            <div v-show="openSubMenu === 'organizations' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link
-                :href="route('admin.organizations.index')"
-                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                :class="isActive('admin.organizations.index') ? 'bg-gray-200 font-semibold' : ''"
-              >
-                <Building2 class="w-4 h-4 mr-1"/>
-                {{ t('契約先') }}
-              </Link>
-            </div>
-          </transition>
-        </div>
-
-        <!-- 請求 サブメニュー -->
-        <div v-if="canAccessMenu('billing')" class="mt-2">
-          <button
-            @click="toggleSubMenu('billing')"
-            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-          >
-            <div class="flex items-center">
-              <FileText class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">請求</span>
-            </div>
-            <svg
-              v-if="!collapsed"
-              :class="{ 'rotate-90': openSubMenu === 'billing' }"
-              class="w-4 h-4 transform transition-transform duration-200"
-              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <transition name="slide-fade">
-            <div v-show="openSubMenu === 'billing' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link
-                v-if="can('invoice.view') || can('invoice.edit')"
-                :href="route('admin.invoices.index')"
-                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                :class="isActive('admin.invoices.index') ? 'bg-gray-200 font-semibold' : ''"
-              >
-                <FileText class="w-4 h-4 mr-1"/>
-                請求書一覧
+                <GraduationCap class="w-4 h-4 mr-1"/>
+                動画セット
               </Link>
               <Link
-                v-if="can('stripe.view') || can('stripe.edit')"
-                :href="route('admin.stripe.index')"
+                v-if="can('orders.view')"
+                :href="route('admin.orders.index')"
                 class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                :class="isActive('admin.stripe.index') ? 'bg-gray-200 font-semibold' : ''"
+                :class="isActive('admin.orders.index') ? 'bg-gray-200 font-semibold' : ''"
               >
-                <CreditCard class="w-4 h-4 mr-1"/>
-                Stripe支払い
+                <Receipt class="w-4 h-4 mr-1"/>
+                注文一覧
+              </Link>
+              <Link
+                v-if="can('certificates.view')"
+                :href="route('admin.certificates.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.certificates.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <Award class="w-4 h-4 mr-1"/>
+                発行済み証明書
               </Link>
             </div>
           </transition>
@@ -268,39 +211,6 @@
           </transition>
         </div>
 
-        <!-- Users サブメニュー -->
-        <div v-if="canAccessMenu('users')" class="mt-2">
-          <button
-            @click="toggleSubMenu('users')"
-            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-          >
-            <div class="flex items-center">
-              <Users class="w-5 h-5"/>
-              <span v-if="!collapsed" class="ml-2">{{ t('user') }}</span>
-            </div>
-            <svg
-              v-if="!collapsed"
-              :class="{ 'rotate-90': openSubMenu === 'users' }"
-              class="w-4 h-4 transform transition-transform duration-200"
-              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          <transition name="slide-fade">
-            <div v-show="openSubMenu === 'users' && !collapsed" class="pl-6 mt-1 space-y-1">
-              <Link
-                :href="route('admin.users.index')"
-                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-                :class="isActive('admin.users.index') ? 'bg-gray-200 font-semibold' : ''"
-              >
-                <Users class="w-4 h-4 mr-1"/>
-                {{ t('user') }}
-              </Link>
-            </div>
-          </transition>
-        </div>
-
       </nav>
     </aside>
 
@@ -322,11 +232,10 @@ import {
   X, Key, GraduationCap, Receipt,
   FileCheck,
   RefreshCw,
-  FileText, BadgeDollarSign,
-  CreditCard,
+  BadgeDollarSign,
   Calendar,
   CheckCircle2,
-  ArrowLeft, Settings
+  ArrowLeft, Settings, HardDrive
 } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 
@@ -350,13 +259,10 @@ const can = (permission) => {
 
 // メニューごとに必要なpermissionを定義
 const menuPermissions = {
-  members:       ['member.view',       'member.edit'],
-  organizations: ['organization.view', 'organization.edit'],
-  billing:       ['invoice.view',      'invoice.edit', 'stripe.view', 'stripe.edit'],
   license_fees:  ['license-fee.view',  'license-fee.edit'],
   access:        ['tenant.view',       'tenant.edit', 'role.view', 'role.edit', 'permission.view', 'permission.edit'],
   admins:        ['admin.view',        'admin.edit'],
-  users:         ['user.view',         'user.edit'],
+  video_seminar: ['video-sets.view', 'video-sets.update', 'video-sets.create', 'orders.view', 'certificates.view'],
 }
 
 // いずれか1つでも持っていればtrue
@@ -371,14 +277,13 @@ const groupMap = {
   tenants:       'access',
   roles:         'access',
   permissions:   'access',
-  invoices:      'billing',
-  stripe:        'billing',
-  license_fees:  'license_fees',
-  organizations: 'organizations',
   admins:        'admins',
+  'video-sets':  'video_seminar',
+  orders:        'video_seminar',
+  certificates:  'video_seminar',
 }
 
-const validMenus = ['members', 'organizations', 'users', 'access', 'billing', 'license_fees', 'admins']
+const validMenus = ['access', 'license_fees', 'admins', 'video_seminar']
 
 const detectMenu = () => {
   const current = route().current()
