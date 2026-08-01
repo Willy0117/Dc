@@ -23,10 +23,10 @@ class CaseReportController extends Controller
 
         $query = CaseReport::query()
             ->with(['organization', 'member'])
-            ->when($request->organization_id, fn($q) =>
+            ->when($request->organization_id && $request->organization_id !== 'all', fn($q) =>
                 $q->where('organization_id', $request->organization_id)
             )
-            ->when($request->treatment_area, fn($q) =>
+            ->when($request->treatment_area && $request->treatment_area !== 'all', fn($q) =>
                 $q->where('treatment_area', $request->treatment_area)
             )
             ->when($request->patient_gender, fn($q) =>

@@ -62,9 +62,8 @@
               </div>
             </div>
           </div>
-
+          <!--
           <div class="relative inline-block text-left">
-            <!-- トリガーボタン -->
             <button
               @click="open = !open"
               class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
@@ -84,7 +83,6 @@
               </svg>
             </button>
 
-            <!-- ドロップダウンメニュー -->
             <div
               v-if="open"
               class="absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
@@ -101,6 +99,7 @@
               </div>
             </div>
           </div>
+            --> 
           <span class="text-gray-700 font-medium">{{ user.name }}</span>
           <form @submit.prevent="logout">
             <button

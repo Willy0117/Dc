@@ -213,12 +213,16 @@ function selectOrganization(id) {
   submitSearch()
 }
 
+// 'all'は「フィルターなし」を意味する値なので、送信時は空文字に変換して統一する
+const persistQuery = (extra = {}) => ({
+  ...form,
+  treatment_area:  form.treatment_area  === 'all' ? '' : form.treatment_area,
+  organization_id: form.organization_id === 'all' ? '' : form.organization_id,
+  ...extra,
+})
+
 const submitSearch = () => {
-  router.get(route('admin.case-reports.index'), {
-    ...form,
-    treatment_area:  form.treatment_area  === 'all' ? '' : form.treatment_area,
-    organization_id: form.organization_id === 'all' ? '' : form.organization_id,
-  }, { preserveState: true, replace: true })
+  router.get(route('admin.case-reports.index'), persistQuery(), { preserveState: true, replace: true })
 }
 
 const resetSearch = () => {
@@ -232,7 +236,7 @@ const resetSearch = () => {
 }
 
 const goPage = (page) => {
-  router.get(route('admin.case-reports.index'), { ...form, page }, { preserveState: true })
+  router.get(route('admin.case-reports.index'), persistQuery({ page }), { preserveState: true })
 }
 
 const sortBy = (field) => {
