@@ -1,13 +1,23 @@
 <template>
   <div class="flex justify-between items-center mt-4">
-    <!-- 左端: Previous + ページ番号 + Next -->
+    <!-- 左端: 先頭へ + Previous + ページ番号 + Next + 最終へ -->
     <div class="flex space-x-1 items-center">
       <button
         :disabled="paginator.current_page === 1"
-        @click="changePage(paginator.current_page - 1)"
+        @click="changePage(1)"
+        title="先頭ページへ"
         class="px-2 py-1 border rounded hover:bg-gray-200 disabled:opacity-50"
       >
         «
+      </button>
+
+      <button
+        :disabled="paginator.current_page === 1"
+        @click="changePage(paginator.current_page - 1)"
+        title="前のページへ"
+        class="px-2 py-1 border rounded hover:bg-gray-200 disabled:opacity-50"
+      >
+        ‹
       </button>
 
       <template v-for="page in displayPages" :key="page.key">
@@ -27,6 +37,16 @@
       <button
         :disabled="paginator.current_page === paginator.last_page"
         @click="changePage(paginator.current_page + 1)"
+        title="次のページへ"
+        class="px-2 py-1 border rounded hover:bg-gray-200 disabled:opacity-50"
+      >
+        ›
+      </button>
+
+      <button
+        :disabled="paginator.current_page === paginator.last_page"
+        @click="changePage(paginator.last_page)"
+        title="最終ページへ"
         class="px-2 py-1 border rounded hover:bg-gray-200 disabled:opacity-50"
       >
         »

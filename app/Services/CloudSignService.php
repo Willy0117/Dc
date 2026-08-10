@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\CloudSignException;
 use App\Models\Application;
 use App\Models\ApplicationDocument;
 use App\Models\Organization;
@@ -46,7 +47,7 @@ class CloudSignService
                 'status' => $response->status(),
                 'body'   => $response->body(),
             ]);
-            throw new \RuntimeException('CloudSign: アクセストークン取得に失敗しました。');
+            throw new CloudSignException('CloudSign: アクセストークン取得に失敗しました。');
         }
 
         $this->accessToken = $response->json('access_token');
@@ -85,6 +86,25 @@ class CloudSignService
                 'type'           => ApplicationDocument::TYPE_AGREEMENT,
                 'file_path'      => $data['agreement_pdf_path'],
             ]);
+        }
+
+        // ──────────────────────────────────────────
+        // テスト環境用：クラウドサインAPIをスキップする
+        // .env の CLOUDSIGN_SKIP_SIGNING=true の場合、
+        // 実際のAPI通信を行わず「送信済み」扱いで即座に完了する
+        // ──────────────────────────────────────────
+        if (config('services.cloudsign.skip_signing')) {
+            $application->update([
+                'cloudsign_document_id' => 'SKIPPED-' . uniqid(),
+                'status'                => 1, // 送信済（本来のsendDocument後の状態と同じ）
+            ]);
+
+            Log::info('CloudSign: skip_signing設定によりAPI送信をスキップしました', [
+                'organization_id' => $organization->id,
+                'application_id'  => $application->id,
+            ]);
+
+            return;
         }
 
         // 3. クラウドサインへ送信
@@ -232,7 +252,7 @@ class CloudSignService
         $fileId   = $document['files'][0]['id'] ?? null;
 
         if (!$fileId) {
-            throw new \RuntimeException('CloudSign: 締結済みファイルのfileIDが取得できませんでした。');
+            throw new CloudSignException('CloudSign: 締結済みファイルのfileIDが取得できませんでした。');
         }
 
         return $this->downloadSignedFileById($documentId, $fileId, 0);
@@ -306,7 +326,7 @@ class CloudSignService
                 'body'   => $response->body(),
             ]);
 
-            throw new \RuntimeException(
+            throw new CloudSignException(
                 'CloudSign API エラー: ' . $response->status() . ' ' . $response->body()
             );
         }

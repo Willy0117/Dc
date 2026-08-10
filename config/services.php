@@ -49,6 +49,7 @@ return [
     'cloudsign' => [
         'client_id' => env('CLOUDSIGN_CLIENT_ID'),
         'api_url' => env('CLOUDSIGN_API_URL', 'https://api.cloudsign.jp'),
+        'skip_signing' => env('CLOUDSIGN_SKIP_SIGNING', false),
     ],
 
 ];

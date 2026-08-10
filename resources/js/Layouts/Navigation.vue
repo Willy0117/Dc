@@ -265,6 +265,14 @@ const showAccessControl = computed(() => {
         <span v-if="!collapsed" class="ml-2">ライセンス証ダウンロード</span>
       </Link>
 
+      <Link
+          :href="route('profile.edit')"
+          class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          :class="isActive('profile.edit') ? 'bg-gray-300 font-semibold' : ''">
+          <UserCog class="w-5 h-5 mr-1"/>
+          プロフィール編集
+      </Link>
+
 <!--      
       <Link :href="route('pdf-uploads.create')"
             class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"

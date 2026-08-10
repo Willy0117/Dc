@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>動注治療とは？｜痛みに、新しい治療の選択肢を</title>
+<meta name="description" content="動注治療について知りたい患者さんのための総合案内ページ。動注治療とは何か、どのような症状が治療選択肢として検討されるのか、治療の流れや注意点をわかりやすく紹介します。">
+<style>
+:root{
+  --navy:#0756a3;
+  --blue:#1477c9;
+  --sky:#edf6ff;
+  --light:#f6f9fc;
+  --text:#26353b;
+  --muted:#64747d;
+  --line:#dce7ef;
+  --white:#fff;
+  --accent:#31a7d8;
+  --shadow:0 18px 50px rgba(7,86,163,.10);
+  --radius:24px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;color:var(--text);background:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  line-height:1.85;
+}
+a{text-decoration:none;color:inherit}
+.container{width:min(1120px,calc(100% - 40px));margin:auto}
+.header{
+  position:absolute;top:0;left:0;right:0;z-index:10;
+  color:#fff;
+}
+.nav{height:82px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:18px;font-weight:800;letter-spacing:.08em}
+.logo span{display:block;font-size:11px;font-weight:400;letter-spacing:.16em;opacity:.85}
+.navlinks{display:flex;gap:27px;font-size:13px}
+.navlinks a{opacity:.92}
+.hero{
+  min-height:760px;display:flex;align-items:center;color:#fff;
+  background:
+    linear-gradient(105deg,rgba(4,48,94,.94),rgba(7,86,163,.84) 52%,rgba(49,167,216,.56)),
+    url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=2000&q=85") center/cover;
+}
+.hero-inner{padding:125px 0 95px;max-width:850px}
+.eyebrow{font-size:12px;letter-spacing:.2em;font-weight:800;opacity:.82;margin-bottom:18px}
+.hero h1{font-size:clamp(38px,5vw,67px);line-height:1.25;letter-spacing:.02em;margin:0 0 28px}
+.hero h1 em{font-style:normal;color:#a8e5ff}
+.hero p{font-size:18px;line-height:2.05;max-width:760px;margin:0 0 35px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:220px;padding:15px 25px;border-radius:999px;
+  font-size:14px;font-weight:800;transition:.2s
+}
+.btn.primary{background:#fff;color:var(--navy)}
+.btn.blue{background:var(--blue);color:#fff}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.10)}
+.section{padding:105px 0}
+.section.sky{background:var(--sky)}
+.section.light{background:var(--light)}
+.kicker{font-size:12px;letter-spacing:.18em;color:var(--blue);font-weight:900}
+.section-head{margin-bottom:52px}
+h2{font-size:clamp(31px,4vw,47px);line-height:1.35;color:var(--navy);margin:10px 0 17px}
+.lead{font-size:17px;color:var(--muted);max-width:780px}
+.symptoms{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:18px
+}
+.symptom{
+  background:#fff;border:1px solid var(--line);border-radius:20px;
+  padding:28px;box-shadow:0 8px 25px rgba(7,86,163,.045)
+}
+.symptom .tag{font-size:11px;color:var(--blue);font-weight:900;letter-spacing:.1em}
+.symptom h3{font-size:21px;color:var(--navy);margin:8px 0}
+.symptom p{font-size:14px;color:var(--muted);margin:0}
+.notice{
+  margin-top:25px;padding:18px 22px;border-radius:14px;
+  background:#f4f8fb;color:var(--muted);font-size:12px
+}
+.about{
+  display:grid;grid-template-columns:1fr 1fr;gap:65px;align-items:center
+}
+.visual{
+  min-height:470px;border-radius:30px;background:linear-gradient(145deg,#e9f6ff,#f7fbff);
+  position:relative;overflow:hidden;border:1px solid var(--line)
+}
+.vessel{
+  position:absolute;width:76%;height:76%;left:12%;top:12%;
+  border:4px solid rgba(20,119,201,.28);border-radius:50% 43% 57% 40%;
+  transform:rotate(-25deg)
+}
+.catheter{
+  position:absolute;width:5px;height:83%;left:48%;top:9%;
+  background:var(--blue);border-radius:10px;transform:rotate(17deg)
+}
+.dot{
+  position:absolute;width:26px;height:26px;border-radius:50%;left:58%;top:43%;
+  background:#fff;border:6px solid var(--accent);
+  box-shadow:0 0 0 15px rgba(49,167,216,.13)
+}
+.visual-label{
+  position:absolute;left:8%;bottom:8%;background:#fff;border-radius:14px;
+  padding:13px 17px;font-size:12px;color:var(--navy);font-weight:800;
+  box-shadow:0 8px 25px rgba(7,86,163,.10)
+}
+.points{display:grid;gap:13px;margin-top:25px}
+.point{display:flex;gap:12px;align-items:flex-start}
+.point b{
+  width:28px;height:28px;flex:0 0 28px;border-radius:50%;
+  display:grid;place-items:center;background:var(--sky);color:var(--blue);font-size:12px
+}
+.conditions{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:18px
+}
+.condition{
+  background:#fff;border-radius:20px;padding:30px;border:1px solid var(--line);
+  display:flex;gap:20px;align-items:flex-start
+}
+.condition-icon{
+  width:58px;height:58px;flex:0 0 58px;border-radius:18px;
+  background:var(--sky);display:grid;place-items:center;color:var(--blue);
+  font-size:22px;font-weight:900
+}
+.condition h3{margin:0 0 6px;color:var(--navy);font-size:20px}
+.condition p{margin:0;color:var(--muted);font-size:14px}
+.message{
+  max-width:900px;margin:auto;text-align:center;
+  padding:55px;border-radius:30px;background:linear-gradient(135deg,#f0f8ff,#fff);
+  border:1px solid var(--line)
+}
+.message h3{font-size:29px;line-height:1.55;color:var(--navy);margin:0 0 17px}
+.message p{color:var(--muted);margin:0}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature{background:#fff;border-radius:22px;padding:32px;border:1px solid var(--line)}
+.feature-num{color:var(--blue);font-size:12px;font-weight:900;letter-spacing:.12em}
+.feature h3{color:var(--navy);font-size:20px;margin:9px 0}
+.feature p{font-size:14px;color:var(--muted);margin:0}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:15px}
+.step{text-align:center;position:relative}
+.step-circle{
+  width:62px;height:62px;margin:0 auto 16px;border-radius:50%;
+  display:grid;place-items:center;background:var(--blue);color:#fff;font-weight:900
+}
+.step:not(:last-child):after{
+  content:"";position:absolute;top:31px;left:calc(50% + 32px);
+  width:calc(100% - 20px);height:1px;background:#b9d6eb
+}
+.step h3{font-size:16px;color:var(--navy);margin:0 0 5px}
+.step p{font-size:12px;color:var(--muted);margin:0}
+.trust{
+  display:grid;grid-template-columns:1fr 1fr;gap:25px
+}
+.trust-card{background:#fff;border-radius:22px;padding:32px;border:1px solid var(--line)}
+.trust-card h3{color:var(--navy);margin:0 0 12px}
+.trust-card p{color:var(--muted);font-size:14px;margin:0}
+.faq{border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line);padding:22px 0}
+summary{cursor:pointer;color:var(--navy);font-weight:800;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"＋";float:right;color:var(--blue);font-size:20px}
+details[open] summary:after{content:"−"}
+details p{color:var(--muted);font-size:14px;padding:10px 30px 0 0;margin:0}
+.cta{
+  padding:100px 20px;text-align:center;color:#fff;
+  background:linear-gradient(120deg,#043e78,#1477c9)
+}
+.cta h2{color:#fff}
+.cta p{max-width:680px;margin:0 auto 30px;color:rgba(255,255,255,.82)}
+.footer{background:#082c4f;color:#fff;padding:28px 0;font-size:12px}
+.footer-inner{display:flex;justify-content:space-between;gap:20px}
+@media(max-width:900px){
+  .symptoms{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:repeat(3,1fr);row-gap:35px}
+  .step:not(:last-child):after{display:none}
+}
+@media(max-width:700px){
+  .container{width:min(100% - 28px,1120px)}
+  .navlinks{display:none}
+  .hero{min-height:720px}
+  .hero-inner{padding-top:115px}
+  .hero p{font-size:15px}
+  .section{padding:75px 0}
+  .symptoms,.conditions,.features,.trust,.about{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr 1fr}
+  .btn{width:100%}
+  .visual{min-height:360px}
+  .message{padding:35px 22px}
+  .footer-inner{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="container nav">
+    <div class="logo">Alivo Japan<span>動注治療 INFORMATION</span></div>
+    <nav class="navlinks">
+      <a href="#what">動注治療とは</a>
+      <a href="#symptoms">症状から探す</a>
+      <a href="#flow">治療の流れ</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="eyebrow">ABOUT ARTERIAL INJECTION TREATMENT</div>
+    <h1>痛みに、<br><em>もう一つの治療の選択肢を。</em></h1>
+    <p>
+      長く続く痛みや、なかなか改善しない症状に悩んでいませんか？<br>
+      「動注治療」という治療法をご存じでしょうか。<br>
+      このページでは、動注治療とは何か、どのような症状に対して検討されるのかを、患者さんにもわかりやすくご紹介します。
+    </p>
+    <a class="btn primary" href="#what">動注治療について知る</a>
+  </div>
+</section>
+
+<section class="section" id="symptoms">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">DO YOU HAVE THESE SYMPTOMS?</div>
+      <h2>こんな症状で<br>悩んでいませんか？</h2>
+      <p class="lead">治療を続けているけれど、なかなか改善しない。痛みが長く続いている。そんなとき、動注治療が治療選択肢の一つとして検討されることがあります。</p>
+    </div>
+
+    <div class="symptoms">
+      <article class="symptom"><div class="tag">SHOULDER</div><h3>肩の痛み</h3><p>五十肩など、肩の痛みや動かしにくさが続いている。</p></article>
+      <article class="symptom"><div class="tag">KNEE</div><h3>膝の痛み</h3><p>膝の痛みが長く続き、日常生活や歩行に悩みがある。</p></article>
+      <article class="symptom"><div class="tag">ELBOW</div><h3>肘の痛み</h3><p>肘を使う動作で痛みが続いている。</p></article>
+      <article class="symptom"><div class="tag">HAND / FINGER</div><h3>手・手指の痛み</h3><p>手や指の関節、腱の周囲などに慢性的な痛みがある。</p></article>
+      <article class="symptom"><div class="tag">FOOT / ANKLE</div><h3>足・足首の痛み</h3><p>足や足首の痛みが続き、歩行などに影響している。</p></article>
+      <article class="symptom"><div class="tag">CHRONIC PAIN</div><h3>長く続く痛み</h3><p>治療を受けているものの、痛みがなかなか改善しない。</p></article>
+    </div>
+
+    <div class="notice">
+      ※ここに掲載している症状はドラフトです。実際に動注治療の対象となる疾患・症状については、医師による診察・適応判断およびクライアントの医学的監修に基づいて確定します。
+    </div>
+  </div>
+</section>
+
+<section class="section sky" id="what">
+  <div class="container about">
+    <div class="visual">
+      <div class="vessel"></div>
+      <div class="catheter"></div>
+      <div class="dot"></div>
+      <div class="visual-label">動脈からアプローチする治療</div>
+    </div>
+
+    <div>
+      <div class="kicker">WHAT IS ARTERIAL INJECTION?</div>
+      <h2>動注治療とは？</h2>
+      <p class="lead">動脈からアプローチする、治療の選択肢。</p>
+      <p>
+        動注治療とは、血管内にカテーテルを挿入し、目的とする部位の血管に対して治療を行う方法です。
+        これまでとは異なるアプローチによって、さまざまな症状に対する治療選択肢の一つとして検討されています。
+      </p>
+
+      <div class="points">
+        <div class="point"><b>01</b><span>どのような仕組みで治療するのか</span></div>
+        <div class="point"><b>02</b><span>どのような症状・疾患が対象となるのか</span></div>
+        <div class="point"><b>03</b><span>どのような流れで治療を受けるのか</span></div>
+        <div class="point"><b>04</b><span>治療のリスクや注意点は何か</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">WHY ARTERIAL APPROACH?</div>
+      <h2>なぜ「動脈」から<br>アプローチするの？</h2>
+      <p class="lead">動注治療の考え方を、できるだけわかりやすく。</p>
+    </div>
+
+    <div class="message">
+      <h3>症状のある場所に対して、<br>血管からアプローチするという考え方。</h3>
+      <p>
+        動注治療では、カテーテルを用いて動脈から治療を行います。
+        症状や疾患によって治療の考え方や方法は異なるため、適応については医師が診察したうえで判断します。
+      </p>
+    </div>
+
+    <div class="notice" style="max-width:900px;margin:22px auto 0">
+      ※治療の作用機序・使用薬剤・対象疾患については、実際の治療内容に合わせて医学的に正確な説明へ差し替えます。
+    </div>
+  </div>
+</section>
+
+<section class="section light">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">SYMPTOMS & CONDITIONS</div>
+      <h2>どんな症状に対して<br>検討される治療なの？</h2>
+      <p class="lead">動注治療は、すべての痛みや症状に適しているわけではありません。診察によって適応を判断します。</p>
+    </div>
+
+    <div class="conditions">
+      <article class="condition"><div class="condition-icon">肩</div><div><h3>肩の痛み</h3><p>五十肩など、肩周辺の慢性的な痛みや可動域の問題。</p></div></article>
+      <article class="condition"><div class="condition-icon">膝</div><div><h3>膝の痛み</h3><p>膝関節周辺の慢性的な痛みなど。</p></div></article>
+      <article class="condition"><div class="condition-icon">肘</div><div><h3>肘の痛み</h3><p>肘周辺に続く痛みなど。</p></div></article>
+      <article class="condition"><div class="condition-icon">手</div><div><h3>手・手指の痛み</h3><p>手や指の関節・腱周辺などの症状。</p></div></article>
+      <article class="condition"><div class="condition-icon">足</div><div><h3>足・足首の痛み</h3><p>足部や足関節周辺に続く痛みなど。</p></div></article>
+      <article class="condition"><div class="condition-icon">＋</div><div><h3>その他の慢性的な症状</h3><p>症状や疾患によって適応が異なります。まずは医師にご相談ください。</p></div></article>
+    </div>
+
+    <div class="notice">
+      ※上記はページ構成検討用のドラフトです。対象疾患・症状は、クライアントが実際に提供する治療内容に合わせて確定します。
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">FEATURES</div>
+      <h2>動注治療を知るために</h2>
+    </div>
+
+    <div class="features">
+      <article class="feature"><div class="feature-num">01 / APPROACH</div><h3>これまでとは異なるアプローチ</h3><p>動脈からカテーテルを用いて治療するという、従来とは異なる治療方法です。</p></article>
+      <article class="feature"><div class="feature-num">02 / DIAGNOSIS</div><h3>まずは医師による診察</h3><p>症状やこれまでの治療歴などを確認し、動注治療が適しているかを判断します。</p></article>
+      <article class="feature"><div class="feature-num">03 / INFORMATION</div><h3>治療を理解してから選択</h3><p>治療内容、期待できること、リスク、費用などを理解したうえで治療を選択します。</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="section sky" id="flow">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">TREATMENT FLOW</div>
+      <h2>治療を受けるまでの流れ</h2>
+      <p class="lead">まずはご自身の症状について医師に相談することから始まります。</p>
+    </div>
+
+    <div class="steps">
+      <div class="step"><div class="step-circle">01</div><h3>診察</h3><p>症状や治療歴を確認</p></div>
+      <div class="step"><div class="step-circle">02</div><h3>検査・評価</h3><p>状態を詳しく確認</p></div>
+      <div class="step"><div class="step-circle">03</div><h3>適応判断</h3><p>治療が適しているか判断</p></div>
+      <div class="step"><div class="step-circle">04</div><h3>治療・説明</h3><p>内容を理解して治療</p></div>
+      <div class="step"><div class="step-circle">05</div><h3>経過観察</h3><p>治療後の状態を確認</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">IMPORTANT INFORMATION</div>
+      <h2>治療を受ける前に<br>知っておいてほしいこと</h2>
+    </div>
+
+    <div class="trust">
+      <div class="trust-card"><h3>すべての方に適応するわけではありません</h3><p>動注治療が適しているかどうかは、症状・疾患・既往歴などを踏まえて医師が判断します。</p></div>
+      <div class="trust-card"><h3>治療効果には個人差があります</h3><p>治療による変化には個人差があります。治療前に医師から十分な説明を受けてください。</p></div>
+      <div class="trust-card"><h3>リスク・副作用があります</h3><p>カテーテルを用いる治療には、出血、感染などを含むリスクがあります。具体的な内容は医師にご確認ください。</p></div>
+      <div class="trust-card"><h3>自由診療となる場合があります</h3><p>治療内容によっては公的医療保険の対象外となる場合があります。費用については事前にご確認ください。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section light">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">CASES</div>
+      <h2>症例・患者さんの声</h2>
+      <p class="lead">実際の治療例や患者さんの声を通じて、治療についてより具体的に知っていただけます。</p>
+    </div>
+
+    <div class="features">
+      <article class="feature"><div class="feature-num">CASE 01</div><h3>肩の痛みに対する治療例</h3><p>治療前の症状、診察、治療内容、経過などを紹介。</p></article>
+      <article class="feature"><div class="feature-num">CASE 02</div><h3>膝の痛みに対する治療例</h3><p>治療前後の状態や、医師による解説を紹介。</p></article>
+      <article class="feature"><div class="feature-num">CASE 03</div><h3>患者さんの声</h3><p>治療を受けた方の体験談を、適切な情報とともに掲載。</p></article>
+    </div>
+
+    <div class="notice">
+      ※症例写真・体験談等を掲載する場合は、医療広告に関するルールを確認したうえで、必要な情報と併せて掲載します。
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">FAQ</div>
+      <h2>動注治療について<br>よくあるご質問</h2>
+    </div>
+
+    <div class="faq">
+      <details><summary>動注治療とは、どのような治療ですか？</summary><p>血管内にカテーテルを挿入し、動脈から治療を行う方法です。具体的な方法は治療内容によって異なります。</p></details>
+      <details><summary>どんな症状でも治療できますか？</summary><p>いいえ。すべての症状が対象となるわけではありません。診察・検査を行い、医師が適応を判断します。</p></details>
+      <details><summary>治療は痛いですか？</summary><p>治療時の痛みや感じ方には個人差があります。麻酔の方法などを含め、治療前に医師へご確認ください。</p></details>
+      <details><summary>治療費はいくらですか？</summary><p>治療内容や医療機関によって異なります。自由診療の場合は、治療前に費用をご確認ください。</p></details>
+      <details><summary>まず相談だけすることはできますか？</summary><p>はい。まずは現在の症状やこれまでの治療について医師にご相談ください。</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <div class="kicker" style="color:#a8e5ff">CONSULTATION</div>
+    <h2>「もう少し詳しく知りたい」<br>その段階からご相談ください。</h2>
+    <p>痛みや症状が長く続いている方へ。動注治療がご自身の症状に適しているか、まずは専門の医師にご相談ください。</p>
+    <a class="btn primary" href="#contact">動注治療について相談する</a>
+  </div>
+</section>
+
+<section class="section" id="contact" style="padding:65px 0">
+  <div class="container" style="text-align:center">
+    <div class="kicker">CONTACT</div>
+    <h2>動注治療についてのお問い合わせ</h2>
+    <p class="lead" style="margin:0 auto 25px">ここに実際の予約・問い合わせフォームへの導線を設置します。</p>
+    <a class="btn blue" href="mailto:info@example.com">お問い合わせはこちら</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div>Alivo Japan / 動注治療 INFORMATION</div>
+    <div>© 2026 Alivo Japan</div>
+  </div>
+</footer>
+
+</body>
+</html>

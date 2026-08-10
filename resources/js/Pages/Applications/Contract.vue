@@ -23,6 +23,12 @@
                 </p>
             </div>
 
+            <!-- エラー表示 -->
+            <div v-if="errorMessage" class="mb-6 flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                <AlertCircle class="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{{ errorMessage }}</span>
+            </div>
+
             <!-- 契約書PDF -->
             <div class="mb-4">
                 <h3 v-if="agreement_pdf_url" class="text-sm font-semibold text-gray-700 mb-2">
@@ -87,9 +93,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
-import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
+import { ArrowLeft, ArrowRight, AlertCircle } from 'lucide-vue-next'
 
 import StepIndicator from '@/Components/StepIndicator.vue'
 import ApplicationFooter from '@/Components/ApplicationFooter.vue'
@@ -112,10 +118,22 @@ const props = defineProps({
 const agreed  = ref(false)
 const signing = ref(false)
 
+// サーバー側からのエラー（クラウドサイン送信失敗時など）を表示
+const errorMessage = computed(() => usePage().props.errors?.error ?? null)
+
 const handleSign = () => {
     if (!agreed.value) return
     signing.value = true
-    router.post(route('applications.sign'))
+    router.post(route('applications.sign'), {}, {
+        onError: () => {
+            // back()->withErrors() の内容は自動的にusePage().props.errorsへ反映される
+            signing.value = false
+        },
+        onFinish: () => {
+            // 成功時（別ページへ遷移）・失敗時 いずれもボタンの固まりを防ぐ
+            signing.value = false
+        },
+    })
 }
 
 // PDF.jsでPDFをcanvasに描画

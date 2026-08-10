@@ -160,6 +160,14 @@
             </div>
           </transition>
         </div>
+        <Link
+          :href="route('admin.profile-change-logs.index')"
+          class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+          :class="isActive('admin.profile-change-logs.index') ? 'bg-gray-200 font-semibold' : ''"
+        >
+          <History class="w-4 h-4 mr-1"/>
+          プロフィール変更履歴
+        </Link>
         <!-- 症例報告 サブメニュー -->
         <div v-if="canAccessMenu('case_reports')" class="mt-2">
           <button
@@ -487,7 +495,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import {
-  Home, Users, User, ShieldCheck, Award, ClipboardList,
+  Home, Users, User, ShieldCheck, Award, ClipboardList, History,
   Building2, Menu, KeyRound, UserCog, Eye,
   X, Key, GraduationCap, Receipt, Video,
   FileCheck,

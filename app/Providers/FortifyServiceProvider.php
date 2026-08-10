@@ -84,9 +84,19 @@ class FortifyServiceProvider extends ServiceProvider
                     'username' => 'required|string',
                     'password' => 'required|string',
                 ]);
-                $user = \App\Models\User::where('username', $request->username)
-                                        ->orWhere('email', $request->username)
-                                        ->first();
+
+                // まずusername（一意）で検索
+                $user = \App\Models\User::where('username', $request->username)->first();
+
+                // 見つからなければemailで検索する。
+                // ただし同一emailで複数アカウントが存在する場合は一意に特定できないため、
+                // 該当が1件のときのみ許可する（複数該当は本人にusername/IDでのログインを促す）
+                if (!$user) {
+                    $matched = \App\Models\User::where('email', $request->username)->get();
+                    if ($matched->count() === 1) {
+                        $user = $matched->first();
+                    }
+                }
             }
 
             if ($user && Hash::check($request->password, $user->password)) {

@@ -38,6 +38,9 @@ use App\Http\Controllers\Admin\ElearningAttemptController as AdminElearningAttem
 use App\Http\Controllers\Admin\ElearningQuestionController as AdminElearningQuestionController;
 use App\Http\Controllers\ElearningController;
 
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\ProfileChangeLogController as AdminProfileChangeLogController;
+
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 
@@ -200,6 +203,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // e-ラーニング受験結果（管理画面側）
         Route::get('/elearning-attempts', [AdminElearningAttemptController::class, 'index'])->name('elearning-attempts.index');
         Route::get('/elearning-attempts/organizations/{organization}', [AdminElearningAttemptController::class, 'byOrganization'])->name('elearning-attempts.by-organization');
+        // ──────────────────────────────────────────
+        // プロフィール変更履歴（管理画面側）※admin.プレフィックスの既存グループに追加
+        // ──────────────────────────────────────────
+        Route::get('/profile-change-logs', [AdminProfileChangeLogController::class, 'index'])->name('profile-change-logs.index');
 
         Route::prefix('member')->name('member.')->group(function () {
 
@@ -326,6 +333,14 @@ Route::middleware([
     Route::get('/elearning/{attempt}', [ElearningController::class, 'show'])->name('elearning.show');
     Route::post('/elearning/{attempt}/submit', [ElearningController::class, 'submit'])->name('elearning.submit');
     Route::get('/elearning/{attempt}/result', [ElearningController::class, 'result'])->name('elearning.result');
- 
+    // ──────────────────────────────────────────
+    // プロフィール編集（My Page側）※認証ミドルウェア配下の既存グループに追加
+    // ──────────────────────────────────────────
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile/organization', [ProfileController::class, 'updateOrganization'])->name('profile.organization.update');
+    Route::put('/profile/member', [ProfileController::class, 'updateMember'])->name('profile.member.update');
+    Route::put('/profile/email', [ProfileController::class, 'updateEmail'])->name('profile.email.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
 
 });

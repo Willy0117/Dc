@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>動注治療 医療機関向け導入支援｜LPドラフト</title>
+<meta name="description" content="医療機関向け動注治療導入支援のランディングページドラフト">
+<style>
+:root{
+  --navy:#17384a; --teal:#1d8b86; --mint:#eaf7f5; --cream:#f7f8f6;
+  --text:#26353b; --muted:#65757b; --line:#dce6e7; --white:#fff;
+  --shadow:0 18px 50px rgba(23,56,74,.10); --radius:22px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;line-height:1.85;background:#fff}
+a{color:inherit;text-decoration:none}
+.container{width:min(1120px,calc(100% - 40px));margin:auto}
+.header{position:absolute;top:0;left:0;right:0;z-index:10}
+.nav{height:82px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800;letter-spacing:.08em;color:#fff;font-size:18px}
+.logo span{font-weight:400;font-size:12px;display:block;letter-spacing:.18em;opacity:.8}
+.navlinks{display:flex;gap:28px;color:#fff;font-size:13px}
+.navlinks a{opacity:.9}
+.hero{min-height:760px;background:linear-gradient(110deg,rgba(17,48,63,.96) 0%,rgba(22,72,81,.88) 52%,rgba(29,139,134,.52) 100%),url("https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=2000&q=85") center/cover;display:flex;align-items:center;color:#fff}
+.hero-inner{padding:130px 0 90px;max-width:820px}
+.eyebrow{font-size:13px;letter-spacing:.18em;font-weight:700;opacity:.82;margin-bottom:20px}
+.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.25;letter-spacing:.02em;margin:0 0 28px;font-weight:700}
+.hero h1 em{font-style:normal;color:#8fe0d6}
+.hero p{font-size:18px;line-height:2.0;margin:0 0 36px;max-width:720px}
+.buttons{display:flex;gap:14px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-width:220px;padding:15px 24px;border-radius:999px;font-weight:700;font-size:14px;transition:.2s}
+.btn.primary{background:#fff;color:var(--navy)}
+.btn.outline{border:1px solid rgba(255,255,255,.60);color:#fff}
+.btn:hover{transform:translateY(-2px)}
+.section{padding:105px 0}
+.section.mint{background:var(--mint)}
+.section.cream{background:var(--cream)}
+.section-head{margin-bottom:55px}
+.kicker{font-size:12px;letter-spacing:.18em;color:var(--teal);font-weight:800;text-transform:uppercase}
+h2{font-size:clamp(30px,4vw,46px);line-height:1.35;margin:10px 0 16px;color:var(--navy);letter-spacing:.02em}
+.lead{font-size:17px;color:var(--muted);max-width:760px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:30px;box-shadow:0 10px 30px rgba(23,56,74,.05)}
+.card .num{font-size:12px;color:var(--teal);font-weight:800;letter-spacing:.1em}
+.card h3{font-size:20px;color:var(--navy);margin:10px 0}
+.card p{font-size:14px;color:var(--muted);margin:0}
+.quote-area{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.quote{font-size:clamp(25px,3vw,38px);line-height:1.6;color:var(--navy);font-weight:700}
+.quote:before{content:"“";font-size:80px;line-height:.2;color:var(--teal);display:block}
+.pain-list{display:grid;gap:14px}
+.pain{background:#fff;border-radius:16px;padding:18px 22px;border-left:4px solid var(--teal);font-weight:600}
+.pain:before{content:"✓";color:var(--teal);margin-right:12px}
+.treatment{display:grid;grid-template-columns:1fr 1fr;gap:55px;align-items:center}
+.treatment-visual{min-height:430px;border-radius:28px;background:linear-gradient(135deg,#d9eeeb,#f5f9f8);position:relative;overflow:hidden}
+.vessel{position:absolute;width:82%;height:82%;left:9%;top:9%;border:3px solid rgba(29,139,134,.35);border-radius:50% 45% 55% 40%;transform:rotate(-22deg)}
+.catheter{position:absolute;width:4px;height:82%;background:var(--teal);left:48%;top:9%;transform:rotate(17deg);border-radius:10px}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;border:5px solid var(--teal);left:57%;top:43%;box-shadow:0 0 0 12px rgba(29,139,134,.12)}
+.treatment ul{padding-left:20px;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.step{position:relative;text-align:center}
+.step .circle{width:62px;height:62px;margin:0 auto 18px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;font-weight:800}
+.step:not(:last-child):after{content:"";position:absolute;top:30px;left:calc(50% + 32px);width:calc(100% - 20px);height:1px;background:#b8d9d6}
+.step h3{font-size:15px;color:var(--navy);margin:0 0 6px}
+.step p{font-size:12px;color:var(--muted);margin:0}
+.benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.benefit{background:#fff;border-radius:20px;padding:34px;border:1px solid var(--line)}
+.icon{width:48px;height:48px;border-radius:14px;background:var(--mint);display:grid;place-items:center;color:var(--teal);font-weight:900;margin-bottom:18px}
+.benefit h3{color:var(--navy);margin:0 0 10px;font-size:20px}
+.benefit p{color:var(--muted);font-size:14px;margin:0}
+.interview{background:var(--navy);color:#fff;border-radius:30px;padding:55px;display:grid;grid-template-columns:1fr 1fr;gap:45px;align-items:center}
+.interview h2{color:#fff}
+.interview p{color:rgba(255,255,255,.75)}
+.faq{border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line);padding:22px 0}
+summary{cursor:pointer;font-weight:700;color:var(--navy);list-style:none}
+summary::-webkit-details-marker{display:none}
+summary:after{content:"＋";float:right;color:var(--teal);font-size:20px}
+details[open] summary:after{content:"−"}
+details p{color:var(--muted);font-size:14px;padding:10px 28px 0 0;margin:0}
+.cta{background:linear-gradient(120deg,var(--navy),#1d7775);color:#fff;text-align:center;padding:100px 20px}
+.cta h2{color:#fff}
+.cta p{max-width:650px;margin:0 auto 30px;color:rgba(255,255,255,.8)}
+.footer{background:#102a38;color:#fff;padding:28px 0;font-size:12px}
+.footer-inner{display:flex;justify-content:space-between;gap:20px}
+.notice{font-size:12px;color:var(--muted);margin-top:22px}
+@media(max-width:900px){
+  .grid4{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:repeat(3,1fr);gap:30px}
+  .step:not(:last-child):after{display:none}
+}
+@media(max-width:700px){
+  .container{width:min(100% - 28px,1120px)}
+  .navlinks{display:none}
+  .hero{min-height:720px}
+  .hero-inner{padding-top:120px}
+  .hero p{font-size:15px}
+  .section{padding:75px 0}
+  .quote-area,.treatment,.interview{grid-template-columns:1fr}
+  .grid4,.benefits{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr 1fr}
+  .btn{width:100%}
+  .interview{padding:35px 25px}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="container nav">
+    <div class="logo">Alivo Japan<span>動注治療 導入支援</span></div>
+    <nav class="navlinks">
+      <a href="#about">動注治療とは</a>
+      <a href="#barrier">導入の壁</a>
+      <a href="#support">導入支援</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="eyebrow">FOR MEDICAL INSTITUTIONS</div>
+    <h1>治療の選択肢を、<br><em>もっと多くの患者さんへ。</em></h1>
+    <p>医療機関向け 動注治療導入支援。<br>動注治療に関心はある。けれど、自由診療として院内に導入するには、さまざまなハードルがある。私たちは、医療機関が動注治療を導入し、患者さんへ新たな治療選択肢を提供するための環境づくりをサポートします。</p>
+    <div class="buttons">
+      <a class="btn primary" href="#about">動注治療について知る</a>
+      <a class="btn outline" href="#contact">導入について相談する</a>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="barrier">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">THE BARRIER</div>
+      <h2>医療現場が抱える<br>「導入の壁」</h2>
+      <p class="lead">保険診療を中心に診療を行っている医療機関にとって、自由診療である動注治療を新たに取り入れることは、単に治療技術を導入するだけではありません。</p>
+    </div>
+    <div class="grid4">
+      <div class="card"><div class="num">01 / 診療体制</div><h3>保険診療との区分</h3><p>保険診療と自由診療をどのように整理し、院内で運用するのか。</p></div>
+      <div class="card"><div class="num">02 / STAFF</div><h3>スタッフ教育</h3><p>医師だけでなく、看護師・受付スタッフへの共有や教育。</p></div>
+      <div class="card"><div class="num">03 / EXPLANATION</div><h3>患者説明</h3><p>治療内容、費用、適応、リスクなどをどのように説明するのか。</p></div>
+      <div class="card"><div class="num">04 / OPERATION</div><h3>院内オペレーション</h3><p>予約・受付・診療・会計までの流れをどう構築するのか。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section mint">
+  <div class="container quote-area">
+    <div>
+      <div class="kicker">THE DILEMMA</div>
+      <div class="quote">「興味はある。<br>でも、導入できない。」</div>
+    </div>
+    <div class="pain-list">
+      <div class="pain">動注治療について詳しく知りたい</div>
+      <div class="pain">患者さんに新しい治療の選択肢を提供したい</div>
+      <div class="pain">自由診療を導入するノウハウがない</div>
+      <div class="pain">院内スタッフへの教育まで自院だけで行うのは難しい</div>
+      <div class="pain">実際に導入した場合の運用がイメージできない</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="about">
+  <div class="container treatment">
+    <div class="treatment-visual" aria-label="動注治療のイメージ図">
+      <div class="vessel"></div><div class="catheter"></div><div class="dot"></div>
+    </div>
+    <div>
+      <div class="kicker">ABOUT ARTERIAL INJECTION</div>
+      <h2>動注治療とは？</h2>
+      <p class="lead">動脈からアプローチする治療という、新たな選択肢。</p>
+      <p>動注治療とは、血管内にカテーテルを挿入し、目的とする部位の血管に対して治療を行う方法です。これまでの治療とは異なるアプローチによって、さまざまな症状に対する治療選択肢の一つとして注目されています。</p>
+      <ul>
+        <li>動注治療の仕組み</li>
+        <li>対象となる疾患・症状</li>
+        <li>治療の流れ・治療時間</li>
+        <li>使用する薬剤</li>
+        <li>治療のリスク・副作用</li>
+        <li>医学的エビデンス</li>
+      </ul>
+      <p class="notice">※治療内容・適応・薬剤・リスク等は、クライアントによる医学的監修のもと最終確定します。</p>
+    </div>
+  </div>
+</section>
+
+<section class="section cream">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">WHY NOW</div>
+      <h2>なぜ、いま動注治療なのか</h2>
+      <p class="lead">患者さんの「治療の選択肢を増やす」ということ。</p>
+    </div>
+    <div class="card" style="max-width:900px">
+      <p style="font-size:20px;color:var(--navy);font-weight:700">「できる治療を増やす」</p>
+      <p>医療技術が進歩する一方で、慢性的な症状に悩み続ける患者さんも少なくありません。一つの治療だけでは十分な結果が得られない場合、患者さんにとって複数の治療選択肢があることは重要です。</p>
+      <p style="margin:0;color:var(--teal);font-weight:800">その選択肢の一つとして、動注治療を医療現場へ。</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="support">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">SUPPORT</div>
+      <h2>導入を支えるのは<br>「治療技術」だけではありません</h2>
+      <p class="lead">動注治療を導入する医療機関を、導入前から導入後までサポートします。</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="circle">01</div><h3>導入相談</h3><p>診療内容や体制をヒアリング</p></div>
+      <div class="step"><div class="circle">02</div><h3>導入計画</h3><p>院内状況に合わせて検討</p></div>
+      <div class="step"><div class="circle">03</div><h3>研修・支援</h3><p>医師・スタッフをサポート</p></div>
+      <div class="step"><div class="circle">04</div><h3>運用構築</h3><p>診療・説明・会計等を準備</p></div>
+      <div class="step"><div class="circle">05</div><h3>診療開始</h3><p>新たな選択肢として提供</p></div>
+      <div class="step"><div class="circle">06</div><h3>継続支援</h3><p>導入後もサポート</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section mint">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">VALUE</div>
+      <h2>医療機関にとっての<br>新たな選択肢</h2>
+    </div>
+    <div class="benefits">
+      <div class="benefit"><div class="icon">01</div><h3>患者さんへの選択肢</h3><p>これまでの診療に加えて、新たな治療選択肢を患者さんへ提示できる可能性があります。</p></div>
+      <div class="benefit"><div class="icon">02</div><h3>診療領域を広げる</h3><p>既存の診療体制を活かしながら、自由診療という新たな診療領域への取り組みを検討できます。</p></div>
+      <div class="benefit"><div class="icon">03</div><h3>導入を専門的に支援</h3><p>治療そのものだけでなく、導入・運用に関する課題についてもサポートします。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="interview">
+      <div>
+        <div class="kicker" style="color:#8fe0d6">CASE STUDY</div>
+        <h2>「導入前は、<br>ここが不安でした。」</h2>
+        <p>実際に動注治療を導入した医療機関の声を、院長・医師のインタビュー形式で紹介します。</p>
+      </div>
+      <div>
+        <p><strong>INTERVIEW CONTENT</strong></p>
+        <p>・なぜ動注治療に注目したのか<br>・導入前に感じていた不安<br>・導入を決めた理由<br>・実際の導入まで<br>・スタッフや患者さんの反応<br>・導入後に感じたこと</p>
+        <p class="notice" style="color:rgba(255,255,255,.60)">※実際の導入事例・取材内容に合わせて掲載。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section cream" id="faq">
+  <div class="container">
+    <div class="section-head">
+      <div class="kicker">FAQ</div>
+      <h2>よくあるご質問</h2>
+    </div>
+    <div class="faq">
+      <details><summary>保険診療を行っている医療機関でも導入できますか？</summary><p>自由診療としての導入について、医療機関の診療体制等を確認したうえでご相談いただけます。</p></details>
+      <details><summary>導入にはどのような準備が必要ですか？</summary><p>医師・スタッフの体制、診療スペース、患者説明、院内運用などについて確認します。</p></details>
+      <details><summary>医師・スタッフへの研修はありますか？</summary><p>導入に必要な内容についてサポートします。具体的な研修内容は導入プランに応じてご案内します。</p></details>
+      <details><summary>導入後もサポートしてもらえますか？</summary><p>導入後の運用についても継続的にサポートします。</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta" id="contact">
+  <div class="container">
+    <div class="kicker" style="color:#8fe0d6">CONTACT</div>
+    <h2>新しい治療の選択肢を、<br>あなたの医療機関から。</h2>
+    <p>動注治療の導入について、まずはお気軽にご相談ください。</p>
+    <a class="btn primary" href="mailto:info@example.com">動注治療の導入について相談する</a>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div>Alivo Japan / 動注治療 導入支援 LP DRAFT</div>
+    <div>© 2026 Alivo Japan</div>
+  </div>
+</footer>
+</body>
+</html>
