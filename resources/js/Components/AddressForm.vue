@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button'
 import AddressFields from '@/Components/AddressFields.vue'
 import type { OrganizationAddress } from '@/types'
 
-// Controller の edit() に合わせて住所を個別 props で受け取る
 defineProps<{
   locationAddress: OrganizationAddress
   shippingAddress: OrganizationAddress
   billingAddress: OrganizationAddress
+  errors?: Record<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -43,7 +43,11 @@ const tabs = [
     </div>
 
     <div v-show="activeTab === 'location'">
-      <AddressFields :address="locationAddress" />
+      <AddressFields
+        :address="locationAddress"
+        :email-required="true"
+        :email-error="errors?.['location_address.email']"
+      />
     </div>
 
     <div v-show="activeTab === 'shipping'" class="space-y-3">
@@ -53,7 +57,10 @@ const tabs = [
       >
         <Copy class="w-3 h-3 mr-1" /> 所在地からコピー
       </Button>
-      <AddressFields :address="shippingAddress" />
+      <AddressFields
+        :address="shippingAddress"
+        :email-error="errors?.['shipping_address.email']"
+      />
     </div>
 
     <div v-show="activeTab === 'billing'" class="space-y-3">
@@ -63,7 +70,10 @@ const tabs = [
       >
         <Copy class="w-3 h-3 mr-1" /> 所在地からコピー
       </Button>
-      <AddressFields :address="billingAddress" />
+      <AddressFields
+        :address="billingAddress"
+        :email-error="errors?.['billing_address.email']"
+      />
     </div>
   </div>
 </template>

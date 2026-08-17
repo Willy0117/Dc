@@ -104,6 +104,9 @@ console.log('form.organization:', form.organization)
 
   const isValid = computed(() =>
     form.organization.name.trim() !== '' &&
+    (form.organization.rep_last_name ?? '').trim() !== '' &&
+    (form.organization.rep_first_name ?? '').trim() !== '' &&
+    !!form.location_address.email?.trim() &&
     form.members.length >= MIN_MEMBERS &&
     form.members.every(m => m.last_name.trim() !== '' && m.first_name.trim() !== '')
   )

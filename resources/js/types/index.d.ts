@@ -109,6 +109,7 @@ export interface OrganizationEditProps {
   billing_address: OrganizationAddress | null
   members: Member[]
   filters: Record<string, string>
+  errors?: Record<string, string>
 }
 
 // OrganizationForm / store・update に POST する構造

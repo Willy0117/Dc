@@ -15,15 +15,16 @@ import { useZipcode } from '@/composables/useZipcode'
 
 const props = defineProps<{
   address: OrganizationAddress
+  emailRequired?: boolean
+  emailError?: string
 }>()
 
-// useZipcode に渡す refs
 const zipRef = toRef(props.address, 'postal_code')
 
 useZipcode(zipRef, {
-  prefecture: toRef(props.address, 'address1'),  // 都道府県
-  address1:   toRef(props.address, 'address2'),  // 市区町村・番地
-  address2:   toRef(props.address, 'address3'),  // ビル名・部屋番号
+  prefecture: toRef(props.address, 'address1'),
+  address1:   toRef(props.address, 'address2'),
+  address2:   toRef(props.address, 'address3'),
 })
 </script>
 
@@ -95,8 +96,16 @@ useZipcode(zipRef, {
     <div class="space-y-1">
       <Label class="text-xs text-muted-foreground">
         メールアドレス <span class="text-[10px] text-muted-foreground/60">email</span>
+        <span v-if="emailRequired" class="text-destructive">*</span>
       </Label>
-      <Input v-model="address.email" type="email" placeholder="info@example-clinic.jp" maxlength="255" />
+      <Input
+        v-model="address.email"
+        type="email"
+        placeholder="info@example-clinic.jp"
+        maxlength="255"
+        :class="emailError ? 'border-destructive focus-visible:ring-destructive' : ''"
+      />
+      <p v-if="emailError" class="text-xs text-destructive">{{ emailError }}</p>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   Building2, FileText, MapPin, Stethoscope, Plus, Check, ArrowLeft,
 } from 'lucide-vue-next'
@@ -62,7 +62,20 @@ function handleSubmit() {
 
   emit('submit', form)
 }
-
+// サーバー側バリデーションエラーが住所系にあれば、住所タブへ自動遷移
+watch(
+  () => props.errors,
+  (errors) => {
+    if (!errors) return
+    const hasAddressError = Object.keys(errors).some(k =>
+      k.startsWith('location_address') ||
+      k.startsWith('shipping_address') ||
+      k.startsWith('billing_address')
+    )
+    if (hasAddressError) activeTab.value = 'address'
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -243,6 +256,7 @@ function handleSubmit() {
             :location-address="form.location_address"
             :shipping-address="form.shipping_address"
             :billing-address="form.billing_address"
+            :errors="props.errors"
             @copy="copyOrgAddress"
           />
         </div>
