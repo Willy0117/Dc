@@ -24,10 +24,10 @@ class MemberObserver
             OperationLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'update',
-                'model_type' => get_class($model),
-                'model_id' => $model->id,
-                'before' => $model->getOriginal(),
-                'after' => $model->getChanges(),
+                'model_type' => get_class($member),
+                'model_id' => $member->id,
+                'before' => $member->getOriginal(),
+                'after' => $member->getChanges(),
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);

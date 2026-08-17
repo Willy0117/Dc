@@ -19,7 +19,7 @@
 
   <p style="background:#F7F5F0; border-left:3px solid #C9A227; padding:12px 16px;">
     ログインID(ユーザー名): <strong>{{ $notifiable->username }}</strong><br>
-    ログイン時は、上記のユーザー名またはメールアドレスのいずれかをご利用いただけます。
+    ログイン時は、上記のユーザー名をご利用いただけます。
   </p>
 
   <p>
