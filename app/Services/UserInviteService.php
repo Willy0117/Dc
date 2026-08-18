@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Support\Facades\Password;
 
 class UserInviteService
@@ -15,6 +16,10 @@ class UserInviteService
      *
      * 支払い完了(Stripe Webhook / 請求書の支払済み操作)後に
      * どちらからも呼び出せるよう共通化している。
+     *
+     * 病院用・先生用で同一メールアドレスになるケースがあるため、
+     * Password::sendResetLink() の標準スロットリング(60秒)を回避し、
+     * createToken() で直接トークンを発行して個別に送信する。
      */
     public function sendPasswordSetupMail(Organization $organization): void
     {
@@ -28,7 +33,7 @@ class UserInviteService
                 "MyPage user not found for organization_id={$organization->id}"
             ));
         } elseif (!$orgUser->password_set_at) {
-            Password::sendResetLink(['email' => $orgUser->email]);
+            $this->forceSendResetLink($orgUser);
         }
 
         // 2. 先生(member)側のMyPageユーザー(emailが登録済み かつ 初回のみ)
@@ -39,7 +44,17 @@ class UserInviteService
             ->get();
 
         foreach ($memberUsers as $memberUser) {
-            Password::sendResetLink(['email' => $memberUser->email]);
+            $this->forceSendResetLink($memberUser);
         }
+    }
+
+    /**
+     * Password::sendResetLink() のスロットリングを回避して
+     * 個別にパスワード設定メールを送信する。
+     */
+    private function forceSendResetLink(User $user): void
+    {
+        $token = Password::broker()->createToken($user);
+        $user->notify(new ResetPasswordNotification($token));
     }
 }

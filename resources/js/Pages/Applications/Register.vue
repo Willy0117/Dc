@@ -200,16 +200,27 @@
             <input v-model="license.first_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="太郎" />
           </div>
         </div>
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-gray-500">医師番号</label>
-          <input
-            v-model="license.doctor_number"
-            @input="(e) => { license.doctor_number = normalizeDoctorNumber(e.target.value) }"
-            maxlength="6"
-            inputmode="numeric"
-            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-            placeholder="123456"
-          />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-gray-500">メールアドレス</label>
+            <input
+              type="email"
+              v-model="license.email"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+              placeholder="example@example.com"
+            />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-gray-500">医師番号</label>
+            <input
+              v-model="license.doctor_number"
+              @input="(e) => { license.doctor_number = normalizeDoctorNumber(e.target.value) }"
+              maxlength="6"
+              inputmode="numeric"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+              placeholder="123456"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -259,9 +270,9 @@ const form = useForm({
   contact_email:        props.data.contact_email        ?? '',
   same_as_clinic:       props.data.same_as_clinic       ?? false,
   licenses: props.data.licenses ?? [
-    { position: '', last_name: '', first_name: '', doctor_number: '' },
-    { position: '', last_name: '', first_name: '', doctor_number: '' },
-    { position: '', last_name: '', first_name: '', doctor_number: '' },
+    { position: '', last_name: '', first_name: '', doctor_number: '', email: '' },
+    { position: '', last_name: '', first_name: '', doctor_number: '', email: '' },
+    { position: '', last_name: '', first_name: '', doctor_number: '', email: '' },
   ],
   corporate_fee:        props.data.corporate_fee,
   personal_fee:         props.data.personal_fee,
@@ -315,7 +326,7 @@ useZipcode(toRef(form, 'contact_postal_code'), {
 })
 
 const addLicense = () => {
-  form.licenses.push({ position: '', last_name: '', first_name: '', doctor_number: '' })
+  form.licenses.push({ position: '', last_name: '', first_name: '', doctor_number: '', email: '' })
 }
 
 const removeLicense = (index: number) => {

@@ -256,7 +256,7 @@ class ApplicationController extends Controller
 
                 // 4. ライセンス対象者を members に更新・追加
                 foreach ($data['licenses'] as $index => $license) {
-                    $email = $index === 0 ? $data['email'] : null;
+                    $email = $license['email'] ?? null;
 
                     $member = Member::where('organization_id', $organization->id)
                         ->where('last_name', $license['last_name'])
@@ -314,7 +314,7 @@ class ApplicationController extends Controller
                 // 4.5. 病院(organization)側MyPageユーザー更新(パスワードは変更しない)
                 $user = User::where('organization_id', $organization->id)->firstOrFail();
                 $user->update([
-                    'name'  => trim($data['rep_last_name'] . ' ' . $data['rep_first_name']),
+                    'name'  => $data['corp_name'], 
                     'email' => $data['email'],
                 ]);
 

@@ -135,26 +135,10 @@ class CaseReportController extends Controller
 
 
     // ──────────────────────────────────────────
-    // Tier履歴のcase_count更新
+    // Tier履歴のcase_count更新・tier自動判定
     // ──────────────────────────────────────────
     private function updateTierHistory($organization): void
     {
-        $history = $organization->currentTierHistory;
-        if (!$history) return;
-
-        $count = CaseReport::where('organization_id', $organization->id)
-            ->whereBetween('submitted_at', [
-                $history->period_start,
-                $history->period_end . ' 23:59:59',
-            ])
-            ->count();
-
-        $history->update(['case_count' => $count]);
-
-        // tier1→2の自動判定
-        if ($organization->tier < 2 && $count >= 36) {
-            $organization->update(['tier' => 2]);
-            $history->update(['tier' => 2]);
-        }
+        $organization->syncTierFromHistory();
     }
 }

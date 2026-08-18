@@ -16,14 +16,6 @@ use App\Http\Controllers\CloudSignWebhookController;
 Route::post('/webhook/cloudsign', [CloudSignWebhookController::class, 'handle']);
 // routes/web.php の admin グループ内に追記
 
-Route::get('/dashboard/stats', function () {
-    return response()->json([
-        'examCount' => Exam::where('created_at', '>=', now()->startOfMonth())->count(),
-        'pdfCount'  => PdfUpload::where('status', 'pending')
-            ->where('created_at', '>=', now()->startOfMonth())->count(),
-    ]);
-});
-
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');

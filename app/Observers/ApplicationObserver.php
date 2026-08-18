@@ -50,12 +50,17 @@ class ApplicationObserver
      */
     public function deleted(Application $application): void
     {
-        OperationLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'delete',
-            'model_type' => get_class($model),
-            'model_id' => $model->id,
-        ]);        //
+        try {
+            OperationLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'delete',
+                'model_type' => get_class($application),
+                'model_id' => $application->id,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('OperationLog failed', ['msg' => $e->getMessage()]);
+        }
+        //
     }
 
     /**

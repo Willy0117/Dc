@@ -41,8 +41,11 @@ use App\Http\Controllers\ElearningController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\ProfileChangeLogController as AdminProfileChangeLogController;
 
+use App\Http\Controllers\Auth\NewPasswordController;
+
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
+
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
@@ -343,4 +346,12 @@ Route::middleware([
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 
 
+});
+
+Route::middleware('guest')->group(function () {
+    Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordController::class, 'create'])
+        ->name('password.reset');
+
+    Route::post('/reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
+        ->name('password.update');
 });

@@ -17,8 +17,8 @@ defineProps({
 })
 
 const config = {
-  2: { label: 'アドバンス',   class: 'text-amber-700 fill-amber-700' },  // 銅
-  3: { label: 'エキスパート', class: 'text-slate-400 fill-slate-400' },  // 銀
-  4: { label: 'マスター',     class: 'text-yellow-400 fill-yellow-400' }, // 金
+  2: { label: 'シルバー', class: 'text-slate-400 fill-slate-400' },
+  3: { label: 'ゴールド', class: 'text-yellow-500 fill-yellow-500' },
+  4: { label: 'プラチナ', class: 'text-cyan-300 fill-cyan-300' },
 }
 </script>

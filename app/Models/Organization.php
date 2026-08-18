@@ -302,34 +302,49 @@ class Organization extends Model
     }
     /**
      * 契約更新時のtier自動判定
-     * tier3・4は自動判定しない（管理者が事前に手動変更済みの想定）
+     * case_reportsの通算件数で判定する。自動判定は昇格のみ(降格は管理画面で手動対応)
      */
     private function recalculateTier(): void
     {
-        // 新期間の履歴を追加（tier関係なく必要）
+        // 新期間の履歴を追加(tier関係なく必要)
         $this->addNewTierHistory();
- 
-        // tier3・4は自動判定しない
-        if ($this->tier >= 3) return;
- 
-        // 前期の履歴を取得
-        $previousHistory = $this->tierHistories()
-            ->where('period_end', '<', $this->contract_date)
-            ->orderByDesc('period_end')
-            ->first();
- 
-        if (!$previousHistory) return;
- 
-        $newTier = $previousHistory->case_count >= 36 ? 2 : 1;
- 
-        $this->update(['tier' => $newTier]);
- 
-        \Log::info('Organization::recalculateTier: tier更新', [
-            'organization_id' => $this->id,
-            'case_count'      => $previousHistory->case_count,
-            'old_tier'        => $this->tier,
-            'new_tier'        => $newTier,
-        ]);
+
+        // 通算症例報告数を集計(将来、集計期間を絞る場合はここのクエリ条件を変更する)
+        $totalCaseCount = \App\Models\CaseReport::where('organization_id', $this->id)
+            // ->where('submitted_at', '>=', now()->subYears(5)) // 将来「直近5年」に絞る場合はこの行を有効化
+            ->count();
+
+        $newTier = $this->calculateTierFromCaseCount($totalCaseCount);
+
+        // 自動判定は昇格のみ(降格させない。手動変更は管理画面で対応)
+        if ($newTier > $this->tier) {
+            $oldTier = $this->tier;
+            $this->update(['tier' => $newTier]);
+
+            \Log::info('Organization::recalculateTier: tier自動昇格', [
+                'organization_id'  => $this->id,
+                'total_case_count' => $totalCaseCount,
+                'old_tier'         => $oldTier,
+                'new_tier'         => $newTier,
+            ]);
+        }
+    }
+
+    /**
+     * 通算症例報告数からTierを判定する
+     * Tier1(ブロンズ): 基準なし
+     * Tier2(シルバー): 通算100件
+     * Tier3(ゴールド): 通算300件
+     * Tier4(プラチナ): 通算1,000件
+     */
+    private function calculateTierFromCaseCount(int $totalCaseCount): int
+    {
+        return match (true) {
+            $totalCaseCount >= 1000 => self::TIER_MASTER,
+            $totalCaseCount >= 300  => self::TIER_EXPERT,
+            $totalCaseCount >= 100  => self::TIER_ADVANCE,
+            default                 => self::TIER_BASIC,
+        };
     }
  
     /**
@@ -350,6 +365,34 @@ class Organization extends Model
             'period_start'    => $this->contract_date,
             'period_end'      => \Carbon\Carbon::parse($this->new_contract_date)->subDay()->toDateString(),
         ]);
+    }
+    /**
+     * 症例報告登録時に呼ぶ: organization_tier_historiesを再計算し、
+     * organizations.tierがそれ以上の場合のみ反映する(手動設定を尊重)
+     */
+    public function syncTierFromHistory(): void
+    {
+        $currentHistory = $this->tierHistories()->first();
+
+        if (!$currentHistory) {
+            return;
+        }
+
+        $totalCaseCount = \App\Models\CaseReport::where('organization_id', $this->id)->count();
+        $calculatedTier = $this->calculateTierFromCaseCount($totalCaseCount);
+
+        $currentHistory->update([
+            'case_count' => $totalCaseCount,
+            'tier'       => $calculatedTier,
+        ]);
+
+        if ($this->tier < $calculatedTier) {
+            return;
+        }
+
+        if ($this->tier !== $calculatedTier) {
+            $this->update(['tier' => $calculatedTier]);
+        }
     }
     
     // リレーション追加
@@ -373,16 +416,16 @@ class Organization extends Model
     const TIER_MASTER   = 4;
     
     const TIER_LABELS = [
-        self::TIER_BASIC   => 'ベーシック',
-        self::TIER_ADVANCE => 'アドバンス',
-        self::TIER_EXPERT  => 'エキスパート',
-        self::TIER_MASTER  => 'マスター',
+        self::TIER_BASIC   => 'ブロンズ',
+        self::TIER_ADVANCE => 'シルバー',
+        self::TIER_EXPERT  => 'ゴールド',
+        self::TIER_MASTER  => 'プラチナ',
     ];
     
     // アクセサ
     public function getTierLabelAttribute(): string
     {
-        return self::TIER_LABELS[$this->tier] ?? 'ベーシック';
+        return self::TIER_LABELS[$this->tier] ?? 'ブロンズ';
     }
 
 }

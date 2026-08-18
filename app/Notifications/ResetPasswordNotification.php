@@ -14,8 +14,8 @@ class ResetPasswordNotification extends ResetPasswordBase
     public function toMail($notifiable): MailMessage
     {
         $url = url(route('password.reset', [
-            'token' => $this->token,
-            'email' => $notifiable->getEmailForPasswordReset(),
+            'token'    => $this->token,
+            'username' => $notifiable->username,
         ], false));
 
         return (new MailMessage)

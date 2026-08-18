@@ -252,7 +252,7 @@
                       <DropdownMenuSeparator />
                       <DropdownMenuItem v-if="org.tier < 4" @click="openTierDialog(org)">
                         <TrendingUp class="w-3.5 h-3.5 mr-2 text-emerald-600" />
-                        Tier昇格
+                        Tier変更
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -383,7 +383,7 @@
       @done="submitSearch"
     />
 
-    <!-- ========== Tier昇格 Dialog ========== -->
+    <!-- ========== Tier変更 Dialog ========== -->
     <TierUpgradeDialog
       v-model:open="tierDialogOpen"
       :organization="tierTarget"
@@ -763,9 +763,9 @@ const openTierDialog = (org) => {
   tierDialogOpen.value = true
 }
 const tierConfig = {
-  2: { class: 'text-amber-700 fill-amber-700' },  // 銅
-  3: { class: 'text-slate-400 fill-slate-400' },  // 銀
-  4: { class: 'text-yellow-400 fill-yellow-400' }, // 金
+  2: { class: 'text-slate-400 fill-slate-400' },   // シルバー
+  3: { class: 'text-yellow-500 fill-yellow-500' }, // ゴールド
+  4: { class: 'text-cyan-300 fill-cyan-300' },     // プラチナ
 }
 
 </script>

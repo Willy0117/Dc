@@ -142,7 +142,7 @@ class OrganizationController extends Controller
                 'organization_id'  => $organization->id,
                 'type'             => 1, // 1:病院(organization)
                 'username'         => $organization->code,
-                'name'             => trim($organization->rep_last_name . ' ' . $organization->rep_first_name),
+                'name'             => $organization->name,  // 法人名を使う
                 'email'            => $validated['location_address']['email'] ?? null,
                 'password'         => Hash::make(Str::random(32)),
                 'status'           => 1,
@@ -282,25 +282,32 @@ class OrganizationController extends Controller
             'new_contract_date' => 'required|date',
             'needs_agreement'   => 'boolean',
         ]);
- 
-        // contract_date・new_contract_date を organizations テーブルに保存
-        // new_contract_date が既に設定済みの場合は上書きしない
-        $updates = ['contract_date' => $request->contract_date];
-        if (!$organization->new_contract_date) {
-            $updates['new_contract_date'] = $request->new_contract_date;
+
+        if ($request->boolean('needs_agreement')) {
+            // 再契約: 旧契約日(contract_date)はDBの既存値を維持し、新契約日は入力値を使う
+            $updates = [
+                'new_contract_date' => $request->new_contract_date,
+            ];
+        } else {
+            // 新規契約: 両方とも入力値をそのまま使う
+            $updates = [
+                'contract_date'     => $request->contract_date,
+                'new_contract_date' => $request->new_contract_date,
+            ];
         }
+
         $organization->update($updates);
- 
-        // 申込URLを生成（合意書が必要な場合は agreement パラメータを付加）
+
+        // 申込URLを生成(合意書が必要な場合は agreement パラメータを付加)
         $token = $organization->generateRegisterToken();
         $url   = route('applications.register', array_filter([
             'token'     => $token,
             'agreement' => $request->boolean('needs_agreement') ? 1 : null,
         ]));
- 
+
         \Mail::to($request->email)
             ->send(new \App\Mail\InvitationMail($organization, $url));
- 
+
         return redirect()->back()->with('success', '契約申込メールを送信しました。');
     }
 
@@ -817,33 +824,20 @@ class OrganizationController extends Controller
     public function upgradeTier(Request $request, Organization $organization)
     {
         $request->validate([
-            'tier' => 'required|integer|in:3,4',
+            'tier' => 'required|integer|in:1,2,3,4',
         ]);
-    
+
         $newTier = (int) $request->tier;
-    
-        // 今期の履歴を取得
-        $history = $organization->currentTierHistory;
-    
-        if (!$history) {
-            return back()->withErrors(['error' => '現在の契約期間の履歴が見つかりません。']);
-        }
-    
-        // 件数条件チェック
-        $required = $newTier === 3 ? 75 : 120;
-        if ($history->case_count < $required) {
-            return back()->withErrors([
-                'error' => "昇格には年間{$required}件以上の症例報告が必要です。（現在: {$history->case_count}件）"
-            ]);
-        }
-    
-        // tier更新
+
+        // tier更新(昇格・降格とも自由に変更可能)
         $organization->update(['tier' => $newTier]);
-    
-        // 履歴のtierも更新
-        $history->update(['tier' => $newTier]);
-    
-        return back()->with('success', "{$organization->name} を " . Organization::TIER_LABELS[$newTier] . " に昇格しました。");
+
+        \Log::info('OrganizationController: tier手動変更', [
+            'organization_id' => $organization->id,
+            'new_tier'         => $newTier,
+        ]);
+
+        return back()->with('success', "Tierを変更しました。");
     }
     
     // ──────────────────────────────────────────

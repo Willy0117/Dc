@@ -68,11 +68,11 @@ class PdfService
             if ($i == 10) {
                     // 契約日
                     $pdf->SetFont('kozminproregular', '', 10);
-                    $pdf->SetXY(20, 28);
+                    $pdf->SetXY(22, 28);
 
                     $contractDate = $organization->new_contract_date
-                        ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y　　　n　　　j')
-                        : now()->format('Y　　　n　　　j');
+                        ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y　　 n　　 j')
+                        : now()->format('Y　　 n　　 j');
                     $pdf->Write(0, $contractDate);
 
                     // 乙（動的）
@@ -166,11 +166,11 @@ class PdfService
         $pdf->MultiCell(150, 8, $text);
        // 契約日
         $pdf->SetFont('kozminproregular', '', 10);
-        $pdf->SetXY(38, 203);
+        $pdf->SetXY(40, 203);
 
         $contractDate = $organization->new_contract_date
-            ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y　　　n　　　j')
-            : now()->format('Y　　　n　　　j');
+            ? \Carbon\Carbon::parse($organization->new_contract_date)->format('Y　　 n　　 j')
+            : now()->format('Y　　 n　　 j');
         $pdf->Write(0, $contractDate);
 
         // 乙（動的）
