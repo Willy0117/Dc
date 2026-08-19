@@ -15,6 +15,7 @@ use App\Models\Organization;
 use App\Models\OrganizationAddress;
 use App\Models\LicenseFeeMaster;
 use App\Models\User;
+use App\Models\OrganizationContract;
 
 use App\Services\FileService;
 use App\Services\InvoiceService;
@@ -341,7 +342,7 @@ class OrganizationController extends Controller
     public function createInvoice(Request $request)
     {
         $validated = $request->validate([
-            'organization_ids'   => 'required|array|min:1|max:1', // 単発のみ対応
+            'organization_ids'   => 'required|array|min:1|max:1',
             'organization_ids.*' => 'required|exists:organizations,id',
             'amount'             => 'required|integer|min:0',
             'due_date'           => 'required|date',
@@ -350,10 +351,21 @@ class OrganizationController extends Controller
             'base'               => 'nullable|integer|min:0',
             'extra'              => 'nullable|integer|min:0',
         ]);
- 
+
         $organization = Organization::with(['locationAddress'])
             ->findOrFail($validated['organization_ids'][0]);
- 
+
+        // 既存の未終了契約がある場合は二重発行を防ぐため発行させない
+        $hasOpenContract = OrganizationContract::where('organization_id', $organization->id)
+            ->whereNull('ended_at')
+            ->exists();
+
+        if ($hasOpenContract) {
+            return back()->withErrors([
+                'error' => '既に未確定の契約が存在します。前回の請求書・決済の入金確認が完了しているか確認してください。',
+            ]);
+        }
+
         $total    = (int) $validated['amount'];
         $subtotal = (int) round($total / 1.1);
         $tax      = $total - $subtotal;
@@ -406,7 +418,7 @@ class OrganizationController extends Controller
     public function createStripePayment(Request $request)
     {
         $validated = $request->validate([
-            'organization_ids'   => 'required|array|min:1|max:1', // 単発のみ対応
+            'organization_ids'   => 'required|array|min:1|max:1',
             'organization_ids.*' => 'required|exists:organizations,id',
             'amount'             => 'required|integer|min:0',
             'due_date'           => 'nullable|date',
@@ -415,10 +427,21 @@ class OrganizationController extends Controller
             'base'               => 'nullable|integer|min:0',
             'extra'              => 'nullable|integer|min:0',
         ]);
- 
+
         $organization = Organization::with(['locationAddress'])
             ->findOrFail($validated['organization_ids'][0]);
- 
+
+        // 既存の未終了契約がある場合は二重発行を防ぐため発行させない
+        $hasOpenContract = OrganizationContract::where('organization_id', $organization->id)
+            ->whereNull('ended_at')
+            ->exists();
+
+        if ($hasOpenContract) {
+            return back()->withErrors([
+                'error' => '既に未確定の契約が存在します。前回の請求書・決済の入金確認が完了しているか確認してください。',
+            ]);
+        }
+         
         $total    = (int) $validated['amount'];
         $subtotal = (int) round($total / 1.1);
         $tax      = $total - $subtotal;
