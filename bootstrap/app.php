@@ -31,6 +31,13 @@ return Application::configure(basePath: dirname(__DIR__))
             return route('login'); // それ以外は一般ログインへ
         });
         // ここまで
+
+        // --- 追記: admin/webでセッションCookieを分離(419対策) ---
+        $middleware->web(prepend: [
+            \App\Http\Middleware\SetSessionCookieByGuard::class,
+        ]);
+        // ここまで
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
