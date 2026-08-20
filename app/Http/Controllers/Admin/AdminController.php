@@ -117,19 +117,22 @@ class AdminController extends Controller
     {
         $currentUser = auth('admin')->user();
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:admins,email',
-            'password' => 'required|string|confirmed|min:8',
+        $validated = $request->validate([
+            'name'      => 'required|string|max:255',
+            'email'     => 'required|string|email|max:255|unique:admins,email',
+            'password'  => 'required|string|confirmed|min:8',
+            'tenant_id' => 'nullable|exists:tenants,id',
+            'role_id'   => 'required|exists:roles,id',
         ]);
 
         $admin = Admin::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name'      => $validated['name'],
+            'email'     => $validated['email'],
+            'password'  => Hash::make($validated['password']),
+            'tenant_id' => $validated['tenant_id'] ?? null,
         ]);
 
-        $role = Role::findOrFail($request->role_id);
+        $role = Role::findOrFail($validated['role_id']);
         $admin->assignRole($role);
 
         return redirect()->route('admin.admins.index')

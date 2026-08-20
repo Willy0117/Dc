@@ -13,6 +13,7 @@
   "no": "いいえ",
   "do": "する",
   "dont": "しない",
+  "none": "なし",
   "created_at": "作成日",
   "display_order": "表示順",
   "disabled": "有効/無効",

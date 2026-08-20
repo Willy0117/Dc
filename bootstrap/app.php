@@ -32,12 +32,6 @@ return Application::configure(basePath: dirname(__DIR__))
         });
         // ここまで
 
-        // --- 追記: admin/webでセッションCookieを分離(419対策) ---
-        $middleware->web(prepend: [
-            \App\Http\Middleware\SetSessionCookieByGuard::class,
-        ]);
-        // ここまで
-
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
@@ -58,5 +52,20 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // --- 追記: 419(CSRFトークン切れ)時、白画面ではなくログイン画面へリダイレクト ---
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
+            \Log::warning('419 TokenMismatch detected', [
+                'path' => $request->path(),
+                'ip' => $request->ip(),
+                'ua' => $request->userAgent(),
+            ]);
+            $url = $request->is('admin', 'admin/*') ? route('admin.login') : route('login');
+
+            if ($request->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url)->with('status', 'セッションの有効期限が切れました。もう一度ログインしてください。');
+        });
+        // ここまで
     })->create();

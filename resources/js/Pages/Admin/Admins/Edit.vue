@@ -58,6 +58,7 @@
               <SelectValue :placeholder="t('select_tenant')" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">{{ t('none') }}</SelectItem>
               <SelectItem v-for="tenant in tenants" :key="tenant.id" :value="tenant.id">
                 {{ tenant.name }}
               </SelectItem>
@@ -74,7 +75,7 @@
               <SelectValue :placeholder="t('select_role')" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="role in roles" :key="role.id" :value="role.id">
+              <SelectItem v-for="role in filteredRoles" :key="role.id" :value="role.id">
                 {{ role.name }} - {{ role.tenant_name }}
               </SelectItem>
             </SelectContent>
@@ -98,7 +99,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { Link, useForm, usePage } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
@@ -110,9 +111,6 @@ import { Input }    from '@/components/ui/input'
 import { Label }    from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-// ──────────────────────────────────────────
-// Props
-// ──────────────────────────────────────────
 const props = defineProps({
   admin:         { type: Object, default: () => ({}) },
   roles:         { type: Array,  default: () => [] },
@@ -123,27 +121,45 @@ const props = defineProps({
 const { t } = useI18n()
 const { props: pageProps } = usePage()
 
-// ──────────────────────────────────────────
-// SuperAdmin 判定
-// ──────────────────────────────────────────
 const user = pageProps.auth?.admin ?? pageProps.auth?.user
 const isSuperAdmin = computed(() =>
   user?.roles?.some(r => ['super_admin', 'admin'].includes(r))
 )
 
-// ──────────────────────────────────────────
-// フォーム
-// ──────────────────────────────────────────
 const form = useForm({
   name:                  props.admin?.name      ?? '',
   email:                 props.admin?.email     ?? '',
   password:              '',
   password_confirmation: '',
   role_id:               props.selected_role    ?? null,
-  tenant_id:             props.admin?.tenant_id ?? null,
+  tenant_id:             props.admin?.tenant_id ?? 'none',
+})
+
+// tenant_idに応じてroleを絞り込む(SuperAdmin以外はtenant選択自体がないので全roleのまま)
+const filteredRoles = computed(() => {
+  if (!isSuperAdmin.value) return props.roles
+
+  const tid = form.tenant_id === 'none' ? null : form.tenant_id
+  return props.roles.filter(r => r.tenant_id === tid)
+})
+
+// tenant_idが変わったら、role_idが新しいtenantに属していなければリセット(SuperAdminのみ対象)
+watch(() => form.tenant_id, () => {
+  if (!isSuperAdmin.value) return
+
+  const tid = form.tenant_id === 'none' ? null : form.tenant_id
+  const stillValid = props.roles.some(r => r.id === form.role_id && r.tenant_id === tid)
+  if (!stillValid) {
+    form.role_id = null
+  }
 })
 
 const submit = () => {
+  form.transform(data => ({
+    ...data,
+    tenant_id: data.tenant_id === 'none' ? null : data.tenant_id,
+  }))
+
   if (props.admin?.id) {
     form.put(route('admin.admins.update', props.admin.id))
   } else {
