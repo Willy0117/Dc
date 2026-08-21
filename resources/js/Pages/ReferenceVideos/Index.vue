@@ -13,20 +13,20 @@
         未視聴の必須動画が{{ unwatchedRequiredCount }}本あります。すべてご視聴ください。
       </div>
 
-      <!-- カテゴリタブ -->
+      <!-- カテゴリータブ -->
       <div class="flex flex-wrap gap-2">
         <button
           v-for="cat in categories"
-          :key="cat"
+          :key="cat.id"
           type="button"
           class="px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors"
-          :class="activeCategory === cat
+          :class="activeCategoryId === cat.id
             ? 'bg-primary text-primary-foreground border-primary'
             : 'bg-background hover:bg-muted border-border text-muted-foreground'"
-          @click="activeCategory = cat"
+          @click="activeCategoryId = cat.id"
         >
-          {{ cat }}
-          <span class="ml-1 text-xs opacity-70">({{ videosByCategory[cat]?.length ?? 0 }})</span>
+          {{ cat.name }}
+          <span class="ml-1 text-xs opacity-70">({{ cat.videos.length }})</span>
         </button>
       </div>
 
@@ -117,20 +117,22 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 
 const props = defineProps({
-  videosByCategory: { type: Object, default: () => ({}) },
-  categories:       { type: Array, default: () => [] },
+  categories: { type: Array, default: () => [] }, // [{ id, name, videos: [...] }]
 })
 
-const activeCategory = ref(props.categories[0] ?? '全体')
+const activeCategoryId = ref(props.categories[0]?.id ?? null)
 const playingVideo    = ref(null)
 const markingWatched  = ref(false)
 
-const currentVideos = computed(() => props.videosByCategory[activeCategory.value] ?? [])
+const currentVideos = computed(() => {
+  const cat = props.categories.find(c => c.id === activeCategoryId.value)
+  return cat?.videos ?? []
+})
 
 const unwatchedRequiredCount = computed(() => {
   let count = 0
   for (const cat of props.categories) {
-    count += (props.videosByCategory[cat] ?? []).filter(v => v.is_required && !v.is_watched).length
+    count += cat.videos.filter(v => v.is_required && !v.is_watched).length
   }
   return count
 })
@@ -148,7 +150,7 @@ async function markWatched(video) {
   try {
     await axios.post(route('reference-videos.mark-watched', video.id))
     video.is_watched = true
-    router.reload({ only: ['videosByCategory'] })
+    router.reload({ only: ['categories'] })
   } catch (e) {
     alert('視聴済みの記録に失敗しました。')
   } finally {

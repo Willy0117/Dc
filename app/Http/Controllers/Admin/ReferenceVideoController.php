@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ReferenceVideo;
+use App\Models\ReferenceVideoCategory;
 use App\Models\ReferenceVideoView;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -17,10 +18,11 @@ class ReferenceVideoController extends Controller
     public function index()
     {
         $videos = ReferenceVideo::ordered()->get();
+        $categories = ReferenceVideoCategory::ordered()->withCount('videos')->get();
 
         return Inertia::render('Admin/ReferenceVideos/Index', [
             'videos'     => $videos,
-            'categories' => ReferenceVideo::CATEGORIES,
+            'categories' => $categories,
         ]);
     }
 
@@ -30,13 +32,13 @@ class ReferenceVideoController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'category'    => 'required|in:' . implode(',', ReferenceVideo::CATEGORIES),
+            'category_id' => 'required|exists:reference_video_categories,id',
             'title'       => 'required|string|max:255',
             'youtube_url' => 'required|url|max:255',
             'is_required' => 'boolean',
         ]);
 
-        $maxOrder = ReferenceVideo::where('category', $validated['category'])->max('sort_order') ?? 0;
+        $maxOrder = ReferenceVideo::where('category_id', $validated['category_id'])->max('sort_order') ?? 0;
 
         ReferenceVideo::create([
             ...$validated,
@@ -53,7 +55,7 @@ class ReferenceVideoController extends Controller
     public function update(Request $request, ReferenceVideo $referenceVideo)
     {
         $validated = $request->validate([
-            'category'    => 'required|in:' . implode(',', ReferenceVideo::CATEGORIES),
+            'category_id' => 'required|exists:reference_video_categories,id',
             'title'       => 'required|string|max:255',
             'youtube_url' => 'required|url|max:255',
             'is_required' => 'boolean',
@@ -78,7 +80,7 @@ class ReferenceVideoController extends Controller
     }
 
     // ──────────────────────────────────────────
-    // 並べ替え（同一カテゴリ内でのドラッグ&ドロップ）
+    // 並べ替え（同一カテゴリー内でのドラッグ&ドロップ）
     // ──────────────────────────────────────────
     public function reorder(Request $request)
     {
@@ -99,14 +101,13 @@ class ReferenceVideoController extends Controller
     // ──────────────────────────────────────────
     public function views(Request $request)
     {
-        $requiredVideos = ReferenceVideo::required()->ordered()->get(['id', 'category', 'title']);
+        $requiredVideos = ReferenceVideo::required()->ordered()->get(['id', 'category_id', 'title']);
         $requiredCount = $requiredVideos->count();
         $requiredIds = $requiredVideos->pluck('id');
 
         $userType = $request->input('user_type', 'organization') === 'member' ? 2 : 1;
         $statusFilter = $request->input('status', 'all');
 
-        // 完了済みユーザーID（必須動画をすべて視聴済み）を先に割り出す
         $completedUserIds = ReferenceVideoView::whereIn('reference_video_id', $requiredIds)
             ->select('user_id')
             ->groupBy('user_id')
@@ -122,11 +123,9 @@ class ReferenceVideoController extends Controller
                 });
             });
 
-        // タブの件数バッジ（すべて/未視聴あり の区別はせず、種別ごとの総数）
         $organizationCount = $baseQuery(1)->count();
         $memberCount = $baseQuery(2)->count();
 
-        // 未視聴あり件数（現在の種別・検索条件内）
         $incompleteCount = (clone $baseQuery($userType))->whereNotIn('id', $completedUserIds)->count();
 
         $usersQuery = $baseQuery($userType)
@@ -136,7 +135,6 @@ class ReferenceVideoController extends Controller
 
         $users = $usersQuery->paginate(20)->withQueryString();
 
-        // 該当ページのユーザーの視聴記録をまとめて取得（N+1回避）
         $views = ReferenceVideoView::whereIn('user_id', $users->pluck('id'))
             ->whereIn('reference_video_id', $requiredIds)
             ->get()

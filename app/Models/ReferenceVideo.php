@@ -3,16 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ReferenceVideo extends Model
 {
     protected $table = 'reference_videos';
 
-    const CATEGORIES = ['全体', '手', '足', '肘', '肩', '膝'];
-
     protected $fillable = [
-        'category',
+        'category_id',
         'title',
         'youtube_url',
         'is_required',
@@ -23,6 +22,11 @@ class ReferenceVideo extends Model
         'sort_order'  => 'integer',
         'is_required' => 'boolean',
     ];
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ReferenceVideoCategory::class, 'category_id');
+    }
 
     public function views(): HasMany
     {
@@ -54,7 +58,7 @@ class ReferenceVideo extends Model
 
     public function scopeOrdered($query)
     {
-        return $query->orderBy('category')->orderBy('sort_order');
+        return $query->orderBy('sort_order');
     }
 
     public function scopeRequired($query)

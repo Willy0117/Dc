@@ -60,7 +60,7 @@ const emit = defineEmits(['update:open', 'done'])
 
 const loading = ref(false)
 
-const tierLabels = { 1: 'ブロンズ', 2: 'シルバー', 3: 'ゴールド', 4: 'プラチナ' }
+const tierLabels = { 1: 'ベーシック', 2: 'アドバンス', 3: 'エキスパート', 4: 'マスター' }
 
 // 通算症例報告数(バックエンドから渡される想定。無ければ今期のみの値にフォールバック)
 const totalCaseCount = computed(() =>

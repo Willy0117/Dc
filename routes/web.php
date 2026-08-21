@@ -28,6 +28,7 @@ use App\Http\Controllers\ProcedureVideoController;
 use App\Http\Controllers\Admin\ProcedureVideoController as AdminProcedureVideoController;
 use App\Http\Controllers\ReferenceVideoController;
 use App\Http\Controllers\Admin\ReferenceVideoController as AdminReferenceVideoController;
+use App\Http\Controllers\Admin\ReferenceVideoCategoryController as AdminReferenceVideoCategoryController;
 
 use App\Http\Controllers\ResourceDocumentController;
 use App\Http\Controllers\Admin\ResourceDocumentController as AdminResourceDocumentController;
@@ -40,6 +41,7 @@ use App\Http\Controllers\ElearningController;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\ProfileChangeLogController as AdminProfileChangeLogController;
+use App\Http\Controllers\Admin\NoticeController as AdminNoticeController;
 
 use App\Http\Controllers\Auth\NewPasswordController;
 
@@ -78,6 +80,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/dashboard', fn () => inertia('Admin/Dashboard'))
             ->name('dashboard');
+        
+        Route::resource('notices', \App\Http\Controllers\Admin\NoticeController::class);
+        Route::get('notices-api/organizations', [\App\Http\Controllers\Admin\NoticeController::class, 'searchOrganizations'])->name('notices.search-organizations');
+        Route::get('notices-api/members', [\App\Http\Controllers\Admin\NoticeController::class, 'searchMembers'])->name('notices.search-members');
+    
         // Tenant
         Route::resource('tenants', \App\Http\Controllers\Admin\TenantController::class);
         Route::post('tenants/bulk-delete', [\App\Http\Controllers\Admin\TenantController::class, 'bulkDelete'])->name('tenants.bulkDelete');
@@ -179,7 +186,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/reference-videos/{referenceVideo}', [AdminReferenceVideoController::class, 'destroy'])->name('reference-videos.destroy');
         Route::post('/reference-videos/reorder', [AdminReferenceVideoController::class, 'reorder'])->name('reference-videos.reorder');
         Route::get('/reference-videos-views', [AdminReferenceVideoController::class, 'views'])->name('reference-videos.views');
-
+        Route::post('/reference-video-categories', [AdminReferenceVideoCategoryController::class, 'store'])->name('reference-video-categories.store');
+        Route::put('/reference-video-categories/{referenceVideoCategory}', [AdminReferenceVideoCategoryController::class, 'update'])->name('reference-video-categories.update');
+        Route::delete('/reference-video-categories/{referenceVideoCategory}', [AdminReferenceVideoCategoryController::class, 'destroy'])->name('reference-video-categories.destroy');
+        Route::post('/reference-video-categories/reorder', [AdminReferenceVideoCategoryController::class, 'reorder'])->name('reference-video-categories.reorder');
+ 
         // ──────────────────────────────────────────
         // 資料（管理画面側）※admin.プレフィックスの既存グループに追加
         // ──────────────────────────────────────────

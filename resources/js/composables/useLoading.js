@@ -15,9 +15,11 @@ router.on('finish', () => {
   if (timer) clearTimeout(timer)
   isLoading.value = false
 })
-// --- 追記: 419(CSRFトークン切れ)時、Inertiaのエラー画面を出さずに再読み込み ---
+
+// --- 追記: 419/401/403/404 時、Inertiaのエラー画面を出さずに再読み込み ---
 router.on('invalid', (event) => {
-  if (event.detail.response.status === 419) {
+  const status = event.detail.response?.status
+  if ([401, 403, 404, 419].includes(status)) {
     event.preventDefault()
     window.location.reload()
   }

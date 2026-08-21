@@ -7,14 +7,21 @@
 
     <div class="p-6 space-y-4">
 
+      <!-- カテゴリー管理ボタン -->
+      <div class="flex justify-end">
+        <Button variant="outline" size="sm" @click="categoryDialogOpen = true">
+          <Tag class="w-3.5 h-3.5 mr-1" />カテゴリー管理
+        </Button>
+      </div>
+
       <!-- 新規追加フォーム -->
       <div class="border rounded-lg p-4 bg-white space-y-3">
         <h2 class="text-sm font-semibold text-muted-foreground">動画を追加</h2>
         <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
-          <Select v-model="createForm.category">
-            <SelectTrigger><SelectValue placeholder="カテゴリ" /></SelectTrigger>
+          <Select v-model="createForm.category_id">
+            <SelectTrigger><SelectValue placeholder="カテゴリー" /></SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</SelectItem>
+              <SelectItem v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</SelectItem>
             </SelectContent>
           </Select>
           <Input v-model="createForm.title" placeholder="タイトル" class="sm:col-span-2" />
@@ -31,20 +38,20 @@
         </div>
       </div>
 
-      <!-- カテゴリタブ -->
-      <div class="flex flex-wrap gap-2">
+      <!-- カテゴリータブ -->
+      <div v-if="categories.length > 0" class="flex flex-wrap gap-2">
         <button
           v-for="cat in categories"
-          :key="cat"
+          :key="cat.id"
           type="button"
           class="px-4 py-1.5 rounded-lg border text-sm font-medium transition-colors"
-          :class="activeCategory === cat
+          :class="activeCategoryId === cat.id
             ? 'bg-primary text-primary-foreground border-primary'
             : 'bg-background hover:bg-muted border-border text-muted-foreground'"
-          @click="activeCategory = cat"
+          @click="activeCategoryId = cat.id"
         >
-          {{ cat }}
-          <span class="ml-1 text-xs opacity-70">({{ videosByCategory[cat]?.length ?? 0 }})</span>
+          {{ cat.name }}
+          <span class="ml-1 text-xs opacity-70">({{ documentsInCategory(cat.id).length }})</span>
         </button>
       </div>
 
@@ -63,7 +70,7 @@
           <tbody>
             <tr v-if="currentVideos.length === 0">
               <td colspan="5" class="px-3 py-12 text-center text-muted-foreground">
-                このカテゴリの動画はありません
+                このカテゴリーの動画はありません
               </td>
             </tr>
             <tr
@@ -114,7 +121,7 @@
                     <Button variant="ghost" size="icon" class="h-7 w-7 text-emerald-600" @click="saveEdit(video)">
                       <Check class="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" class="h-7 w-7" @click="cancelEdit">
+                    <Button variant="ghost" size="icon" class="h-7 w-7" @click="editingId = null">
                       <X class="w-3.5 h-3.5" />
                     </Button>
                   </template>
@@ -133,14 +140,95 @@
         </table>
       </div>
     </div>
+
+    <!-- カテゴリー管理ダイアログ -->
+    <Teleport to="body">
+      <div v-if="categoryDialogOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="categoryDialogOpen = false">
+        <div class="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b">
+            <h2 class="font-bold text-sm">カテゴリー管理</h2>
+            <Button variant="ghost" size="icon" class="h-7 w-7" @click="categoryDialogOpen = false">
+              <X class="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            <!-- 新規追加 -->
+            <div class="flex gap-2">
+              <Input
+                v-model="newCategoryName"
+                placeholder="新しいカテゴリー名"
+                class="flex-1"
+                @keydown.enter="(e) => handleAddCategoryEnter(e)"
+              />
+              <Button type="button" size="sm" :disabled="!newCategoryName.trim()" @click="addCategory">
+                <Plus class="w-3.5 h-3.5" />
+              </Button>
+            </div>
+
+            <!-- 一覧（ドラッグ&ドロップ並べ替え） -->
+            <div class="space-y-1">
+              <div
+                v-for="(cat, index) in categories"
+                :key="cat.id"
+                draggable="true"
+                class="flex items-center gap-2 px-2 py-2 rounded-lg border bg-muted/20 transition-colors"
+                :class="{ 'opacity-40': draggingCatIndex === index }"
+                @dragstart="onCatDragStart(index)"
+                @dragover.prevent
+                @drop="onCatDrop(index)"
+                @dragend="draggingCatIndex = null"
+              >
+                <GripVertical class="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
+                <Input
+                  v-if="editingCategoryId === cat.id"
+                  v-model="editCategoryName"
+                  class="h-8 flex-1"
+                  @keydown.enter="(e) => handleEditCategoryEnter(e, cat)"
+                />
+                <span v-else class="flex-1 text-sm">
+                  {{ cat.name }}
+                  <span class="text-xs text-muted-foreground">（{{ cat.videos_count }}件）</span>
+                </span>
+
+                <template v-if="editingCategoryId === cat.id">
+                  <Button variant="ghost" size="icon" class="h-7 w-7 text-emerald-600" @click="saveCategoryEdit(cat)">
+                    <Check class="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" class="h-7 w-7" @click="editingCategoryId = null">
+                    <X class="w-3.5 h-3.5" />
+                  </Button>
+                </template>
+                <template v-else>
+                  <Button variant="ghost" size="icon" class="h-7 w-7" @click="startCategoryEdit(cat)">
+                    <Pencil class="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-7 w-7"
+                    :class="cat.videos_count > 0 ? 'text-muted-foreground/40 cursor-not-allowed' : 'text-destructive'"
+                    :disabled="cat.videos_count > 0"
+                    :title="cat.videos_count > 0 ? '動画が登録されているため削除できません' : '削除'"
+                    @click="deleteCategory(cat)"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </Button>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </AppLayout>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, useForm } from '@inertiajs/vue3'
 import axios from 'axios'
-import { Plus, GripVertical, Pencil, Trash2, Check, X } from 'lucide-vue-next'
+import { Plus, GripVertical, Pencil, Trash2, Check, X, Tag } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/Admin/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -152,30 +240,26 @@ const props = defineProps({
   categories: { type: Array, default: () => [] },
 })
 
-const activeCategory = ref(props.categories[0] ?? '全体')
+const activeCategoryId = ref(props.categories[0]?.id ?? null)
 
-const videosByCategory = computed(() => {
-  const map = {}
-  for (const cat of props.categories) {
-    map[cat] = props.videos.filter(v => v.category === cat)
-  }
-  return map
-})
+function documentsInCategory(categoryId) {
+  return props.videos.filter(v => v.category_id === categoryId)
+}
 
-const currentVideos = computed(() => videosByCategory.value[activeCategory.value] ?? [])
+const currentVideos = computed(() => documentsInCategory(activeCategoryId.value))
 
 // ──────────────────────────────────────────
 // 新規追加
 // ──────────────────────────────────────────
 const createForm = reactive({
-  category: activeCategory.value,
+  category_id: activeCategoryId.value,
   title: '',
   youtube_url: '',
   is_required: false,
 })
 
 const canCreate = computed(() =>
-  createForm.category && createForm.title.trim() && createForm.youtube_url.trim()
+  createForm.category_id && createForm.title.trim() && createForm.youtube_url.trim()
 )
 
 function createVideo() {
@@ -193,18 +277,14 @@ function createVideo() {
 // 編集
 // ──────────────────────────────────────────
 const editingId = ref(null)
-const editForm = reactive({ category: '', title: '', youtube_url: '', is_required: false })
+const editForm = reactive({ category_id: null, title: '', youtube_url: '', is_required: false })
 
 function startEdit(video) {
   editingId.value = video.id
-  editForm.category = video.category
+  editForm.category_id = video.category_id
   editForm.title = video.title
   editForm.youtube_url = video.youtube_url
   editForm.is_required = video.is_required
-}
-
-function cancelEdit() {
-  editingId.value = null
 }
 
 function saveEdit(video) {
@@ -214,16 +294,13 @@ function saveEdit(video) {
   })
 }
 
-// ──────────────────────────────────────────
-// 削除
-// ──────────────────────────────────────────
 function deleteVideo(video) {
   if (!confirm(`「${video.title}」を削除しますか？`)) return
   router.delete(route('admin.reference-videos.destroy', video.id), { preserveScroll: true })
 }
 
 // ──────────────────────────────────────────
-// 並べ替え（同一カテゴリ内のみ）
+// 動画の並べ替え（同一カテゴリー内のみ）
 // ──────────────────────────────────────────
 const draggingIndex = ref(null)
 
@@ -244,6 +321,76 @@ async function onDrop(targetIndex) {
       ids: list.map(v => v.id),
     })
     router.reload({ only: ['videos'] })
+  } catch (e) {
+    alert('並び順の更新に失敗しました。')
+  }
+}
+
+// ──────────────────────────────────────────
+// カテゴリー管理ダイアログ
+// ──────────────────────────────────────────
+const categoryDialogOpen = ref(false)
+const newCategoryName = ref('')
+
+function addCategory() {
+  if (!newCategoryName.value.trim()) return
+  router.post(route('admin.reference-video-categories.store'), { name: newCategoryName.value }, {
+    preserveScroll: true,
+    onSuccess: () => { newCategoryName.value = '' },
+  })
+}
+
+function handleAddCategoryEnter(e) {
+  if (e.isComposing || e.keyCode === 229) return
+  addCategory()
+}
+
+const editingCategoryId = ref(null)
+const editCategoryName = ref('')
+
+function startCategoryEdit(cat) {
+  editingCategoryId.value = cat.id
+  editCategoryName.value = cat.name
+}
+
+function saveCategoryEdit(cat) {
+  router.put(route('admin.reference-video-categories.update', cat.id), { name: editCategoryName.value }, {
+    preserveScroll: true,
+    onSuccess: () => { editingCategoryId.value = null },
+  })
+}
+
+function handleEditCategoryEnter(e, cat) {
+  if (e.isComposing || e.keyCode === 229) return
+  saveCategoryEdit(cat)
+}
+
+function deleteCategory(cat) {
+  if (cat.videos_count > 0) return
+  if (!confirm(`「${cat.name}」を削除しますか？`)) return
+  router.delete(route('admin.reference-video-categories.destroy', cat.id), { preserveScroll: true })
+}
+
+// カテゴリー並べ替え
+const draggingCatIndex = ref(null)
+
+function onCatDragStart(index) {
+  draggingCatIndex.value = index
+}
+
+async function onCatDrop(targetIndex) {
+  if (draggingCatIndex.value === null || draggingCatIndex.value === targetIndex) return
+
+  const list = [...props.categories]
+  const [moved] = list.splice(draggingCatIndex.value, 1)
+  list.splice(targetIndex, 0, moved)
+  draggingCatIndex.value = null
+
+  try {
+    await axios.post(route('admin.reference-video-categories.reorder'), {
+      ids: list.map(c => c.id),
+    })
+    router.reload({ only: ['categories'] })
   } catch (e) {
     alert('並び順の更新に失敗しました。')
   }

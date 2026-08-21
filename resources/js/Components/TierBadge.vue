@@ -17,8 +17,8 @@ defineProps({
 })
 
 const config = {
-  2: { label: 'シルバー', class: 'text-slate-400 fill-slate-400' },
-  3: { label: 'ゴールド', class: 'text-yellow-500 fill-yellow-500' },
-  4: { label: 'プラチナ', class: 'text-cyan-300 fill-cyan-300' },
+  2: { label: 'アドバンス', class: 'text-slate-400 fill-slate-400' },
+  3: { label: 'エキスパート', class: 'text-yellow-500 fill-yellow-500' },
+  4: { label: 'マスター', class: 'text-cyan-300 fill-cyan-300' },
 }
 </script>

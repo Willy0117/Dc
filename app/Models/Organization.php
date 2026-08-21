@@ -416,16 +416,16 @@ class Organization extends Model
     const TIER_MASTER   = 4;
     
     const TIER_LABELS = [
-        self::TIER_BASIC   => 'ブロンズ',
-        self::TIER_ADVANCE => 'シルバー',
-        self::TIER_EXPERT  => 'ゴールド',
-        self::TIER_MASTER  => 'プラチナ',
+        self::TIER_BASIC   => 'ベーシック',
+        self::TIER_ADVANCE => 'アドバンス',
+        self::TIER_EXPERT  => 'エキスパート',
+        self::TIER_MASTER  => 'マスター',
     ];
     
     // アクセサ
     public function getTierLabelAttribute(): string
     {
-        return self::TIER_LABELS[$this->tier] ?? 'ブロンズ';
+        return self::TIER_LABELS[$this->tier] ?? 'ベーシック';
     }
 
 }
