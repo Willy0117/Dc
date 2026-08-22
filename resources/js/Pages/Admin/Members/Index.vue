@@ -30,12 +30,6 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- 新規登録 -->
-          <Button size="sm" as-child>
-            <Link :href="route('admin.members.create')">
-              <Plus class="w-3.5 h-3.5 mr-1" />新規登録
-            </Link>
-          </Button>
           <!-- 検索 -->
           <Button variant="outline" size="sm" @click="openDrawer = true">
             <Search class="w-3.5 h-3.5 mr-1" />検索

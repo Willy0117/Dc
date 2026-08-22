@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/Admin/AppLayout.vue'
 import MemberForm from '@/Components/MemberForm.vue'
 import type { MemberEditProps, MemberFormData } from '@/types'
@@ -8,6 +8,9 @@ import type { MemberEditProps, MemberFormData } from '@/types'
 const props = defineProps<MemberEditProps>()
 
 const isEdit = computed(() => !!props.member?.id)
+
+// バリデーションエラー（Laravel側の withErrors() が自動的にここへ入る）
+const errors = computed(() => usePage().props.errors as Record<string, string>)
 
 function handleSubmit(data: MemberFormData) {
   isEdit.value
@@ -31,6 +34,7 @@ function handleCancel() {
     <div class="h-full flex flex-col">
       <MemberForm
         v-bind="props"
+        :errors="errors"
         @submit="handleSubmit"
         @cancel="handleCancel"
       />

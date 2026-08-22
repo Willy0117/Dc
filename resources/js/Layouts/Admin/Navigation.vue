@@ -43,6 +43,16 @@
           <Home class="w-5 h-5"/>
           <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
         </Link>
+        <!-- ここに追加 -->
+        <Link
+          v-if="can('notice.view') || can('notice.edit')"
+          :href="route('admin.notices.index')"
+          class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+          :class="isActive('admin.notices.index') ? 'bg-gray-200 font-semibold' : ''"
+        >
+          <Megaphone class="w-4 h-4 mr-1"/>
+          お知らせ管理
+        </Link>
 
         <!-- Members サブメニュー -->
         <div v-if="canAccessMenu('members')" class="mt-2">
@@ -499,7 +509,7 @@ import {
   Building2, Menu, KeyRound, UserCog, Eye,
   X, Key, GraduationCap, Receipt, Video,
   FileCheck,
-  RefreshCw,
+  RefreshCw,Megaphone,
   FileText, BadgeDollarSign,
   CreditCard,
   Calendar,

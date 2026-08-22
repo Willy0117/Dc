@@ -652,7 +652,7 @@ class OrganizationController extends Controller
             'members.*.tel'                  => 'nullable|string|max:30',
             'members.*.mobile'               => 'nullable|string|max:30',
             'members.*.fax'                  => 'nullable|string|max:30',
-            'members.*.email'                => 'nullable|email|max:255',
+            'members.*.email'                => 'required|email|max:255',
             'members.*.personal_email'       => 'nullable|email|max:255',
             'members.*.status_id'            => 'nullable|integer',
             'members.*.member_type'          => 'nullable|string|max:50',

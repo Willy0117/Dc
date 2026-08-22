@@ -78,8 +78,9 @@ export function useMemberForm(props: MemberEditProps) {
   const form = reactive<MemberFormData>(makeFormFromProps(props))
 
   const isValid = computed(() =>
-    form.member.last_name.trim() !== '' &&
-    form.member.first_name.trim() !== ''
+    (form.member.last_name ?? '').trim() !== '' &&
+    (form.member.first_name ?? '').trim() !== '' &&
+    (form.member.email ?? '').trim() !== ''
   )
 
   function copyHomeToShipping() {

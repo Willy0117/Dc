@@ -23,7 +23,7 @@ const MEMBER_TYPE_OPTIONS = [
   { value: 'supporting', label: '賛助会員' },
 ] as const
 
-const props = defineProps<MemberEditProps>()
+const props = defineProps<MemberEditProps & { errors?: Record<string, string> }>()
 
 const emit = defineEmits<{
   (e: 'submit', data: MemberFormData): void
@@ -228,12 +228,14 @@ const normalizeDoctorNumber = (value: string) => {
                   姓 <span class="text-destructive">*</span>
                 </Label>
                 <Input v-model="form.member.last_name" placeholder="山田" />
+                <p v-if="props.errors?.['member.last_name']" class="text-xs text-destructive">{{ props.errors['member.last_name'] }}</p>
               </div>
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground">
                   名 <span class="text-destructive">*</span>
                 </Label>
                 <Input v-model="form.member.first_name" placeholder="太郎" />
+                <p v-if="props.errors?.['member.first_name']" class="text-xs text-destructive">{{ props.errors['member.first_name'] }}</p>
               </div>
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground">姓（かな）</Label>
@@ -287,6 +289,7 @@ const normalizeDoctorNumber = (value: string) => {
                   メールアドレス（ログインID）<span class="text-destructive">*</span>
                 </Label>
                 <Input type="email" v-model="form.member.email" placeholder="example@example.com" />
+                <p v-if="props.errors?.['member.email']" class="text-xs text-destructive">{{ props.errors['member.email'] }}</p>
               </div>
               <div class="space-y-1 col-span-2">
                 <Label class="text-xs text-muted-foreground">個人メールアドレス</Label>

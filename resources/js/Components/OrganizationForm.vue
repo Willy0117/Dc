@@ -62,6 +62,23 @@ function handleSubmit() {
 
   emit('submit', form)
 }
+// 指定したインデックスの先生に対応するバリデーションエラーだけを抽出する
+// Laravel側は "members.0.email" のようなキー形式で返すため、
+// members.{i}. のprefixを取り除いたキー名（例: "email"）にして渡す
+function memberErrors(index: number): Record<string, string> {
+  const errors = props.errors ?? {}
+  const prefix = `members.${index}.`
+  const result: Record<string, string> = {}
+
+  for (const key in errors) {
+    if (key.startsWith(prefix)) {
+      result[key.slice(prefix.length)] = errors[key]
+    }
+  }
+
+  return result
+}
+
 // サーバー側バリデーションエラーが住所系にあれば、住所タブへ自動遷移
 watch(
   () => props.errors,
@@ -73,6 +90,10 @@ watch(
       k.startsWith('billing_address')
     )
     if (hasAddressError) activeTab.value = 'address'
+
+    // 先生情報にエラーがあれば先生登録タブへ自動遷移
+    const hasMemberError = Object.keys(errors).some(k => k.startsWith('members.'))
+    if (hasMemberError) activeTab.value = 'members'
   },
   { immediate: true }
 )
@@ -269,6 +290,7 @@ watch(
             :member="member"
             :index="i"
             :member-index="i + 1"
+            :errors="memberErrors(i)"
             @remove="removeMember(i)"
             @copy-address="(from, to) => copyMemberAddress(i, from, to)"
           />

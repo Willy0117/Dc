@@ -21,6 +21,7 @@ const props = defineProps<{
   member: Member
   index: number
   memberIndex: number
+  errors?: Record<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -93,6 +94,7 @@ const normalizeDoctorNumber = (value: string) => {
             <span class="text-[10px] text-muted-foreground/60">last_name</span>
           </Label>
           <Input v-model="member.last_name" placeholder="山田" maxlength="100" />
+          <p v-if="errors?.last_name" class="text-xs text-destructive">{{ errors.last_name }}</p>
         </div>
         <div class="space-y-1">
           <Label class="text-xs text-muted-foreground">
@@ -100,6 +102,7 @@ const normalizeDoctorNumber = (value: string) => {
             <span class="text-[10px] text-muted-foreground/60">first_name</span>
           </Label>
           <Input v-model="member.first_name" placeholder="太郎" maxlength="100" />
+          <p v-if="errors?.first_name" class="text-xs text-destructive">{{ errors.first_name }}</p>
         </div>
       </div>
 
@@ -144,6 +147,7 @@ const normalizeDoctorNumber = (value: string) => {
             maxlength="6"
             inputmode="numeric"
           />
+          <p v-if="errors?.doctor_number" class="text-xs text-destructive">{{ errors.doctor_number }}</p>
         </div>
         <div /> <!-- レイアウト調整用の空セル -->
       </div>
@@ -188,9 +192,10 @@ const normalizeDoctorNumber = (value: string) => {
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1">
           <Label class="text-xs text-muted-foreground">
-            メールアドレス <span class="text-[10px] text-muted-foreground/60">email</span>
+            メールアドレス <span class="text-[10px] text-muted-foreground/60">email</span> <span class="text-destructive">*</span>
           </Label>
           <Input v-model="member.email" type="email" placeholder="yamada@hospital.jp" maxlength="255" />
+          <p v-if="errors?.email" class="text-xs text-destructive">{{ errors.email }}</p>
         </div>
         <div class="space-y-1">
           <Label class="text-xs text-muted-foreground">

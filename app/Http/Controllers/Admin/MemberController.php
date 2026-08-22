@@ -163,7 +163,7 @@ class MemberController extends Controller
             $this->syncRelatedData($member, $validated);
         });
 
-        return redirect()->route('admin.members.show', $member)
+        return redirect()->route('admin.members.index')
             ->with('success', '会員情報を更新しました。');
     }
 
@@ -253,7 +253,12 @@ class MemberController extends Controller
     {
         $memberRules = [
             'member.organization_id' => 'nullable|exists:organizations,id',
-            'member.member_number'   => 'nullable|string|max:20',
+            'member.member_number'   => [
+                'required', 'string', 'max:20',
+                $memberId
+                    ? "unique:members,member_number,{$memberId}"
+                    : 'unique:members,member_number',
+            ],
             'member.doctor_number'   => 'nullable|digits:6',
             'member.position'        => 'nullable|string|max:20',
             'member.last_name'       => 'required|string|max:100',
@@ -265,12 +270,7 @@ class MemberController extends Controller
             'member.tel'             => 'nullable|string|max:30',
             'member.mobile'          => 'nullable|string|max:30',
             'member.fax'             => 'nullable|string|max:30',
-            'member.email'           => [
-                'nullable', 'email', 'max:255',
-                $memberId
-                    ? "unique:members,email,{$memberId}"
-                    : 'unique:members,email',
-            ],
+            'member.email'           => 'required|email|max:255',
             'member.personal_email'  => 'nullable|email|max:255',
             'member.status_id'       => 'nullable|integer|in:1,2,3',
             'member.member_type'     => 'nullable|string|max:50',
