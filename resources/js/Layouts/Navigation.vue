@@ -3,7 +3,7 @@ import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 
-// Heroicons
+// lucide-vue-next
 import {
   Home, Users, User, ShieldCheck, Award, ClipboardList,
   Building2, Menu, KeyRound, UserCog,
@@ -40,22 +40,6 @@ const canCreateTeams = props.jetstream.canCreateTeams
 
 const { t, locale } = useI18n()
 
-// レスポンシブ判定
-/*const isMobile = ref(false)
-const handleResize = () => { isMobile.value = window.innerWidth < 1024 }
-
-onMounted(() => {
-  handleResize()
-  window.addEventListener('resize', handleResize)
-})
-onBeforeUnmount(() => window.removeEventListener('resize', handleResize))
-*/
-// ページ遷移でサブメニュー閉じる
-//watch(() => router.page, () => { openSubMenu.value = null })
-
-// collapsed 状態保存
-//watch(collapsed, val => { localStorage.setItem('sidebar-collapsed', JSON.stringify(val)) })
-
 // ページURLに応じて初期サブメニューを決定
 onMounted(() => {
   if (page.url.startsWith('/menus') || page.url.startsWith('/menus/weekly') || page.url.startsWith('/menus/import')) {
@@ -77,6 +61,9 @@ onMounted(() => {
     openSubMenu.value = 'exams'
   }
 })
+
+// ページ遷移でモバイルメニューを閉じる
+watch(() => page.url, () => { mobileOpen.value = false })
 
 // ヘッダー操作
 const logout = () => { router.post(route('logout')) }
@@ -138,13 +125,13 @@ const showAccessControl = computed(() => {
     <!-- モバイル用ハンバーガー -->
     <button
       @click="mobileOpen = !mobileOpen"
-      class="lg:hidden p-2 rounded-full hover:bg-gray-200"
+      class="lg:hidden fixed top-3 left-3 z-[60] p-2 rounded-full bg-white shadow hover:bg-gray-100"
     >
       <template v-if="mobileOpen">
-        <XMarkIcon class="w-5 h-5 text-gray-600" />
+        <X class="w-5 h-5 text-gray-600" />
       </template>
       <template v-else>
-        <Bars3Icon class="w-5 h-5 text-gray-600" />
+        <Menu class="w-5 h-5 text-gray-600" />
       </template>
     </button>
 
@@ -152,25 +139,29 @@ const showAccessControl = computed(() => {
     <aside
       :class="[
         'bg-gray-100 h-screen flex flex-col transition-all duration-300 z-50',
-        collapsed ? 'w-16' : 'w-64',
-        mobileOpen ? 'left-0' : '-left-full',
-        'fixed top-0 lg:relative lg:left-0 h-screen'
+        collapsed ? 'lg:w-16' : 'lg:w-64',
+        'w-64',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        'fixed top-0 left-0 lg:translate-x-0 lg:relative h-screen'
       ]"
     >
       <!-- PC折りたたみボタン -->
-      <div class="flex justify-end p-2 flex-none lg:flex">
+      <div class="justify-end p-2 flex-none hidden lg:flex">
         <button
           @click="toggleCollapse"
           class="p-2 rounded-full hover:bg-gray-200"
         >
           <template v-if="collapsed">
-            <Bars3Icon class="w-5 h-5 text-gray-600" />
+            <Menu class="w-5 h-5 text-gray-600" />
           </template>
           <template v-else>
-            <XMarkIcon class="w-5 h-5 text-gray-600" />
+            <X class="w-5 h-5 text-gray-600" />
           </template>
         </button>
       </div>
+
+      <!-- モバイル用の余白（ハンバーガーボタンと被らないように） -->
+      <div class="h-14 flex-none lg:hidden"></div>
 
        <nav class="flex-1 overflow-y-auto px-2 py-4 text-sm">
       <!-- Dashboard -->
@@ -272,27 +263,6 @@ const showAccessControl = computed(() => {
           <UserCog class="w-5 h-5 mr-1"/>
           プロフィール編集
       </Link>
-
-<!--      
-      <Link :href="route('pdf-uploads.create')"
-            class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-            :class="isActive('pdf-uploads.create') ? 'bg-gray-300 font-semibold' : ''">
-        <DocumentIcon class="w-5 h-5"/>
-        <span v-if="!collapsed" class="ml-2">{{ t('instructors.update') }}</span>
-      </Link>
-
-      <Link :href="route('pdf-uploads.index')"
-            class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-            :class="isActive('pdf-uploads') ? 'bg-gray-300 font-semibold' : ''">
-        <DocumentIcon class="w-5 h-5"/>
-        <span v-if="!collapsed" class="ml-2">{{ t('credit_acquisition') }}</span>
-      </Link>
-      <Link :href="route('annual-fees.index')"
-            class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
-            :class="isActive('annual-fees') ? 'bg-gray-300 font-semibold' : ''">
-        <DocumentCurrencyYenIcon class="w-5 h-5"/>
-        <span v-if="!collapsed" class="ml-2">{{ t('annual_fees.annual_fee') }}</span>
-      </Link -->
     </nav>
   </aside>
       <!-- モバイルオーバーレイ -->
@@ -308,6 +278,3 @@ const showAccessControl = computed(() => {
     .slide-fade-enter-to, .slide-fade-leave-from { opacity: 1; max-height: 500px; }
   </style>
 </template>
-
-
-

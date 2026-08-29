@@ -164,7 +164,7 @@ class ProfileController extends Controller
         $member = $user->member;
 
         $validated = $request->validate([
-            'member.doctor_number'   => 'nullable|digits:6',
+//            'member.doctor_number'   => 'nullable|digits:6',
             'member.position'        => 'nullable|string|max:20',
             'member.last_name'       => 'required|string|max:100',
             'member.first_name'      => 'required|string|max:100',
@@ -213,13 +213,13 @@ class ProfileController extends Controller
         ]);
 
         // doctor_numberは、既に値が入っている場合は変更不可（改ざん防止）
-        if (!empty($member->doctor_number)) {
-            unset($validated['member']['doctor_number']);
-        }
+//        if (!empty($member->doctor_number)) {
+//            unset($validated['member']['doctor_number']);
+//        }
 
         // 変更前の状態を保存（履歴用）
         $before = $member->only([
-            'doctor_number', 'position', 'last_name', 'first_name',
+            'position', 'last_name', 'first_name',
             'last_name_kana', 'first_name_kana', 'gender', 'birthdate',
             'tel', 'mobile', 'fax', 'email', 'personal_email', 'member_type',
         ]);

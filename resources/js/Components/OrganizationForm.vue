@@ -57,7 +57,6 @@ function handleSubmit() {
 
   form.members = form.members.map(m => ({
     ...m,
-    doctor_number: normalizeDoctorNumberForSubmit(m.doctor_number),
   }))
 
   emit('submit', form)

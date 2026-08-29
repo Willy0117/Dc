@@ -18,6 +18,7 @@
           <thead class="bg-muted border-b">
             <tr>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground w-16">出題</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground w-24">区分</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">設問</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground w-20">正答</th>
               <th class="px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground w-24">操作</th>
@@ -25,7 +26,7 @@
           </thead>
           <tbody>
             <tr v-if="questions.length === 0">
-              <td colspan="4" class="px-3 py-12 text-center text-muted-foreground">問題がありません</td>
+              <td colspan="5" class="px-3 py-12 text-center text-muted-foreground">問題がありません</td>
             </tr>
             <tr
               v-for="q in questions"
@@ -37,6 +38,10 @@
                   <Badge v-if="q.is_active" class="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 cursor-pointer">ON</Badge>
                   <Badge v-else variant="outline" class="text-muted-foreground cursor-pointer">OFF</Badge>
                 </button>
+              </td>
+              <td class="px-3 py-2.5">
+                <Badge v-if="q.category === 'simple'" class="bg-sky-100 text-sky-700 hover:bg-sky-100">簡易</Badge>
+                <Badge v-else variant="outline">本試験</Badge>
               </td>
               <td class="px-3 py-2.5 max-w-xl">
                 <p class="truncate">{{ q.question }}</p>
@@ -70,6 +75,30 @@
           </div>
 
           <div class="p-5 space-y-4 overflow-y-auto">
+            <!-- 区分（追加） -->
+            <div class="space-y-1.5">
+              <Label class="text-xs text-muted-foreground">区分</Label>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                  :class="form.category === 'main' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted'"
+                  @click="form.category = 'main'"
+                >
+                  本試験（15問出題）
+                </button>
+                <button
+                  type="button"
+                  class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                  :class="form.category === 'simple' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted'"
+                  @click="form.category = 'simple'"
+                >
+                  契約前簡易テスト
+                </button>
+              </div>
+              <p v-if="form.errors.category" class="text-xs text-destructive">{{ form.errors.category }}</p>
+            </div>
+
             <div class="space-y-1.5">
               <Label class="text-xs text-muted-foreground">設問</Label>
               <Textarea v-model="form.question" rows="2" />
@@ -141,6 +170,7 @@ const dialogOpen = ref(false)
 const editingId = ref(null)
 
 const form = useForm({
+  category: 'main', // 追加：デフォルトは本試験
   question: '',
   choice_a: '',
   choice_b: '',
@@ -154,6 +184,7 @@ const form = useForm({
 function openCreateDialog() {
   editingId.value = null
   form.reset()
+  form.category = 'main'
   form.correct_answer = 'A'
   form.is_active = true
   dialogOpen.value = true
@@ -161,6 +192,7 @@ function openCreateDialog() {
 
 function openEditDialog(q) {
   editingId.value = q.id
+  form.category = q.category
   form.question = q.question
   form.choice_a = q.choice_a
   form.choice_b = q.choice_b

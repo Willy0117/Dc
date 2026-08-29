@@ -52,6 +52,16 @@
           種別: {{ form.member_type }}
           <button @click="form.member_type = ''; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
+        <!-- グレード絞り込みバッジ -->
+        <Badge v-if="form.tier" variant="secondary" class="gap-1">
+          グレード: {{ tierLabels[form.tier] }}
+          <button @click="form.tier = ''; submitSearch()"><X class="w-3 h-3" /></button>
+        </Badge>
+        <!-- 受講状況絞り込みバッジ（追加） -->
+        <Badge v-if="form.elearning_status" variant="secondary" class="gap-1">
+          受講状況: {{ form.elearning_status === 'completed' ? '受講済み' : '未受講' }}
+          <button @click="form.elearning_status = ''; submitSearch()"><X class="w-3 h-3" /></button>
+        </Badge>
       </div>
 
       <!-- テーブル -->
@@ -80,6 +90,15 @@
                 状況
                 <SortIcon field="status_id" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
+              <!-- グレード列（表記変更） -->
+              <th class="px-3 py-2.5 text-left font-medium cursor-pointer hover:text-foreground text-muted-foreground" @click="sortBy('tier')">
+                グレード
+                <SortIcon field="tier" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
+              <!-- 受講状況列（追加） -->
+              <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">
+                受講状況
+              </th>
               <th class="px-3 py-2.5 text-left font-medium cursor-pointer hover:text-foreground text-muted-foreground" @click="sortBy('joined_at')">
                 入会日
                 <SortIcon field="joined_at" :current="form.sort_by" :dir="form.sort_dir" />
@@ -89,7 +108,7 @@
           </thead>
           <tbody class="divide-y">
             <tr v-if="members.data.length === 0">
-              <td colspan="9" class="px-3 py-12 text-center text-muted-foreground">
+              <td colspan="11" class="px-3 py-12 text-center text-muted-foreground">
                 <Users class="w-8 h-8 mx-auto mb-2 opacity-30" />
                 会員が見つかりません
               </td>
@@ -121,11 +140,40 @@
                   {{ statusLabels[member.status_id] ?? '-' }}
                 </Badge>
               </td>
+              <!-- グレードセル -->
+              <td class="px-3 py-2.5">
+                <TierBadge :tier="member.tier" />
+                <div v-if="member.current_tier_history" class="text-xs text-muted-foreground mt-0.5">
+                  {{ member.current_tier_history.case_count }}件
+                </div>
+              </td>
+              <!-- 受講状況セル（追加） -->
+              <td class="px-3 py-2.5">
+                <Badge v-if="member.elearning_completed" class="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                  <CheckCircle2 class="w-3 h-3 mr-1" />受講済み
+                </Badge>
+                <Badge v-else variant="outline" class="text-muted-foreground">
+                  未受講
+                </Badge>
+                <div v-if="member.elearning_completed_at" class="text-xs text-muted-foreground mt-0.5">
+                  {{ member.elearning_completed_at }}
+                </div>
+              </td>
               <td class="px-3 py-2.5 text-sm text-muted-foreground">
                 {{ member.joined_at ? dayjs(member.joined_at).format('YYYY/MM/DD') : '-' }}
               </td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-center gap-1">
+                  <!-- グレード変更ボタン -->
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-7 w-7 text-emerald-600"
+                    title="グレード変更"
+                    @click="openTierDialog(member)"
+                  >
+                    <TrendingUp class="w-3.5 h-3.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" class="h-7 w-7" as-child>
                     <Link :href="route('admin.members.edit', { id: member.id, ...persistQuery() })">
                       <Pencil class="w-3.5 h-3.5" />
@@ -192,6 +240,29 @@
                 </SelectContent>
               </Select>
             </div>
+            <!-- グレード絞り込み（表記変更） -->
+            <div class="space-y-1.5">
+              <Label>グレード</Label>
+              <Select v-model="form.tier">
+                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">すべて</SelectItem>
+                  <SelectItem v-for="(label, id) in tierLabels" :key="id" :value="Number(id)">{{ label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <!-- 受講状況絞り込み（追加） -->
+            <div class="space-y-1.5">
+              <Label>受講状況（簡易e-ラーニング）</Label>
+              <Select v-model="form.elearning_status">
+                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">すべて</SelectItem>
+                  <SelectItem value="completed">受講済み</SelectItem>
+                  <SelectItem value="incomplete">未受講</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div class="px-5 py-4 border-t flex gap-2">
             <Button class="flex-1" @click="submitSearch(); openDrawer = false">
@@ -222,6 +293,13 @@
       </DialogContent>
     </Dialog>
 
+    <!-- ========== グレード変更 Dialog ========== -->
+    <TierUpgradeDialog
+      v-model:open="tierDialogOpen"
+      :member="tierTarget"
+      @done="submitSearch"
+    />
+
   </AppLayout>
 </template>
 
@@ -231,12 +309,14 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import {
-  Search, Plus, Trash2, Pencil, Eye, X, Upload, Users
+  Search, Plus, Trash2, Pencil, Eye, X, Upload, Users, TrendingUp, CheckCircle2
 } from 'lucide-vue-next'
 
-import AppLayout      from '@/Layouts/Admin/AppLayout.vue'
-import Pagination     from '@/Components/Pagination.vue'
-import SortIcon       from '@/Components/SortIcon.vue'
+import AppLayout        from '@/Layouts/Admin/AppLayout.vue'
+import Pagination       from '@/Components/Pagination.vue'
+import SortIcon         from '@/Components/SortIcon.vue'
+import TierBadge         from '@/Components/TierBadge.vue'
+import TierUpgradeDialog from '@/Components/TierUpgradeDialog.vue'
 import { Button }     from '@/components/ui/button'
 import { Input }      from '@/components/ui/input'
 import { Label }      from '@/components/ui/label'
@@ -253,13 +333,17 @@ const props = defineProps({
   filters: {
     type: Object,
     default: () => ({
-      keyword: '', status_id: '', member_type: '', organization_id: '',
+      keyword: '', status_id: '', member_type: '', organization_id: '', tier: '', elearning_status: '',
       per_page: 20, sort_by: 'created_at', sort_dir: 'desc',
     }),
   },
   statusLabels: {
     type: Object,
     default: () => ({ 1: '通常', 2: '休会', 3: '退会' }),
+  },
+  tierLabels: {
+    type: Object,
+    default: () => ({ 1: 'ベーシック', 2: 'アドバンス', 3: 'エキスパート', 4: 'マスター' }),
   },
 })
 
@@ -271,13 +355,15 @@ const form = reactive({
   status_id:       props.filters.status_id     ?? '',
   member_type:     props.filters.member_type   ?? '',
   organization_id: props.filters.organization_id ?? '',
+  tier:            props.filters.tier          ?? '',
+  elearning_status: props.filters.elearning_status ?? '', // 追加
   per_page:        props.filters.per_page      ?? 20,
   sort_by:         props.filters.sort_by       ?? 'created_at',
   sort_dir:        props.filters.sort_dir      ?? 'desc',
 })
 
 const hasActiveFilters = computed(() =>
-  form.keyword || form.status_id || form.member_type
+  form.keyword || form.status_id || form.member_type || form.tier || form.elearning_status
 )
 
 // ──────────────────────────────────────────
@@ -306,6 +392,8 @@ const persistQuery = () => ({
   status_id:       form.status_id,
   member_type:     form.member_type,
   organization_id: form.organization_id,
+  tier:            form.tier,
+  elearning_status: form.elearning_status, // 追加
   per_page:        form.per_page,
   sort_by:         form.sort_by,
   sort_dir:        form.sort_dir,
@@ -324,6 +412,8 @@ const resetSearch = () => {
   form.keyword = ''
   form.status_id = ''
   form.member_type = ''
+  form.tier = ''
+  form.elearning_status = '' // 追加
   submitSearch()
   openDrawer.value = false
 }
@@ -386,6 +476,17 @@ const submitStatus = async () => {
 }
 
 // ──────────────────────────────────────────
+// グレード変更
+// ──────────────────────────────────────────
+const tierDialogOpen = ref(false)
+const tierTarget     = ref(null)
+
+const openTierDialog = (member) => {
+  tierTarget.value     = member
+  tierDialogOpen.value = true
+}
+
+// ──────────────────────────────────────────
 // ユーティリティ
 // ──────────────────────────────────────────
 const statusVariant = (statusId) => {
@@ -400,6 +501,5 @@ const endItem = computed(() =>
   Math.min(props.members.per_page * props.members.current_page, props.members.total)
 )
 
-// Import（将来用）
 const openImport = ref(false)
 </script>

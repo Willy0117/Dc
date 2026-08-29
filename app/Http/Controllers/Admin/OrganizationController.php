@@ -34,7 +34,9 @@ class OrganizationController extends Controller
         $sortDir = $request->input('sort_dir', 'desc') === 'asc' ? 'asc' : 'desc';
         $perPage = (int) $request->input('per_page', 20);
 
-        $allowedSorts = ['id', 'name', 'contract_no', 'contract_status', 'contract_date', 'tel', 'tier', 'payment_method'];
+        // 'tier' を削除（変更点1：Tierはmemberに移動したため、organization一覧の
+        // ソート対象から除外。先生ごとのTierはMember一覧側で確認する）
+        $allowedSorts = ['id', 'name', 'contract_no', 'contract_status', 'contract_date', 'tel', 'payment_method'];
         if (!in_array($sortBy, $allowedSorts)) $sortBy = 'contract_date';
 
         $organizations = Organization::query()
@@ -47,7 +49,8 @@ class OrganizationController extends Controller
                 'organization_addresses.tel as location_tel',
                 'organization_addresses.address1 as location_address1'
             )
-            ->with(['locationAddress', 'addresses', 'currentTierHistory'])
+            // 'currentTierHistory' を削除（変更点1：Organization側にはもう存在しない）
+            ->with(['locationAddress', 'addresses'])
             ->when($request->keyword, fn($q, $kw) =>
                 $q->where(function ($sub) use ($kw) {
                     $sub->where('organizations.name', 'like', "%{$kw}%")
@@ -63,7 +66,6 @@ class OrganizationController extends Controller
             ->when($request->payment_method && $request->payment_method !== 'all',
                 fn($q) => $q->where('organizations.payment_method', $request->payment_method)
             )
-            // 契約日の期間指定
             ->when($request->contract_date_from,
                 fn($q, $d) => $q->where('organizations.contract_date', '>=', $d)
             )
@@ -102,7 +104,7 @@ class OrganizationController extends Controller
                 'per_page'           => $perPage,
                 'sort_by'            => $sortBy,
                 'sort_dir'           => $sortDir,
-                'page'               => $request->input('page', 1), 
+                'page'               => $request->input('page', 1),
             ],
             'contractStatusLabels' => Organization::STATUS_LABELS,
         ]);
@@ -143,7 +145,7 @@ class OrganizationController extends Controller
                 'organization_id'  => $organization->id,
                 'type'             => 1, // 1:病院(organization)
                 'username'         => $organization->code,
-                'name'             => $organization->name,  // 法人名を使う
+                'name'             => $organization->name,
                 'email'            => $validated['location_address']['email'] ?? null,
                 'password'         => Hash::make(Str::random(32)),
                 'status'           => 1,
@@ -168,13 +170,13 @@ class OrganizationController extends Controller
                 'keyword',
                 'contract_status',
                 'address1',
-                'contract_date_from',  // ← 追加
-                'contract_date_to',    // ← 追加
-                'payment_method',      // ← 追加
+                'contract_date_from',
+                'contract_date_to',
+                'payment_method',
                 'per_page',
                 'sort_by',
                 'sort_dir',
-                'page',                // ← 追加
+                'page',
             ]),
         ]);
     }
@@ -199,7 +201,7 @@ class OrganizationController extends Controller
             'members' => $organization?->id ? $organization->members->map(fn($m) => [
                 'id'              => $m->id,
                 'member_number'   => $m->member_number,
-                'doctor_number'   => $m->doctor_number,
+//                'doctor_number'   => $m->doctor_number, // 変更点2により将来廃止予定
                 'position'        => $m->position,
                 'last_name'       => $m->last_name,
                 'first_name'      => $m->first_name,
@@ -216,19 +218,21 @@ class OrganizationController extends Controller
                 'member_type'     => $m->member_type,
                 'joined_at'       => $m->joined_at?->format('Y-m-d'),
                 'withdrawn_at'    => $m->withdrawn_at?->format('Y-m-d'),
-                'addresses'       => $m->addresses,  // ← 追加
+                'tier'            => $m->tier,        // 追加（変更点1）
+                'tier_label'      => $m->tier_label,  // 追加
+                'addresses'       => $m->addresses,
             ]) : [],
             'filters' => $request->only([
                 'keyword',
                 'contract_status',
                 'address1',
-                'contract_date_from',  // ← 追加
-                'contract_date_to',    // ← 追加
-                'payment_method',      // ← 追加
+                'contract_date_from',
+                'contract_date_to',
+                'payment_method',
                 'per_page',
                 'sort_by',
                 'sort_dir',
-                'page',                // ← 追加
+                'page',
             ]),
          ]);
     }
@@ -284,13 +288,15 @@ class OrganizationController extends Controller
             'needs_agreement'   => 'boolean',
         ]);
 
+        // 【撤廃済み】変更点4の「未受講の先生がいると契約申込メールを送信できない」
+        // というブロックは廃止した。e-ラーニング招待は契約締結・入金確認後に
+        // 送信する方式に変更されたため（UserInviteService参照）。
+
         if ($request->boolean('needs_agreement')) {
-            // 再契約: 旧契約日(contract_date)はDBの既存値を維持し、新契約日は入力値を使う
             $updates = [
                 'new_contract_date' => $request->new_contract_date,
             ];
         } else {
-            // 新規契約: 両方とも入力値をそのまま使う
             $updates = [
                 'contract_date'     => $request->contract_date,
                 'new_contract_date' => $request->new_contract_date,
@@ -299,7 +305,6 @@ class OrganizationController extends Controller
 
         $organization->update($updates);
 
-        // 申込URLを生成(合意書が必要な場合は agreement パラメータを付加)
         $token = $organization->generateRegisterToken();
         $url   = route('applications.register', array_filter([
             'token'     => $token,
@@ -334,7 +339,7 @@ class OrganizationController extends Controller
 
         return redirect()->back()->with('success', '契約申込メールを送信しました。');
     }
- 
+
 
     // ──────────────────────────────────────────
     // 請求書作成・送信（単発）
@@ -355,7 +360,6 @@ class OrganizationController extends Controller
         $organization = Organization::with(['locationAddress'])
             ->findOrFail($validated['organization_ids'][0]);
 
-        // 既存の未終了契約がある場合は二重発行を防ぐため発行させない
         $hasOpenContract = OrganizationContract::where('organization_id', $organization->id)
             ->whereNull('ended_at')
             ->exists();
@@ -371,9 +375,9 @@ class OrganizationController extends Controller
         $tax      = $total - $subtotal;
         $base     = $validated['base']  ?? $subtotal;
         $extra    = $validated['extra'] ?? 0;
- 
+
         $feeMaster = $this->getFeeMaster($organization);
- 
+
         $data = [
             'corp_name'     => $organization->name,
             'email'         => $organization->locationAddress?->email,
@@ -387,11 +391,11 @@ class OrganizationController extends Controller
             'due_date'      => $validated['due_date'],
             'note'          => $validated['note'] ?? '',
         ];
- 
+
         if (!$data['email']) {
             return back()->withErrors(['error' => '送付先メールアドレスが登録されていません。']);
         }
- 
+
         try {
             $invoice = app(InvoiceService::class)->createAndSend($organization, $data);
 
@@ -400,14 +404,14 @@ class OrganizationController extends Controller
                 'invoice_id'      => $invoice->id,
                 'invoice_no'      => $invoice->invoice_no,
             ]);
- 
+
             return back()->with('success', '請求書を作成し、メールを送信しました。');
         } catch (\Throwable $e) {
             \Log::error('管理画面: 請求書発行エラー', [
                 'organization_id' => $organization->id,
                 'message'         => $e->getMessage(),
             ]);
- 
+
             return back()->withErrors(['error' => '請求書の作成に失敗しました。']);
         }
     }
@@ -431,7 +435,6 @@ class OrganizationController extends Controller
         $organization = Organization::with(['locationAddress'])
             ->findOrFail($validated['organization_ids'][0]);
 
-        // 既存の未終了契約がある場合は二重発行を防ぐため発行させない
         $hasOpenContract = OrganizationContract::where('organization_id', $organization->id)
             ->whereNull('ended_at')
             ->exists();
@@ -441,15 +444,15 @@ class OrganizationController extends Controller
                 'error' => '既に未確定の契約が存在します。前回の請求書・決済の入金確認が完了しているか確認してください。',
             ]);
         }
-         
+
         $total    = (int) $validated['amount'];
         $subtotal = (int) round($total / 1.1);
         $tax      = $total - $subtotal;
         $base     = $validated['base']  ?? $subtotal;
         $extra    = $validated['extra'] ?? 0;
- 
+
         $feeMaster = $this->getFeeMaster($organization);
- 
+
         $data = [
             'corp_name'     => $organization->name,
             'email'         => $organization->locationAddress?->email,
@@ -463,27 +466,27 @@ class OrganizationController extends Controller
             'due_date'      => $validated['due_date'] ?? now()->addDays(30)->toDateString(),
             'note'          => $validated['note'] ?? '',
         ];
- 
+
         if (!$data['email']) {
             return back()->withErrors(['error' => '送付先メールアドレスが登録されていません。']);
         }
- 
+
         try {
             $invoice = app(StripeService::class)->createAndSend($organization, $data);
- 
+
             \Log::info('管理画面: Stripe決済リンク発行', [
                 'organization_id' => $organization->id,
                 'invoice_id'      => $invoice->id,
                 'invoice_no'      => $invoice->invoice_no,
             ]);
- 
+
             return back()->with('success', 'Stripe決済リンクを作成し、メールを送信しました。');
         } catch (\Throwable $e) {
             \Log::error('管理画面: Stripe決済リンク発行エラー', [
                 'organization_id' => $organization->id,
                 'message'         => $e->getMessage(),
             ]);
- 
+
             return back()->withErrors(['error' => 'Stripe決済リンクの作成に失敗しました。']);
         }
     }
@@ -573,7 +576,7 @@ class OrganizationController extends Controller
                 \Mail::to($email)->send(new \App\Mail\BulkMail(
                     $request->subject,
                     $body,
-                    $organization->name,  // ← 追加
+                    $organization->name,
                 ));
             });
 
@@ -645,7 +648,7 @@ class OrganizationController extends Controller
             'members.*.last_name_kana'       => 'nullable|string|max:100',
             'members.*.first_name_kana'      => 'nullable|string|max:100',
             'members.*.member_number'        => 'nullable|string|max:20',
-            'members.*.doctor_number'        => 'nullable|digits:6',
+//            'members.*.doctor_number'        => 'nullable|digits:6',
             'members.*.position'             => 'nullable|string|max:20',
             'members.*.gender'               => 'nullable|string|max:20',
             'members.*.birthdate'            => 'nullable|date',
@@ -658,6 +661,8 @@ class OrganizationController extends Controller
             'members.*.member_type'          => 'nullable|string|max:50',
             'members.*.joined_at'            => 'nullable|date',
             'members.*.withdrawn_at'         => 'nullable|date',
+            'members.*.same_as_member_ids'   => 'nullable|array', // 変更点3
+            'members.*.same_as_member_ids.*' => 'integer|exists:members,id',
             'members.*.addresses'                => 'nullable|array',
             'members.*.addresses.*.type'         => 'required|integer|in:1,2',
             'members.*.addresses.*.postal_code'  => 'nullable|string|max:20',
@@ -692,7 +697,7 @@ class OrganizationController extends Controller
     }
 
     // ──────────────────────────────────────────
-    // Private: 住所同期
+    // Private: 会員(先生)同期
     // ──────────────────────────────────────────
 
     private function syncMembers(Organization $organization, array $validated): void
@@ -712,7 +717,14 @@ class OrganizationController extends Controller
             $addresses = $memberData['addresses'] ?? [];
             unset($memberData['addresses']);
 
-            if (!empty($memberData['id'])) {
+            // 変更点3：フォーム入力時に「同一人物」として紐付け指定された全員のID
+            // （3人以上が同一人物というケースにも対応するため配列）
+            $sameAsMemberIds = $memberData['same_as_member_ids'] ?? [];
+            unset($memberData['same_as_member_ids']);
+
+            $isNewMember = empty($memberData['id']);
+
+            if (!$isNewMember) {
                 // 更新：member_numberはそのまま
                 $member = $organization->members()->find($memberData['id']);
                 $member?->update($memberData);
@@ -726,6 +738,7 @@ class OrganizationController extends Controller
                 $suffix = collect($suffixes)->first(fn($s) => !in_array($s, $existingSuffixes));
                 $memberData['member_number'] = $organization->code . '_' . $suffix;
 
+                // 新規memberはtier未設定なのでDBデフォルト(ベーシック)で作成される
                 $member = $organization->members()->create($memberData);
 
                 User::create([
@@ -738,6 +751,42 @@ class OrganizationController extends Controller
                     'password'  => Hash::make(Str::random(32)),
                     'status'    => 1,
                 ]);
+
+                // 【変更済み】従来ここで即座にe-ラーニング招待を送信していたが、
+                // 変更点：先生登録時ではなく「契約締結・入金確認後」に送信する方式に
+                // 変更した（StripeWebhookController / InvoiceController経由、
+                // UserInviteService::sendElearningInvitationsForOrganization()参照）。
+                // 契約済みの病院に、後から先生が追加された場合（変更点4・5）は、
+                // ここで個別に送信する必要がある。
+                if ($organization->contract_status === \App\Models\Organization::STATUS_ACTIVE
+                    && !empty($memberData['email'])) {
+                    app(\App\Services\UserInviteService::class)
+                        ->sendElearningInvitationIfNeeded($member);
+                }
+            }
+
+            // 変更点3：「同一人物として紐付ける」が指定されていれば、
+            // 自分自身＋指定された全員のdoctor_group_idをまとめて統合する
+            // （3人以上が同一人物というケースにも対応。保存と同時に確定し、
+            //   承認待ちキューは持たない）
+            if ($member && !empty($sameAsMemberIds)) {
+                $targetMembers = Member::whereIn('id', $sameAsMemberIds)->get();
+
+                $groupIds = $targetMembers
+                    ->map(fn (Member $m) => $m->doctor_group_id ?? $m->id)
+                    ->push($member->doctor_group_id ?? $member->id)
+                    ->unique();
+
+                $unifiedGroupId = $groupIds->min();
+
+                Member::whereIn('doctor_group_id', $groupIds)
+                    ->update(['doctor_group_id' => $unifiedGroupId]);
+
+                \Log::info('OrganizationController::syncMembers: 同一人物として紐付け', [
+                    'member_id'         => $member->id,
+                    'same_as_member_ids' => $sameAsMemberIds,
+                    'unified_group_id'  => $unifiedGroupId,
+                ]);
             }
 
             foreach ($addresses as $address) {
@@ -746,7 +795,7 @@ class OrganizationController extends Controller
                     $address
                 );
             }
-        }     
+        }
     }
     // ──────────────────────────────────────────
     // Private: 詳細用フォーマット
@@ -767,7 +816,7 @@ class OrganizationController extends Controller
             'rep_position'     => $organization->rep_position,
             'rep_last_name'    => $organization->rep_last_name,
             'rep_first_name'   => $organization->rep_first_name,
- 
+
             'contract_status'  => $organization->contract_status,
             'contract_date'    => $organization->contract_date?->format('Y-m-d'),
             'status_label'     => $organization->contract_status_label,
@@ -776,13 +825,15 @@ class OrganizationController extends Controller
             'shipping_address' => $shippingAddress,
             'billing_address'  => $billingAddress,
             'members'          => $organization->members->map(fn($m) => [
-                'id'           => $m->id,
-                'full_name'    => $m->full_name,
-                'position'     => $m->position,
-                'email'        => $m->email,
-                'tel'          => $m->tel,
-                'doctor_number' => $m->doctor_number,
-                'status_label' => $m->status_label,
+                'id'            => $m->id,
+                'full_name'     => $m->full_name,
+                'position'      => $m->position,
+                'email'         => $m->email,
+                'tel'           => $m->tel,
+//                'doctor_number' => $m->doctor_number, // 変更点2により将来廃止予定
+                'status_label'  => $m->status_label,
+                'tier'          => $m->tier,          // 追加（変更点1）
+                'tier_label'    => $m->tier_label,    // 追加
             ]),
             'created_at' => $organization->created_at->format('Y-m-d'),
         ];
@@ -790,19 +841,19 @@ class OrganizationController extends Controller
     // ──────────────────────────────────────────
     // 料金情報取得（請求書作成Dialog用）
     // ──────────────────────────────────────────
- 
+
     public function fee(Organization $organization)
     {
         $organization->loadMissing('locationAddress');
         $feeMaster   = $this->getFeeMaster($organization);
         $memberCount = $organization->members()->count();
- 
+
         $base     = $feeMaster->corporate_fee;
         $extra    = max(0, $memberCount - 3) * $feeMaster->personal_fee;
         $subtotal = $base + $extra;
         $tax      = (int) round($subtotal * 0.1);
         $total    = $subtotal + $tax;
- 
+
         return response()->json([
             'organization_id' => $organization->id,
             'email'           => $organization->locationAddress?->email,
@@ -816,11 +867,11 @@ class OrganizationController extends Controller
             'total'           => $total,
         ]);
     }
- 
+
     // ──────────────────────────────────────────
     // Private: 料金マスタ取得
     // ──────────────────────────────────────────
- 
+
     private function getFeeMaster(Organization $organization)
     {
         $contract = $organization->contracts()
@@ -831,7 +882,7 @@ class OrganizationController extends Controller
             })
             ->latest('started_at')
             ->first();
- 
+
         return $contract ?? LicenseFeeMaster::where('started_at', '<=', today())
             ->orderByDesc('started_at')
             ->first() ?? (object)[
@@ -840,47 +891,11 @@ class OrganizationController extends Controller
             ];
     }
 
-
     // ──────────────────────────────────────────
-    // Tier昇格（tier3/4 のみ手動）
+    // 【削除済み】upgradeTier() / downgradeTier()
+    // 変更点1により、Tierの手動変更はOrganizationではなくMember単位で
+    // 行うようになったため、この2メソッドはMemberControllerへ移設した。
+    // （移設先実装は MemberController.php 側を参照）
     // ──────────────────────────────────────────
-    public function upgradeTier(Request $request, Organization $organization)
-    {
-        $request->validate([
-            'tier' => 'required|integer|in:1,2,3,4',
-        ]);
-
-        $newTier = (int) $request->tier;
-
-        // tier更新(昇格・降格とも自由に変更可能)
-        $organization->update(['tier' => $newTier]);
-
-        \Log::info('OrganizationController: tier手動変更', [
-            'organization_id' => $organization->id,
-            'new_tier'         => $newTier,
-        ]);
-
-        return back()->with('success', "Tierを変更しました。");
-    }
-    
-    // ──────────────────────────────────────────
-    // Tier降格（管理者が手動でtierを下げる場合）
-    // ──────────────────────────────────────────
-    public function downgradeTier(Request $request, Organization $organization)
-    {
-        $request->validate([
-            'tier' => 'required|integer|in:1,2,3',
-        ]);
-    
-        $newTier = (int) $request->tier;
-    
-        $organization->update(['tier' => $newTier]);
-    
-        $history = $organization->currentTierHistory;
-        $history?->update(['tier' => $newTier]);
-    
-        return back()->with('success', "{$organization->name} のTierを変更しました。");
-    }
-
 
 }

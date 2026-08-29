@@ -30,11 +30,25 @@ class CaseReportController extends Controller
     }
 
     // ──────────────────────────────────────────
+    // member取得（type=2:先生ログイン時のみ本人が取れる。type=1:病院ログインはnull）
+    // 変更点9：症例報告は先生が主体のため、先生ログイン時は自分自身を特定する
+    // ──────────────────────────────────────────
+    private function getLoggedInMember(): ?Member
+    {
+        $user = Auth::user();
+        return (int) $user->type === 2 ? $user->member : null;
+    }
+
+    // ──────────────────────────────────────────
     // 一覧
+    // 変更点2：病院単位ではなく、
+    //   ・先生ログイン時 → 自分自身が担当した症例のみ
+    //   ・病院ログイン時 → 所属する全ての先生の症例（従来通り、施設単位で俯瞰）
     // ──────────────────────────────────────────
     public function index(Request $request)
     {
         $organization = $this->getOrganization();
+        $loggedInMember = $this->getLoggedInMember();
 
         if (!$organization) {
             return Inertia::render('Reports/Index', [
@@ -43,11 +57,18 @@ class CaseReportController extends Controller
             ]);
         }
 
-        $reports = CaseReport::with('member')
-            ->where('organization_id', $organization->id)
-            ->orderByDesc('submitted_at')
-            ->paginate(20)
-            ->withQueryString();
+        $query = CaseReport::with('member')
+            ->orderByDesc('submitted_at');
+
+        if ($loggedInMember) {
+            // 先生ログイン：自分自身のmember_idで絞り込む
+            $query->where('member_id', $loggedInMember->id);
+        } else {
+            // 病院ログイン：所属organizationの全先生分
+            $query->where('organization_id', $organization->id);
+        }
+
+        $reports = $query->paginate(20)->withQueryString();
 
         $reports->getCollection()->transform(fn($r) => [
             'id'                  => $r->id,
@@ -86,17 +107,23 @@ class CaseReportController extends Controller
 
     // ──────────────────────────────────────────
     // 保存
+    // 変更点9・③：
+    //   ・先生ログイン時 → member_idはリクエストの値を信用せず、
+    //                       サーバー側で強制的に自分自身にする（なりすまし防止）
+    //   ・病院ログイン時 → member_idは必須（未選択ならエラー）
     // ──────────────────────────────────────────
     public function store(Request $request)
     {
-        $organization = $this->getOrganization();
+        $organization   = $this->getOrganization();
+        $loggedInMember = $this->getLoggedInMember();
 
         if (!$organization) {
             return redirect()->route('reports.index')->withErrors(['error' => '所属施設が見つかりません。']);
         }
 
         $validated = $request->validate([
-            'member_id'          => 'nullable|exists:members,id',
+            // 病院ログイン時は必須、先生ログイン時はこの値自体を使わないためnullableのままでよい
+            'member_id'          => [$loggedInMember ? 'nullable' : 'required', 'exists:members,id'],
             'patient_gender'     => 'required|in:男性,女性,不明',
             'patient_age_group'  => 'required|string',
             'treatment_area'     => 'required|in:手,足,肘,肩,膝',
@@ -105,12 +132,16 @@ class CaseReportController extends Controller
             'notes'              => 'nullable|string|max:1000',
         ]);
 
+        // 先生ログインなら常に自分自身のmember_idを使う（リクエスト値は無視）
+        // 病院ログインならバリデーション済みの選択値をそのまま使う
+        $memberId = $loggedInMember ? $loggedInMember->id : $validated['member_id'];
+
         $details = $validated['details'] ?? [];
         $area    = $validated['treatment_area'];
 
         $report = CaseReport::create([
-            'organization_id'    => $organization->id,
-            'member_id'          => $validated['member_id'] ?? null,
+            'organization_id'    => $organization->id, // 変更点9：補足情報として残す
+            'member_id'          => $memberId,
             'facility_name_raw'  => $organization->name,
             'patient_gender'     => $validated['patient_gender'],
             'patient_age_group'  => $validated['patient_age_group'],
@@ -127,7 +158,7 @@ class CaseReportController extends Controller
             'data'           => $details,
         ]);
 
-        $this->updateTierHistory($organization);
+        $this->updateTierHistory($report);
 
         return redirect()->route('reports.index')
             ->with('success', '症例報告を登録しました。');
@@ -136,9 +167,10 @@ class CaseReportController extends Controller
 
     // ──────────────────────────────────────────
     // Tier履歴のcase_count更新・tier自動判定
+    // 変更点1：Organization起点ではなく、症例に紐づくMember起点で行う
     // ──────────────────────────────────────────
-    private function updateTierHistory($organization): void
+    private function updateTierHistory(CaseReport $report): void
     {
-        $organization->syncTierFromHistory();
+        $report->member?->syncTierFromHistory();
     }
 }

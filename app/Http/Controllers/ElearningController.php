@@ -28,8 +28,8 @@ class ElearningController extends Controller
         $organization = $member->organization;
         $periodKey = ElearningAttempt::calculatePeriodKey($organization->contract_date);
 
-        // 同一先生（doctor_number一致）が、期間を問わずどこかで合格していれば合格扱い
-        $isPassed = ElearningAttempt::hasPassedByDoctorNumber($member->doctor_number, $member->id);
+        // 同一先生（doctor_group_id一致）が、期間を問わずどこかで合格していれば合格扱い
+        $isPassed = ElearningAttempt::hasPassedByDoctorGroup($member->doctor_group_id, $member->id);
 
         $recentAttempts = ElearningAttempt::where('member_id', $member->id)
             ->inPeriod($periodKey)
@@ -59,7 +59,7 @@ class ElearningController extends Controller
         $organization = $member->organization;
         $periodKey = ElearningAttempt::calculatePeriodKey($organization->contract_date);
 
-        $questions = ElearningQuestion::active()->inRandomOrder()->limit(15)->get();
+        $questions = ElearningQuestion::active()->main()->inRandomOrder()->limit(15)->get();
 
         if ($questions->count() < 15) {
             return back()->withErrors(['error' => '出題可能な問題数が不足しています。運営にお問い合わせください。']);
@@ -88,42 +88,47 @@ class ElearningController extends Controller
 
         return redirect()->route('elearning.show', $attempt->id);
     }
-
     // ──────────────────────────────────────────
     // 受験画面（設問一覧表示）
+    // 変更点：is_multiple（複数正解かどうか）を追加。
+    // 正解の中身自体（correct_answer）はフロントへ渡さない。
     // ──────────────────────────────────────────
     public function show(Request $request, ElearningAttempt $attempt)
     {
         $this->authorizeAttempt($request, $attempt);
-
+ 
         if ($attempt->submitted_at) {
             return redirect()->route('elearning.result', $attempt->id);
         }
-
+ 
         $questions = $attempt->answers()
-            ->with('question:id,question,choice_a,choice_b,choice_c,choice_d')
+            ->with('question:id,question,choice_a,choice_b,choice_c,choice_d,correct_answer')
             ->orderBy('sort_order')
             ->get()
             ->map(fn($a) => [
-                'sort_order' => $a->sort_order,
+                'sort_order'  => $a->sort_order,
                 'question_id' => $a->question_id,
-                'question'   => $a->question->question,
-                'choices'    => [
+                'question'    => $a->question->question,
+                'choices'     => [
                     'A' => $a->question->choice_a,
                     'B' => $a->question->choice_b,
                     'C' => $a->question->choice_c,
                     'D' => $a->question->choice_d,
                 ],
+                // 追加：正解がカンマ区切り（複数）かどうかだけをフロントに伝える。
+                // 正解の中身自体は渡さない（cheat防止）
+                'is_multiple' => str_contains($a->question->correct_answer, ','),
             ]);
-
+ 
         return Inertia::render('Elearning/Show', [
             'attemptId' => $attempt->id,
             'questions' => $questions,
         ]);
     }
-
     // ──────────────────────────────────────────
     // 回答提出・採点
+    // 変更点：複数正解（correct_answerがカンマ区切りの場合）に対応。
+    // フロント側は、単一選択の問題でも必ず配列（例: ['A']）で送ること。
     // ──────────────────────────────────────────
     public function submit(Request $request, ElearningAttempt $attempt)
     {
@@ -134,9 +139,11 @@ class ElearningController extends Controller
         }
 
         $validated = $request->validate([
-            'answers'             => 'required|array',
-            'answers.*.question_id' => 'required|integer|exists:elearning_questions,id',
-            'answers.*.selected'    => 'required|in:A,B,C,D',
+            'answers'                 => 'required|array',
+            'answers.*.question_id'   => 'required|integer|exists:elearning_questions,id',
+            // 変更：単一文字ではなく配列で受け取る（単一正解の問題でも要素1件の配列で送ること）
+            'answers.*.selected'      => 'required|array|min:1',
+            'answers.*.selected.*'    => 'required|string|in:A,B,C,D',
         ]);
 
         DB::transaction(function () use ($attempt, $validated) {
@@ -148,13 +155,23 @@ class ElearningController extends Controller
 
             foreach ($validated['answers'] as $ans) {
                 $question = $questionMap->get($ans['question_id']);
-                $isCorrect = $question && $question->correct_answer === $ans['selected'];
+
+                // 選択された選択肢・正解、それぞれをソートして集合として比較する
+                // （選んだ順番は問わない。過不足なく一致していれば正解）
+                $selected = collect($ans['selected'])->map(fn ($s) => trim($s))->sort()->values();
+                $correct  = collect(explode(',', $question->correct_answer ?? ''))
+                    ->map(fn ($s) => trim($s))
+                    ->sort()
+                    ->values();
+
+                $isCorrect = $question && $selected->all() === $correct->all();
                 if ($isCorrect) $correctCount++;
 
                 ElearningAttemptAnswer::where('attempt_id', $attempt->id)
                     ->where('question_id', $ans['question_id'])
                     ->update([
-                        'selected_answer' => $ans['selected'],
+                        // 複数選択の場合もカンマ区切りの1文字列として保存（correct_answerと同じ形式）
+                        'selected_answer' => $selected->implode(','),
                         'is_correct'      => $isCorrect,
                     ]);
             }
@@ -167,10 +184,11 @@ class ElearningController extends Controller
         });
 
         return redirect()->route('elearning.result', $attempt->id);
-    }
-
-    // ──────────────────────────────────────────
+    }   
+// ──────────────────────────────────────────
     // 結果画面（正誤・解説表示）
+    // 変更点：selected_answer・correct_answerを、カンマ区切り文字列から
+    // 配列に変換してフロントへ渡す（複数正解対応）
     // ──────────────────────────────────────────
     public function result(Request $request, ElearningAttempt $attempt)
     {
@@ -192,8 +210,11 @@ class ElearningController extends Controller
                     'C' => $a->question->choice_c,
                     'D' => $a->question->choice_d,
                 ],
-                'selected_answer' => $a->selected_answer,
-                'correct_answer'  => $a->question->correct_answer,
+                // 変更：カンマ区切り文字列 → 配列
+                'selected_answers' => collect(explode(',', $a->selected_answer ?? ''))
+                    ->map(fn ($s) => trim($s))->filter()->values(),
+                'correct_answers'  => collect(explode(',', $a->question->correct_answer ?? ''))
+                    ->map(fn ($s) => trim($s))->filter()->values(),
                 'is_correct'      => $a->is_correct,
                 'explanation'     => $a->question->explanation,
             ]);

@@ -31,13 +31,15 @@
       </div>
 
       <!-- Step 1: 基本情報 -->
-<!-- Step 1: 基本情報 -->
       <div v-if="currentStep === 1" class="space-y-6">
-        <div class="space-y-2" v-if="props.members?.length">
-          <Label>先生（任意）</Label>
+        <!-- 先生選択：
+             ・先生（member）ログインの場合 → 自分自身が確定しているので非表示（変更点9・③）
+             ・病院（organization）ログインの場合 → 必須選択（③） -->
+        <div class="space-y-2" v-if="!isMemberLogin && props.members?.length">
+          <Label>先生 <span class="text-destructive">*</span></Label>
           <Select v-model="form.member_id">
-            <SelectTrigger>
-              <SelectValue placeholder="選択しない" />
+            <SelectTrigger :class="form.errors.member_id ? 'border-destructive' : ''">
+              <SelectValue placeholder="選択してください" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="m in props.members" :key="m.id" :value="m.id">
@@ -45,6 +47,9 @@
               </SelectItem>
             </SelectContent>
           </Select>
+          <p v-if="form.errors.member_id" class="text-xs text-destructive">
+            {{ form.errors.member_id }}
+          </p>
         </div>
 
         <div class="space-y-2">
@@ -134,7 +139,7 @@
         <Button v-if="currentStep < 3" @click="nextStep" :disabled="!canProceed">
           次へ<ChevronRight class="w-4 h-4 ml-1" />
         </Button>
-        <Button v-else @click="submit" :disabled="processing || !canProceed">
+        <Button v-else @click="submit" :disabled="form.processing || !canProceed">
           <Send class="w-4 h-4 mr-1" />送信
         </Button>
       </div>
@@ -143,8 +148,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed, onMounted } from 'vue'
+import { useForm, usePage } from '@inertiajs/vue3'
 import { Check, ChevronLeft, ChevronRight, Send } from 'lucide-vue-next'
 import AppLayout     from '@/Layouts/AppLayout.vue'
 import CheckboxGroup from '@/Components/Form/CheckboxGroup.vue'
@@ -160,18 +165,24 @@ const props = defineProps({
   members: { type: Array, default: () => [] },
 })
 
+// ログイン種別判定（変更点9・③）：
+// user.type === 2 の場合は先生本人ログイン、1 の場合は病院ログイン
+const { props: pageProps } = usePage()
+const authUser = pageProps.auth?.user
+const isMemberLogin = computed(() => authUser?.type === 2)
+
 const currentStep = ref(1)
 const stepLabels  = ['基本情報', '治療詳細', '備考・コメント']
-const processing  = ref(false)
 
 const ageGroups      = ['10代以下', '10代', '20代', '30代', '40代', '50代', '60代', '70代', '80代', '90代以上']
 const treatmentAreas = ['手', '足', '肘', '肩', '膝']
 
-const areaFields = computed(() => props.options?.[form.value.treatment_area] ?? {})
+const areaFields = computed(() => props.options?.[form.treatment_area] ?? {})
 
 const complicationOptions = computed(() => props.options?.['共通']?.['トラブル・合併症']?.options ?? [])
 
-const form = ref({
+// useForm化：バリデーションエラーが form.errors に自動で入るようになる
+const form = useForm({
   member_id:          null,
   patient_gender:     '',
   patient_age_group:  '',
@@ -181,22 +192,31 @@ const form = ref({
   notes:              '',
 })
 
+// 先生ログインの場合、自分自身のmember_idを自動セットする（選択不要）
+onMounted(() => {
+  if (isMemberLogin.value && authUser?.member?.id) {
+    form.member_id = authUser.member.id
+  }
+})
+
 const resetDetails = () => {
-  const fields  = props.options?.[form.value.treatment_area] ?? {}
+  const fields  = props.options?.[form.treatment_area] ?? {}
   const details = {}
   for (const [fieldName, fieldDef] of Object.entries(fields)) {
     details[fieldName] = fieldDef.type === 'checkbox' ? [] : ''
   }
-  form.value.details = details
+  form.details = details
 }
 
 const canProceed = computed(() => {
   if (currentStep.value === 1) {
-    return form.value.patient_gender && form.value.patient_age_group && form.value.treatment_area
+    // 病院ログインの場合のみ、先生選択を必須条件に含める（③）
+    const memberOk = isMemberLogin.value || !!form.member_id
+    return memberOk && form.patient_gender && form.patient_age_group && form.treatment_area
   }
   if (currentStep.value === 2) {
     for (const [fieldName, fieldDef] of Object.entries(areaFields.value)) {
-      const val = form.value.details[fieldName]
+      const val = form.details[fieldName]
       if (fieldDef.type === 'checkbox' && (!val || val.length === 0)) return false
       if (fieldDef.type === 'radio' && !val) return false
     }
@@ -212,9 +232,11 @@ const nextStep = () => {
 }
 
 const submit = () => {
-  processing.value = true
-  router.post(route('reports.store'), form.value, {
-    onFinish: () => { processing.value = false },
+  form.post(route('reports.store'), {
+    // Step1に先生未選択エラーが返ってきた場合、そこに戻して見せる
+    onError: (errors) => {
+      if (errors.member_id) currentStep.value = 1
+    },
   })
 }
 </script>

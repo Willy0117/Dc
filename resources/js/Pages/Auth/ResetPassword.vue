@@ -7,13 +7,13 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 
 const props = defineProps({
-    username: String,
+    email: String,
     token: String,
 });
 
 const form = useForm({
     token: props.token,
-    username: props.username,
+    email: props.email,
     password: '',
     password_confirmation: '',
 });
@@ -38,21 +38,24 @@ const submit = () => {
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="username" value="ID" />
+                <InputLabel for="email" value="ID" />
                 <TextInput
-                    id="username"
-                    v-model="form.username"
-                    type="text"
+                    id="email"
+                    v-model="form.email"
+                    type="email"
                     class="mt-1 block w-full"
                     required
                     autofocus
                     autocomplete="username"
                 />
-                <InputError class="mt-2" :message="form.errors.username" />
+                <InputError class="mt-2" :message="form.errors.email" />
             </div>
 
             <div class="mt-4">
                 <InputLabel for="password" value="新しいパスワード" />
+                <p class="text-xs text-gray-500 mt-1 mb-1">
+                    ※ パスワードは8文字以上でご設定ください。
+                </p>
                 <TextInput
                     id="password"
                     v-model="form.password"

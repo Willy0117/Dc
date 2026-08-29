@@ -34,18 +34,36 @@ class MemberController extends Controller
         $sortDir = $request->input('sort_dir', 'desc');
         $perPage = (int) $request->input('per_page', 20);
 
-        $allowedSorts = ['id', 'member_number', 'last_name', 'email', 'status_id', 'joined_at', 'created_at'];
+        // 'tier' を追加（変更点1：グレードはmember単位でソート可能にする）
+        $allowedSorts = ['id', 'member_number', 'last_name', 'email', 'status_id', 'tier', 'joined_at', 'created_at'];
         if (!in_array($sortBy, $allowedSorts)) $sortBy = 'created_at';
 
         $members = Member::query()
-            ->with(['organization'])
+            // 追加：受講済みステータス表示用に、直近のe-ラーニング招待をeager load
+            ->with(['organization', 'currentTierHistory', 'latestElearningInvitation'])
             ->when($request->keyword, fn($q, $kw) => $q->search($kw))
             ->when($request->status_id, fn($q, $s) => $q->where('status_id', $s))
             ->when($request->organization_id, fn($q, $o) => $q->where('organization_id', $o))
             ->when($request->member_type, fn($q, $t) => $q->where('member_type', $t))
+            ->when($request->tier, fn($q, $t) => $q->where('tier', $t)) // 追加：グレードで絞り込み
+            ->when($request->elearning_status, function ($q, $status) {
+                // 追加：受講状況で絞り込み（completed / incomplete）
+                if ($status === 'completed') {
+                    $q->whereHas('latestElearningInvitation', fn($sub) => $sub->whereNotNull('completed_at'));
+                } elseif ($status === 'incomplete') {
+                    $q->whereDoesntHave('latestElearningInvitation', fn($sub) => $sub->whereNotNull('completed_at'));
+                }
+            })
             ->orderBy("members.{$sortBy}", $sortDir)
             ->paginate($perPage)
             ->withQueryString();
+
+        // 受講済みかどうかを各行に付与
+        $members->getCollection()->transform(function (Member $member) {
+            $member->elearning_completed = $member->latestElearningInvitation?->completed_at !== null;
+            $member->elearning_completed_at = $member->latestElearningInvitation?->completed_at?->format('Y-m-d H:i');
+            return $member;
+        });
 
         return Inertia::render('Admin/Members/Index', [
             'members' => $members,
@@ -54,11 +72,14 @@ class MemberController extends Controller
                 'status_id'       => $request->status_id ?? '',
                 'organization_id' => $request->organization_id ?? '',
                 'member_type'     => $request->member_type ?? '',
+                'tier'            => $request->tier ?? '',
+                'elearning_status'=> $request->elearning_status ?? '', // 追加
                 'per_page'        => $perPage,
                 'sort_by'         => $sortBy,
                 'sort_dir'        => $sortDir,
             ],
             'statusLabels' => Member::STATUS_LABELS,
+            'tierLabels'   => Member::TIER_LABELS, // 追加（表示名は「グレード」）
         ]);
     }
 
@@ -92,6 +113,19 @@ class MemberController extends Controller
         DB::transaction(function () use ($validated) {
             $member = Member::create($validated['member']);
             $this->syncRelatedData($member, $validated);
+
+            // 【変更済み】従来ここで即座にe-ラーニング招待を送信していたが、
+            // 変更点：先生登録時ではなく「契約締結・入金確認後」に送信する方式に
+            // 変更した（StripeWebhookController / InvoiceController経由、
+            // UserInviteService::sendElearningInvitationsForOrganization()参照）。
+            // 契約済みの病院に、後から先生が追加された場合（変更点4・5）は、
+            // ここで個別に送信する必要がある。
+            if ($member->organization
+                && $member->organization->contract_status === \App\Models\Organization::STATUS_ACTIVE
+                && !empty($member->email)) {
+                app(\App\Services\UserInviteService::class)
+                    ->sendElearningInvitationIfNeeded($member);
+            }
         });
 
         return redirect()->route('admin.members.index')
@@ -111,6 +145,8 @@ class MemberController extends Controller
             'degrees',
             'roles',
             'committees',
+            'tierHistories',
+            'elearningInvitations',
         ]);
 
         return Inertia::render('Admin/Members/Show', [
@@ -179,7 +215,6 @@ class MemberController extends Controller
             ->with('success', '会員を削除しました。');
     }
 
-    // 複数削除
     public function bulkDelete(Request $request)
     {
         $request->validate([
@@ -223,6 +258,82 @@ class MemberController extends Controller
     }
 
     // ──────────────────────────────────────────
+    // 氏名一致検索（管理画面：先生フォーム入力中のリアルタイムチェック用）
+    // ──────────────────────────────────────────
+
+    public function checkNameMatch(Request $request)
+    {
+        $validated = $request->validate([
+            'last_name'  => 'required|string',
+            'first_name' => 'required|string',
+            'exclude_id' => 'nullable|integer',
+        ]);
+
+        $normalize = fn (string $s) => trim(str_replace(['　', ' ', "\t", "\n"], '', $s));
+        $targetName = $normalize($validated['last_name'] . $validated['first_name']);
+
+        if ($targetName === '') {
+            return response()->json(['matches' => []]);
+        }
+
+        $matches = Member::with('organization:id,name')
+            ->when($request->exclude_id, fn ($q, $id) => $q->where('id', '!=', $id))
+            ->get()
+            ->filter(fn (Member $m) => $normalize($m->last_name . $m->first_name) === $targetName)
+            ->map(fn (Member $m) => [
+                'id'                => $m->id,
+                'full_name'         => $m->full_name,
+                'organization_name' => $m->organization?->name,
+                'doctor_group_id'   => $m->doctor_group_id,
+            ])
+            ->values();
+
+        return response()->json(['matches' => $matches]);
+    }
+
+    // ──────────────────────────────────────────
+    // グレード昇格・降格（単一エンドポイントで両対応）
+    // ルート名・カラム名(tier)は据え置き、表示名のみ「グレード」
+    // ──────────────────────────────────────────
+
+    public function upgradeTier(Request $request, Member $member)
+    {
+        $request->validate([
+            'tier' => 'required|integer|in:1,2,3,4',
+        ]);
+
+        $newTier = (int) $request->tier;
+
+        Member::where('doctor_group_id', $member->doctor_group_id)
+            ->update(['tier' => $newTier]);
+
+        \Log::info('MemberController: グレード手動変更', [
+            'member_id'       => $member->id,
+            'doctor_group_id' => $member->doctor_group_id,
+            'new_tier'        => $newTier,
+        ]);
+
+        return back()->with('success', 'グレードを変更しました。');
+    }
+
+    public function downgradeTier(Request $request, Member $member)
+    {
+        $request->validate([
+            'tier' => 'required|integer|in:1,2,3',
+        ]);
+
+        $newTier = (int) $request->tier;
+
+        Member::where('doctor_group_id', $member->doctor_group_id)
+            ->update(['tier' => $newTier]);
+
+        $history = $member->currentTierHistory;
+        $history?->update(['tier' => $newTier]);
+
+        return back()->with('success', "{$member->full_name} のグレードを変更しました。");
+    }
+
+    // ──────────────────────────────────────────
     // PDFアップロード
     // ──────────────────────────────────────────
 
@@ -237,7 +348,7 @@ class MemberController extends Controller
             $request->file('document'),
             'members/documents'
         );
-        
+
         return response()->json([
             'success'       => true,
             'file_url'      => $this->fileService->getUrl($filePath),
@@ -259,7 +370,6 @@ class MemberController extends Controller
                     ? "unique:members,member_number,{$memberId}"
                     : 'unique:members,member_number',
             ],
-            'member.doctor_number'   => 'nullable|digits:6',
             'member.position'        => 'nullable|string|max:20',
             'member.last_name'       => 'required|string|max:100',
             'member.first_name'      => 'required|string|max:100',
@@ -321,7 +431,6 @@ class MemberController extends Controller
 
     private function syncRelatedData(Member $member, array $data): void
     {
-        // 自宅住所
         if (!empty($data['home_address'])) {
             MemberAddress::updateOrCreate(
                 ['member_id' => $member->id, 'type' => MemberAddress::TYPE_HOME],
@@ -329,20 +438,17 @@ class MemberController extends Controller
             );
         }
 
-        // 送付先住所
         if (!empty($data['shipping_address'])) {
             MemberAddress::updateOrCreate(
                 ['member_id' => $member->id, 'type' => MemberAddress::TYPE_SHIPPING],
                 $data['shipping_address']
             );
         } else {
-            // nullの場合は削除（自宅と同じ）
             MemberAddress::where('member_id', $member->id)
                 ->where('type', MemberAddress::TYPE_SHIPPING)
                 ->delete();
         }
 
-        // 学歴（1件）
         if (!empty($data['education'])) {
             MemberEducation::updateOrCreate(
                 ['member_id' => $member->id],
@@ -350,7 +456,6 @@ class MemberController extends Controller
             );
         }
 
-        // 学位（最大5件・全削除→再挿入）
         if (isset($data['degrees'])) {
             $member->degrees()->delete();
             foreach ($data['degrees'] as $degree) {
@@ -360,7 +465,6 @@ class MemberController extends Controller
             }
         }
 
-        // 役職歴（全削除→再挿入）
         if (isset($data['roles'])) {
             $member->roles()->delete();
             foreach ($data['roles'] as $role) {
@@ -370,7 +474,6 @@ class MemberController extends Controller
             }
         }
 
-        // 委員歴（全削除→再挿入）
         if (isset($data['committees'])) {
             $member->committees()->delete();
             foreach ($data['committees'] as $committee) {
@@ -393,7 +496,6 @@ class MemberController extends Controller
         return [
             'id'             => $member->id,
             'member_number'  => $member->member_number,
-            'doctor_number'  => $member->doctor_number,
             'full_name'      => $member->full_name,
             'full_name_kana' => $member->full_name_kana,
             'last_name'      => $member->last_name,
@@ -412,6 +514,11 @@ class MemberController extends Controller
             'member_type'    => $member->member_type,
             'joined_at'      => $member->joined_at?->format('Y-m-d'),
             'withdrawn_at'   => $member->withdrawn_at?->format('Y-m-d'),
+            'tier'           => $member->tier,
+            'tier_label'     => $member->tier_label,
+            'tier_histories' => $member->tierHistories,
+            'elearning_invitations' => $member->elearningInvitations,
+            'elearning_completed'   => $member->hasCompletedElearning(),
             'organization'   => $member->organization ? [
                 'id'   => $member->organization->id,
                 'name' => $member->organization->name,

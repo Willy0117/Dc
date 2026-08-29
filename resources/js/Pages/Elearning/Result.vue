@@ -38,14 +38,24 @@
         >
           <div class="flex items-start gap-2">
             <component :is="a.is_correct ? CheckCircle2 : XCircle" class="w-4 h-4 mt-0.5 shrink-0" :class="a.is_correct ? 'text-emerald-600' : 'text-red-600'" />
-            <p class="text-sm font-medium">問{{ index + 1 }}．{{ a.question }}</p>
+            <p class="text-sm font-medium">
+              問{{ index + 1 }}．{{ a.question }}
+              <span v-if="a.correct_answers.length > 1" class="ml-1 text-xs font-normal text-primary">（複数選択）</span>
+            </p>
           </div>
           <div class="pl-6 space-y-1 text-sm">
-            <p :class="a.selected_answer === a.correct_answer ? 'text-emerald-700' : 'text-red-700'">
-              あなたの回答：{{ a.selected_answer }}. {{ a.choices[a.selected_answer] }}
+            <p :class="a.is_correct ? 'text-emerald-700' : 'text-red-700'">
+              あなたの回答：
+              <template v-for="(letter, i) in a.selected_answers" :key="letter">
+                <span v-if="i > 0">、</span>{{ letter }}. {{ a.choices[letter] }}
+              </template>
+              <span v-if="a.selected_answers.length === 0" class="text-muted-foreground">（未回答）</span>
             </p>
             <p v-if="!a.is_correct" class="text-muted-foreground">
-              正解：{{ a.correct_answer }}. {{ a.choices[a.correct_answer] }}
+              正解：
+              <template v-for="(letter, i) in a.correct_answers" :key="letter">
+                <span v-if="i > 0">、</span>{{ letter }}. {{ a.choices[letter] }}
+              </template>
             </p>
           </div>
           <p v-if="a.explanation" class="pl-6 text-xs text-muted-foreground bg-muted/50 rounded p-2">

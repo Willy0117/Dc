@@ -3,7 +3,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { useI18n } from 'vue-i18n'
 import RehabApplicationsTable from '@/Components/RehabApplicationsTable.vue'
 import { usePage, Link } from '@inertiajs/vue3'
-import { Video, ChevronRight, AlertTriangle, PlayCircle } from 'lucide-vue-next'
+import { Video, ChevronRight, AlertTriangle, PlayCircle, ClipboardList } from 'lucide-vue-next'
 import axios from 'axios'
 
 const { t } = useI18n()
@@ -25,40 +25,51 @@ function markViewed(notice) {
     <AppLayout title="Dashboard">
         <template #header>{{ user.name }}</template>
 
-        <div class="px-6 pt-4 space-y-3">
-            <!-- 未視聴の必須動画がある場合の警告 -->
+        <!-- 未視聴の必須動画がある場合の警告：上部の細いバナー -->
+        <div v-if="unwatchedRequiredCount > 0" class="px-6 pt-4">
             <Link
-                v-if="unwatchedRequiredCount > 0"
                 :href="route('reference-videos.index')"
-                class="flex items-center justify-between p-4 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 transition-colors"
+                class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 transition-colors text-sm"
             >
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                        <AlertTriangle class="w-4.5 h-4.5 text-amber-700" />
+                <AlertTriangle class="w-4 h-4 text-amber-700 shrink-0" />
+                <span class="text-amber-900 font-medium">未視聴の必須動画が{{ unwatchedRequiredCount }}本あります</span>
+                <span class="text-amber-700">動注治療の必須動画をご視聴ください</span>
+                <ChevronRight class="w-4 h-4 text-amber-700 shrink-0 ml-auto" />
+            </Link>
+        </div>
+
+        <!-- 症例報告・参考動画：横並びタイル -->
+        <div class="px-6 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link
+                :href="route('reports.create')"
+                class="flex flex-col gap-3 p-5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+            >
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
+                        <ClipboardList class="w-5 h-5 text-primary" />
                     </div>
-                    <div>
-                        <p class="text-sm font-medium text-amber-900">未視聴の必須動画が{{ unwatchedRequiredCount }}本あります</p>
-                        <p class="text-xs text-amber-700">動注治療の必須動画をご視聴ください</p>
-                    </div>
+                    <ChevronRight class="w-4 h-4 text-primary" />
                 </div>
-                <ChevronRight class="w-4 h-4 text-amber-700 shrink-0" />
+                <div>
+                    <p class="text-sm font-semibold text-primary">症例報告を入力する</p>
+                    <p class="text-xs text-primary/70 mt-0.5">動注ライセンス症例報告を新規登録する</p>
+                </div>
             </Link>
 
-            <!-- 参考動画への導線 -->
             <Link
                 :href="route('reference-videos.index')"
-                class="flex items-center justify-between p-4 rounded-lg border bg-white hover:bg-muted/50 transition-colors"
+                class="flex flex-col gap-3 p-5 rounded-xl border bg-white hover:bg-muted/50 transition-colors"
             >
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Video class="w-4.5 h-4.5 text-primary" />
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                        <Video class="w-5 h-5 text-muted-foreground" />
                     </div>
-                    <div>
-                        <p class="text-sm font-medium">参考動画</p>
-                        <p class="text-xs text-muted-foreground">動注治療の手技・注意事項の動画を見る</p>
-                    </div>
+                    <ChevronRight class="w-4 h-4 text-muted-foreground" />
                 </div>
-                <ChevronRight class="w-4 h-4 text-muted-foreground shrink-0" />
+                <div>
+                    <p class="text-sm font-semibold">参考動画</p>
+                    <p class="text-xs text-muted-foreground mt-0.5">動注治療の手技・注意事項の動画を見る</p>
+                </div>
             </Link>
         </div>
 

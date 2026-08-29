@@ -21,21 +21,32 @@
       <div v-for="(q, index) in questions" :key="q.question_id" class="border rounded-lg p-5 bg-white space-y-3">
         <p class="text-sm font-semibold">
           <span class="text-muted-foreground">問{{ index + 1 }}．</span>{{ q.question }}
+          <span v-if="q.is_multiple" class="ml-1 text-xs font-normal text-primary">（複数選択可）</span>
         </p>
         <div class="space-y-2">
           <label
             v-for="letter in ['A', 'B', 'C', 'D']"
+            v-show="q.choices[letter]"
             :key="letter"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors"
-            :class="answers[q.question_id] === letter
+            :class="isSelected(q.question_id, letter)
               ? 'border-primary bg-primary/5'
               : 'border-border hover:bg-muted/50'"
           >
+            <!-- 複数選択可の問題はチェックボックス、単一選択の問題はラジオボタン -->
             <input
+              v-if="q.is_multiple"
+              type="checkbox"
+              :checked="isSelected(q.question_id, letter)"
+              @change="toggleAnswer(q.question_id, letter, q.is_multiple)"
+              class="accent-primary"
+            />
+            <input
+              v-else
               type="radio"
               :name="`q_${q.question_id}`"
-              :value="letter"
-              v-model="answers[q.question_id]"
+              :checked="isSelected(q.question_id, letter)"
+              @change="toggleAnswer(q.question_id, letter, q.is_multiple)"
               class="accent-primary"
             />
             <span class="text-sm">
@@ -71,10 +82,32 @@ const props = defineProps({
   questions: { type: Array, default: () => [] },
 })
 
+// 変更点：answers[question_id] は単一文字ではなく、選択された文字の配列で保持する
+// （単一選択の問題でも常に配列。要素は最大1件）
 const answers = reactive({})
 const submitting = ref(false)
 
-const answeredCount = computed(() => Object.keys(answers).filter(k => answers[k]).length)
+function isSelected(questionId, letter) {
+  return (answers[questionId] ?? []).includes(letter)
+}
+
+function toggleAnswer(questionId, letter, isMultiple) {
+  const current = answers[questionId] ?? []
+
+  if (isMultiple) {
+    // チェックボックス：トグル
+    answers[questionId] = current.includes(letter)
+      ? current.filter(l => l !== letter)
+      : [...current, letter]
+  } else {
+    // ラジオボタン：常に1件だけ
+    answers[questionId] = [letter]
+  }
+}
+
+const answeredCount = computed(() =>
+  Object.keys(answers).filter(k => (answers[k] ?? []).length > 0).length
+)
 const allAnswered = computed(() => answeredCount.value === props.questions.length)
 
 function submit() {
@@ -84,7 +117,7 @@ function submit() {
   const payload = {
     answers: props.questions.map(q => ({
       question_id: q.question_id,
-      selected: answers[q.question_id],
+      selected: answers[q.question_id] ?? [],
     })),
   }
 

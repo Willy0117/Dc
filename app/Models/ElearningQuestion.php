@@ -17,6 +17,7 @@ class ElearningQuestion extends Model
         'choice_d',
         'correct_answer',
         'explanation',
+        'category',
         'is_active',
     ];
 
@@ -44,4 +45,19 @@ class ElearningQuestion extends Model
             default => null,
         };
     }
+    /**
+     * 簡易テスト用（契約前e-ラーニング）の問題のみ
+     */
+    public function scopeSimple($query)
+    {
+        return $query->where('category', 'simple');
+    }
+
+    /**
+     * 本試験用の問題のみ
+     */
+    public function scopeMain($query)
+    {
+        return $query->where('category', 'main');
+    }    
 }

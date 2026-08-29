@@ -21,8 +21,6 @@ const GENDER_OPTIONS = [
   { value: 'other', label: 'その他' },
 ]
 
-const doctorNumberLocked = !!props.member.doctor_number
-
 function normalizeDoctorNumber(value: string) {
   if (!value) return ''
   value = value.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
@@ -32,7 +30,6 @@ function normalizeDoctorNumber(value: string) {
 
 const form = useForm({
   member: {
-    doctor_number:   props.member.doctor_number ?? '',
     position:        props.member.position ?? '',
     last_name:       props.member.last_name ?? '',
     first_name:      props.member.first_name ?? '',
@@ -57,7 +54,6 @@ const form = useForm({
 })
 
 function submitProfile() {
-  form.member.doctor_number = normalizeDoctorNumber(form.member.doctor_number)
   form.put(route('profile.member.update'))
 }
 
@@ -105,28 +101,6 @@ function submitPassword() {
         <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
           <User class="w-4 h-4 text-blue-500" />基本情報
         </h2>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="space-y-1">
-            <Label class="text-xs text-muted-foreground">
-              医師番号
-              <span v-if="doctorNumberLocked" class="text-[10px] text-muted-foreground/70">（登録済みのため変更不可）</span>
-            </Label>
-            <Input
-              v-model="form.member.doctor_number"
-              :disabled="doctorNumberLocked"
-              :class="doctorNumberLocked ? 'bg-muted/50' : ''"
-              maxlength="6"
-              inputmode="numeric"
-              placeholder="4〜6桁の数字"
-              @input="(e: Event) => { form.member.doctor_number = normalizeDoctorNumber((e.target as HTMLInputElement).value) }"
-            />
-          </div>
-          <div class="space-y-1">
-            <Label class="text-xs text-muted-foreground">役職</Label>
-            <Input v-model="form.member.position" placeholder="例：院長" />
-          </div>
-        </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="space-y-1">

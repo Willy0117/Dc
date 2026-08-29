@@ -50,8 +50,29 @@ class HandleInertiaRequests extends Middleware
                     ? [
                         'id' => $request->user()->id,
                         'name' => $request->user()->name,
+                        'type' => $request->user()->type, // 追加：1=病院(organization), 2=先生(member)
                         'roles' => $request->user()->tenantRoles()->pluck('name')->toArray(),
                         'permissions' => $request->user()->tenantPermissions()->pluck('name')->toArray(),
+                        // 追加（変更点10）：先生ログイン時のみTier情報を含める。
+                        // 病院ログイン(type=1)の場合はnullになり、My Page側の
+                        // TierProgressコンポーネントは表示されない。
+                        'member' => $request->user()->type === 2 && $request->user()->member_id
+                            ? (function () use ($request) {
+                                $member = \App\Models\Member::with('currentTierHistory')
+                                    ->find($request->user()->member_id);
+
+                                if (!$member) {
+                                    return null;
+                                }
+
+                                return [
+                                    'id'                    => $member->id,
+                                    'tier'                  => $member->tier,
+                                    'tier_label'            => $member->tier_label,
+                                    'current_tier_history'  => $member->currentTierHistory,
+                                ];
+                            })()
+                            : null,
                     ]
                     : null,
             ],

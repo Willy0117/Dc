@@ -60,11 +60,11 @@ class ElearningAttemptController extends Controller
                 $attempts = $member->attempts;
                 $latestAttempt = $attempts->first();
 
-                // 同一先生（doctor_number一致）が、期間を問わずどこかで合格していれば合格扱い
-                $isPassed = ElearningAttempt::hasPassedByDoctorNumber($member->doctor_number, $member->id);
+                // 同一先生（doctor_group_id一致）が、期間を問わずどこかで合格していれば合格扱い
+                $isPassed = ElearningAttempt::hasPassedByDoctorGroup($member->doctor_group_id, $member->id);
 
-                $passedAttempt = $member->doctor_number
-                    ? ElearningAttempt::whereHas('member', fn($q) => $q->where('doctor_number', $member->doctor_number))
+                $passedAttempt = $member->doctor_group_id
+                    ? ElearningAttempt::whereHas('member', fn($q) => $q->where('doctor_group_id', $member->doctor_group_id))
                         ->passed()
                         ->orderBy('submitted_at')
                         ->first()

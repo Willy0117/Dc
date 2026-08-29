@@ -13,6 +13,9 @@
         </div>
 
         <div class="flex items-center space-x-4 text-sm">
+          <!-- Tier進捗表示（変更点10：先生ログイン時のみ。病院ログイン時は非表示） -->
+          <TierProgress v-if="isMemberLogin" :member="user.member" />
+
           <!--
 
           <div class="relative inline-block text-left">
@@ -84,9 +87,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import Navigation from './Navigation.vue'
 import Toast from '@/Components/Toast.vue'
 import LoadingOverlay from '@/Components/LoadingOverlay.vue'
+import TierProgress from '@/Components/TierProgress.vue'
 
 import { router, usePage } from '@inertiajs/vue3'
 import { ref } from 'vue'
@@ -97,6 +102,10 @@ const { props } = usePage()
 const user = props.auth.user
 
 const { t, locale } = useI18n()
+
+// user.type: 1=病院(organization), 2=先生(member) という前提
+// （OrganizationController::store() / syncMembers() のUser::create()内の値と対応）
+const isMemberLogin = computed(() => user?.type === 2 && !!user?.member)
 
 const logout = () => {
   router.post(route('logout'))

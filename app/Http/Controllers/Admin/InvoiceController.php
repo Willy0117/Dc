@@ -121,6 +121,11 @@ class InvoiceController extends Controller
             // MyPageパスワード設定メール送信(初回のみ内部で判定される)
             app(\App\Services\UserInviteService::class)->sendPasswordSetupMail($organization);
 
+            // 変更点：契約締結・入金確認後、所属する先生全員に
+            // 簡易e-ラーニングの受講案内を送信する
+            // （先生へのPWメールは、この受講が完了してから別途送られる）
+            app(\App\Services\UserInviteService::class)->sendElearningInvitationsForOrganization($organization);
+
         }
 
         return back()->with('success', 'ステータスを更新しました。');

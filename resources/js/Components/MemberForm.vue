@@ -72,8 +72,6 @@ function normalizeDoctorNumberForSubmit(value: string | null): string | null {
 function handleSubmit() {
    if (!isValid.value) return
 
-  form.member.doctor_number = normalizeDoctorNumberForSubmit(form.member.doctor_number)
-
   if (isValid.value) emit('submit', form)
 }
 
@@ -153,16 +151,6 @@ const normalizeDoctorNumber = (value: string) => {
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground">会員番号 <span class="text-[10px] text-muted-foreground/60 ml-0.5">member_number</span></Label>
                 <Input v-model="form.member.member_number" placeholder="例: M-00001" />
-              </div>
-              <div class="space-y-1">
-                <Label class="text-xs text-muted-foreground">医師番号 <span class="text-[10px] text-muted-foreground/60 ml-0.5">doctor_number</span></Label>
-                <Input
-                  v-model="form.member.doctor_number"
-                  @input="(e: Event) => { form.member.doctor_number = normalizeDoctorNumber((e.target as HTMLInputElement).value) }"
-                  placeholder="123456"
-                  maxlength="6"
-                  inputmode="numeric"
-                />
               </div>
               <div class="space-y-1">
                 <Label class="text-xs text-muted-foreground">役職 <span class="text-[10px] text-muted-foreground/60 ml-0.5">position</span></Label>

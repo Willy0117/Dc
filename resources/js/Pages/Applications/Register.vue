@@ -200,27 +200,14 @@
             <input v-model="license.first_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="太郎" />
           </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-gray-500">メールアドレス</label>
-            <input
-              type="email"
-              v-model="license.email"
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-              placeholder="example@example.com"
-            />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-gray-500">医師番号</label>
-            <input
-              v-model="license.doctor_number"
-              @input="(e) => { license.doctor_number = normalizeDoctorNumber(e.target.value) }"
-              maxlength="6"
-              inputmode="numeric"
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-              placeholder="123456"
-            />
-          </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-gray-500">メールアドレス</label>
+          <input
+            type="email"
+            v-model="license.email"
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+            placeholder="example@example.com"
+          />
         </div>
       </div>
     </div>
@@ -270,9 +257,9 @@ const form = useForm({
   contact_email:        props.data.contact_email        ?? '',
   same_as_clinic:       props.data.same_as_clinic       ?? false,
   licenses: props.data.licenses ?? [
-    { position: '', last_name: '', first_name: '', doctor_number: '', email: '' },
-    { position: '', last_name: '', first_name: '', doctor_number: '', email: '' },
-    { position: '', last_name: '', first_name: '', doctor_number: '', email: '' },
+    { position: '', last_name: '', first_name: '', email: '' },
+    { position: '', last_name: '', first_name: '', email: '' },
+    { position: '', last_name: '', first_name: '', email: '' },
   ],
   corporate_fee:        props.data.corporate_fee,
   personal_fee:         props.data.personal_fee,
@@ -326,7 +313,7 @@ useZipcode(toRef(form, 'contact_postal_code'), {
 })
 
 const addLicense = () => {
-  form.licenses.push({ position: '', last_name: '', first_name: '', doctor_number: '', email: '' })
+  form.licenses.push({ position: '', last_name: '', first_name: '', email: '' })
 }
 
 const removeLicense = (index: number) => {
@@ -350,27 +337,10 @@ const handleSubmit = () => {
   form.total    = fee.value.total
   form.base     = fee.value.base
   form.extra    = fee.value.extra
-  // 医師番号を6桁ゼロ埋め（4〜6桁の入力値のみ対象）
-  form.licenses = form.licenses.map(license => ({
-    ...license,
-    doctor_number: license.doctor_number
-      ? license.doctor_number.padStart(6, '0')
-      : license.doctor_number,
-  }))
   form.post(route('applications.register.store'), {
     onError: (errors) => {
       console.log(errors)
     }
   })
 }
-const normalizeDoctorNumber = (value: string) => {
-  if (!value) return ''
-  // 全角数字を半角に変換
-  value = value.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-  // 数字以外を除去
-  value = value.replace(/[^0-9]/g, '')
-  // 6桁までに制限
-  return value.slice(0, 6)
-}
-
 </script>

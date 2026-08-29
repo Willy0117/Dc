@@ -122,10 +122,7 @@
                 支払方法
                 <SortIcon field="payment_method" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
-              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('tier')">
-                Tier
-                <SortIcon field="tier" :current="form.sort_by" :dir="form.sort_dir" />
-              </th>
+              <!-- Tier列は削除（変更点1：Tierはmember単位に移動。組織一覧では表示しない） -->
               <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('contract_date')">
                 契約日 / 次回請求日
                 <SortIcon field="contract_date" :current="form.sort_by" :dir="form.sort_dir" />
@@ -137,7 +134,7 @@
           </thead>
           <tbody>
             <tr v-if="organizations.data.length === 0">
-              <td colspan="9" class="px-3 py-12 text-center text-muted-foreground">
+              <td colspan="8" class="px-3 py-12 text-center text-muted-foreground">
                 <Building2 class="w-8 h-8 mx-auto mb-2 opacity-30" />
                 契約先が見つかりません
               </td>
@@ -161,14 +158,7 @@
                 <Link :href="route('admin.organizations.show', org.id)" class="font-medium hover:underline">
                   {{ org.name }}
                 </Link>
-                <span v-if="org.tier > 1" class="inline-flex items-center gap-0.5 ml-1">
-                  <Star
-                    v-for="n in org.tier - 1"
-                    :key="n"
-                    class="w-3 h-3"
-                    :class="tierConfig[org.tier]?.class"
-                  />
-                </span>
+                <!-- Tierバッジ（★表示）は削除。先生ごとのTierはMember一覧・詳細側で確認する -->
                 <a v-if="org.url" :href="org.url" target="_blank"
                    class="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5">
                   <ExternalLink class="w-3 h-3" />{{ org.url }}
@@ -201,12 +191,7 @@
                   <template v-else>-</template>
                 </span>
               </td>
-              <td class="px-3 py-2.5">
-                <TierBadge :tier="org.tier" />
-                <div v-if="org.current_tier_history" class="text-xs text-muted-foreground mt-0.5">
-                  {{ org.current_tier_history.case_count }}件
-                </div>
-              </td>
+              <!-- Tierセル（TierBadge・件数表示）は削除 -->
               <td class="px-3 py-2.5 text-sm text-muted-foreground">
                 <div>{{ org.contract_date ? dayjs(org.contract_date).format('YYYY/MM/DD') : '-' }}</div>
                 <div v-if="org.new_contract_date" class="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
@@ -249,11 +234,7 @@
                         <FileText class="w-3.5 h-3.5 mr-2 text-blue-600" />
                         契約書閲覧
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem v-if="org.tier < 4" @click="openTierDialog(org)">
-                        <TrendingUp class="w-3.5 h-3.5 mr-2 text-emerald-600" />
-                        Tier変更
-                      </DropdownMenuItem>
+                      <!-- 「Tier変更」メニューは削除。Tier変更はMember一覧・詳細側で行う -->
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -383,12 +364,7 @@
       @done="submitSearch"
     />
 
-    <!-- ========== Tier変更 Dialog ========== -->
-    <TierUpgradeDialog
-      v-model:open="tierDialogOpen"
-      :organization="tierTarget"
-      @done="submitSearch"
-    />
+    <!-- Tier変更 Dialog は削除（変更点1：Tierはmember単位。TierUpgradeDialogはMember側で使用） -->
   </AppLayout>
 </template>
 
@@ -397,7 +373,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import dayjs from 'dayjs'
 import {
-  Search, Plus, Trash2, Pencil, X, Mail, Award, Bell, TrendingUp, Star,
+  Search, Plus, Trash2, Pencil, X, Mail, Award, Bell,
   Building2, ExternalLink, FileText, CreditCard, ArrowRight, MoreHorizontal
 } from 'lucide-vue-next'
 
@@ -409,9 +385,8 @@ import StripePaymentDialog from '@/Components/StripePaymentDialog.vue'
 import InvitationDialog    from '@/Components/InvitationDialog.vue'
 import LicenseDialog       from '@/Components/LicenseDialog.vue'
 import ContractDialog      from '@/Components/ContractDialog.vue'
-import BulkMailDialog      from '@/Components/BulkMailDialog.vue'  // ← 新規追加
-import TierUpgradeDialog   from '@/Components/TierUpgradeDialog.vue'
-import TierBadge           from '@/Components/TierBadge.vue'
+import BulkMailDialog      from '@/Components/BulkMailDialog.vue'
+// TierUpgradeDialog / TierBadge のimportは削除（Member側に移設）
 
 import { Button }   from '@/components/ui/button'
 import { Input }    from '@/components/ui/input'
@@ -540,7 +515,7 @@ const persistQuery = () => ({
   address1:           form.address1,
   contract_date_from: form.contract_date_from,
   contract_date_to:   form.contract_date_to,
-  payment_method:     form.payment_method,  // ← 追加
+  payment_method:     form.payment_method,
   per_page:           form.per_page,
   sort_by:            form.sort_by,
   sort_dir:           form.sort_dir,
@@ -755,17 +730,4 @@ const getContractBarColor = (org) => {
   if (daysUntil <= 60) return 'border-l-4 border-l-orange-400'   // 60日以内
   return ''
 }
-
-const tierDialogOpen = ref(false)
-const tierTarget     = ref(null)
-const openTierDialog = (org) => {
-  tierTarget.value     = org
-  tierDialogOpen.value = true
-}
-const tierConfig = {
-  2: { class: 'text-slate-400 fill-slate-400' },   // シルバー
-  3: { class: 'text-yellow-500 fill-yellow-500' }, // ゴールド
-  4: { class: 'text-cyan-300 fill-cyan-300' },     // プラチナ
-}
-
 </script>

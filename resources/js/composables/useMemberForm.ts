@@ -47,7 +47,6 @@ function makeFormFromProps(props: MemberEditProps): MemberFormData {
       id:               props.member?.id,
       organization_id:  props.member?.organization_id ?? null,
       member_number:    props.member?.member_number   ?? null,
-      doctor_number:    props.member?.doctor_number   ?? null,
       position:         props.member?.position        ?? null,
       last_name:        props.member?.last_name       ?? '',
       first_name:       props.member?.first_name      ?? '',

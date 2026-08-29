@@ -44,6 +44,9 @@ use App\Http\Controllers\Admin\ProfileChangeLogController as AdminProfileChangeL
 use App\Http\Controllers\Admin\NoticeController as AdminNoticeController;
 
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\ElearningInvitationController;
+
+use App\Http\Controllers\Admin\MemberNameMatchController as AdminMemberNameMatchController;
 
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
@@ -222,9 +225,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // ──────────────────────────────────────────
         Route::get('/profile-change-logs', [AdminProfileChangeLogController::class, 'index'])->name('profile-change-logs.index');
 
+        Route::get('member-name-matches', [AdminMemberNameMatchController::class, 'index'])
+            ->name('member-name-matches.index');
+        Route::post('member-name-matches/{candidate}/confirm', [AdminMemberNameMatchController::class, 'confirm'])
+            ->name('member-name-matches.confirm');
+        Route::post('member-name-matches/{candidate}/reject', [AdminMemberNameMatchController::class, 'reject'])
+            ->name('member-name-matches.reject');
+
         Route::prefix('member')->name('member.')->group(function () {
 
             Route::get('/', [AdminMemberController::class, 'index'])->name('index');
+                Route::get('/check-name-match', [AdminMemberController::class, 'checkNameMatch'])->name('admin.members.check-name-match');
                 Route::get('/pdf/{id}', [AdminMemberController::class, 'pdfPreview'])->name('pdf.preview');
                 Route::get('/{member}', [AdminMemberController::class, 'show'])->name('show');
                 Route::get('/{member}/edit', [AdminMemberController::class, 'edit'])->name('edit');
@@ -232,7 +243,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 // routes/admin
                 Route::get('{member}/status/edit', [AdminMemberController::class, 'editStatus'])
                     ->name('editStatus');
-
+                Route::post('{member}/upgrade-tier', [AdminMemberController::class, 'upgradeTier'])
+                    ->name('upgrade-tier');
+                Route::post('{member}/tier/downgrade', [AdminMemberController::class, 'downgradeTier'])
+                    ->name('tier.downgrade');
+                Route::post('{member}/downgrade-tier', [AdminMemberController::class, 'downgradeTier'])
+                    ->name('downgrade-tier');
+ 
                 Route::put('{member}/status', [AdminMemberController::class, 'updateStatus'])
                     ->name('updateStatus');
 
@@ -306,6 +323,12 @@ Route::post('/locale', function (Request $request) {
     app()->setLocale($locale);
     return response()->json(['status' => 'ok']);
 });
+
+Route::get('elearning-invitations/{token}', [ElearningInvitationController::class, 'show'])
+    ->name('elearning-invitations.show');
+
+Route::post('elearning-invitations/{token}/submit', [ElearningInvitationController::class, 'submit'])
+    ->name('elearning-invitations.submit');
 
 Route::middleware([
     'auth:sanctum',

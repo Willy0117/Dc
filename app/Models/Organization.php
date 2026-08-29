@@ -50,7 +50,7 @@ class Organization extends Model
         'rep_last_name',
         'rep_first_name',
         'new_contract_date',
-        'tier',
+        // 'tier', ← 削除（変更点1：Tierはmemberに移動）
     ];
 
     protected $casts = [
@@ -59,7 +59,7 @@ class Organization extends Model
         'contract_date'   => 'date',
         'payment_method'  => 'integer',
         'new_contract_date' => 'date',
-        'tier' => 'integer',
+        // 'tier' => 'integer', ← 削除
     ];
 
     // ──────────────────────────────────────────
@@ -113,7 +113,6 @@ class Organization extends Model
     public function contract()
     {
         return $this->hasOne(OrganizationContract::class);
-        // or hasMany, belongsTo, belongsToMany — depending on your schema
     }
 
     public function contracts(): HasMany
@@ -126,8 +125,8 @@ class Organization extends Model
         return $this->hasManyThrough(
             ApplicationDocument::class,
             Application::class,
-            'organization_id', // applications.organization_id
-            'application_id',  // application_documents.application_id
+            'organization_id',
+            'application_id',
         );
     }
 
@@ -159,19 +158,17 @@ class Organization extends Model
     {
         return $this->contract_status !== self::STATUS_SPECIAL;
     }
-   
+
     /**
      * 請求先メールアドレスを取得
      * 優先順位: 請求先(type=3) → 郵送先(type=2) → 所在地(type=1)
-     *
-     * ※ addresses リレーションが eager load 済みであれば追加クエリなし
      */
     public function getBillingEmailAttribute(): ?string
     {
         $addresses = $this->relationLoaded('addresses')
             ? $this->addresses
             : $this->addresses()->get();
-    
+
         foreach ([
             OrganizationAddress::TYPE_BILLING,
             OrganizationAddress::TYPE_SHIPPING,
@@ -180,7 +177,7 @@ class Organization extends Model
             $email = $addresses->firstWhere('type', $type)?->email;
             if ($email) return $email;
         }
-    
+
         return null;
     }
     // ──────────────────────────────────────────
@@ -245,7 +242,7 @@ class Organization extends Model
     // 契約日更新（クラウドサイン・Stripe・銀行振込共通）
     // organization_contractsのended_atがnullの場合のみ更新する
     // ──────────────────────────────────────────
- 
+
     /**
      * @param bool $updateLicenseIssuedAt クラウドサインの場合はtrue
      */
@@ -258,13 +255,13 @@ class Organization extends Model
             ]);
             return;
         }
- 
+
         // 現在有効な organization_contracts を取得
         $contract = \App\Models\OrganizationContract::where('organization_id', $this->id)
             ->whereNull('ended_at')
             ->orderByDesc('created_at')
             ->first();
- 
+
         // ended_at が既に設定済み → 既に更新済みのためスキップ
         if (!$contract) {
             \Log::info('Organization::updateContractDate: 有効なcontractが見つかりません（既に更新済みの可能性）', [
@@ -272,26 +269,29 @@ class Organization extends Model
             ]);
             return;
         }
- 
+
         // organization_contracts の ended_at を設定（このサイクル終了）
         $contract->update(['ended_at' => now()->toDateString()]);
- 
+
         // organizations の日付を更新
         $updates = [
             'contract_date'     => $this->new_contract_date,
             'new_contract_date' => \Carbon\Carbon::parse($this->new_contract_date)->addYear()->toDateString(),
         ];
- 
+
         // クラウドサインの場合のみ license_issued_at も更新
         if ($updateLicenseIssuedAt) {
             $updates['license_issued_at'] = $this->new_contract_date;
         }
- 
+
         $this->update($updates);
-        
-        // tier自動判定（tier1・2のみ、tier3・4は引き継ぎ）
-        $this->recalculateTier();
- 
+
+        // Tier自動判定（変更点1：Organizationからは削除。
+        // 契約更新に伴い、所属する全memberのTierを再計算する）
+        foreach ($this->members as $member) {
+            $member->recalculateTier();
+        }
+
         \Log::info('Organization::updateContractDate: 契約日を更新しました', [
             'organization_id'   => $this->id,
             'contract_date'     => $updates['contract_date'],
@@ -300,132 +300,29 @@ class Organization extends Model
         ]);
 
     }
-    /**
-     * 契約更新時のtier自動判定
-     * case_reportsの通算件数で判定する。自動判定は昇格のみ(降格は管理画面で手動対応)
-     */
-    private function recalculateTier(): void
-    {
-        // 新期間の履歴を追加(tier関係なく必要)
-        $this->addNewTierHistory();
-
-        // 通算症例報告数を集計(将来、集計期間を絞る場合はここのクエリ条件を変更する)
-        $totalCaseCount = \App\Models\CaseReport::where('organization_id', $this->id)
-            // ->where('submitted_at', '>=', now()->subYears(5)) // 将来「直近5年」に絞る場合はこの行を有効化
-            ->count();
-
-        $newTier = $this->calculateTierFromCaseCount($totalCaseCount);
-
-        // 自動判定は昇格のみ(降格させない。手動変更は管理画面で対応)
-        if ($newTier > $this->tier) {
-            $oldTier = $this->tier;
-            $this->update(['tier' => $newTier]);
-
-            \Log::info('Organization::recalculateTier: tier自動昇格', [
-                'organization_id'  => $this->id,
-                'total_case_count' => $totalCaseCount,
-                'old_tier'         => $oldTier,
-                'new_tier'         => $newTier,
-            ]);
-        }
-    }
 
     /**
-     * 通算症例報告数からTierを判定する
-     * Tier1(ブロンズ): 基準なし
-     * Tier2(シルバー): 通算100件
-     * Tier3(ゴールド): 通算300件
-     * Tier4(プラチナ): 通算1,000件
+     * 所属する全ての先生がe-ラーニングを受講済みかどうか。
+     * 変更点4：この結果がtrueの場合のみ契約申込メールを送信できる。
+     * memberが1件も居ない場合はfalse（そもそも先生が登録されていない状態で
+     * 契約に進むのはおかしいため）。
      */
-    private function calculateTierFromCaseCount(int $totalCaseCount): int
+    public function allMembersCompletedElearning(): bool
     {
-        return match (true) {
-            $totalCaseCount >= 1000 => self::TIER_MASTER,
-            $totalCaseCount >= 300  => self::TIER_EXPERT,
-            $totalCaseCount >= 100  => self::TIER_ADVANCE,
-            default                 => self::TIER_BASIC,
-        };
+        $members = $this->members;
+    
+        if ($members->isEmpty()) {
+            return false;
+        }
+    
+        return $members->every(fn (\App\Models\Member $member) => $member->hasCompletedElearning());
     }
- 
+    
     /**
-     * 新しい契約期間の履歴レコードを追加
+     * 未受講の先生一覧（管理画面での進捗確認用）
      */
-    private function addNewTierHistory(): void
+    public function membersWithIncompleteElearning(): \Illuminate\Support\Collection
     {
-        OrganizationTierHistory::create([
-            'organization_id' => $this->id,
-            'period_start'    => $this->contract_date,
-            'period_end'      => \Carbon\Carbon::parse($this->new_contract_date)->subDay()->toDateString(),
-            'case_count'      => 0,
-            'tier'            => $this->tier,
-        ]);
- 
-        \Log::info('Organization::addNewTierHistory: 新期間履歴追加', [
-            'organization_id' => $this->id,
-            'period_start'    => $this->contract_date,
-            'period_end'      => \Carbon\Carbon::parse($this->new_contract_date)->subDay()->toDateString(),
-        ]);
+        return $this->members->reject(fn (\App\Models\Member $member) => $member->hasCompletedElearning());
     }
-    /**
-     * 症例報告登録時に呼ぶ: organization_tier_historiesを再計算し、
-     * organizations.tierがそれ以上の場合のみ反映する(手動設定を尊重)
-     */
-    public function syncTierFromHistory(): void
-    {
-        $currentHistory = $this->tierHistories()->first();
-
-        if (!$currentHistory) {
-            return;
-        }
-
-        $totalCaseCount = \App\Models\CaseReport::where('organization_id', $this->id)->count();
-        $calculatedTier = $this->calculateTierFromCaseCount($totalCaseCount);
-
-        $currentHistory->update([
-            'case_count' => $totalCaseCount,
-            'tier'       => $calculatedTier,
-        ]);
-
-        if ($this->tier < $calculatedTier) {
-            return;
-        }
-
-        if ($this->tier !== $calculatedTier) {
-            $this->update(['tier' => $calculatedTier]);
-        }
-    }
-    
-    // リレーション追加
-    public function tierHistories(): HasMany
-    {
-        return $this->hasMany(OrganizationTierHistory::class)->orderBy('period_start');
-    }
-    
-    public function currentTierHistory(): HasOne
-    {
-        return $this->hasOne(OrganizationTierHistory::class)
-                    ->where('period_start', '<=', today())
-                    ->where('period_end', '>=', today())
-                    ->orderByDesc('period_start');
-    }
-    
-    // Tier定数
-    const TIER_BASIC    = 1;
-    const TIER_ADVANCE  = 2;
-    const TIER_EXPERT   = 3;
-    const TIER_MASTER   = 4;
-    
-    const TIER_LABELS = [
-        self::TIER_BASIC   => 'ベーシック',
-        self::TIER_ADVANCE => 'アドバンス',
-        self::TIER_EXPERT  => 'エキスパート',
-        self::TIER_MASTER  => 'マスター',
-    ];
-    
-    // アクセサ
-    public function getTierLabelAttribute(): string
-    {
-        return self::TIER_LABELS[$this->tier] ?? 'ベーシック';
-    }
-
 }

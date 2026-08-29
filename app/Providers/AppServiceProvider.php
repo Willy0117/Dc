@@ -30,5 +30,9 @@ class AppServiceProvider extends ServiceProvider
        Inertia::share([
             'csrf_token' => fn () => csrf_token(),
        ]);
+
+       // 追加：先生の新規登録時、氏名一致の既存memberを自動検知する（変更点3）
+       Member::observe(MemberObserver::class);      
+       
     }
 }
