@@ -55,7 +55,7 @@
           <p class="text-xs text-muted-foreground">次回更新日（通常は契約日の1年後）</p>
         </div>
 
-        <!-- 合意書の要否 -->
+        <!-- 契約種別 -->
         <div class="space-y-1.5">
           <Label>契約種別</Label>
           <div class="flex gap-2">
@@ -65,7 +65,7 @@
               :class="!form.needs_agreement
                 ? 'border-blue-500 bg-blue-50 text-blue-800 font-semibold'
                 : 'border-border bg-background text-muted-foreground hover:bg-muted'"
-              @click="form.needs_agreement = false"
+              @click="selectNewContract"
             >
               新規契約（契約書のみ）
             </button>
@@ -75,7 +75,7 @@
               :class="form.needs_agreement
                 ? 'border-blue-500 bg-blue-50 text-blue-800 font-semibold'
                 : 'border-border bg-background text-muted-foreground hover:bg-muted'"
-              @click="form.needs_agreement = true"
+              @click="selectRenewal"
             >
               再契約（契約書＋合意書）
             </button>
@@ -140,11 +140,34 @@ const feeLoading   = ref(false)
 const errorMessage = ref('')
 
 const form = reactive({
-  email:            '',
-  contract_date:    dayjs().format('YYYY-MM-DD'),
-  new_contract_date: dayjs().add(1, 'year').format('YYYY-MM-DD'),
-  needs_agreement:  false,
+  email:             '',
+  contract_date:     dayjs().format('YYYY-MM-DD'),
+  new_contract_date: dayjs().format('YYYY-MM-DD'),
+  needs_agreement:   false,
 })
+
+// 変更点：新規/再契約の切り替え（ボタンクリック時・ダイアログを開いた時の
+// 自動判定時、どちらからも呼ぶ共通関数）。
+// 契約書PDFにはnew_contract_dateが印字されるため、新規契約の初期値を
+// 「契約日＋1年」にしてしまうと契約書の日付が来年にズレるバグがあった。
+function selectNewContract() {
+  form.needs_agreement = false
+  // 新規契約：contract_dateがまだ無いので、両方とも今日にする
+  form.contract_date = dayjs().format('YYYY-MM-DD')
+  form.new_contract_date = dayjs().format('YYYY-MM-DD')
+}
+
+function selectRenewal() {
+  form.needs_agreement = true
+  // 再契約：既存の契約日（無ければ今日）を表示し、
+  // 新契約日は既存値、無ければ契約日の1年後をデフォルトにする
+  form.contract_date = props.organization?.contract_date
+    ? dayjs(props.organization.contract_date).format('YYYY-MM-DD')
+    : dayjs().format('YYYY-MM-DD')
+  form.new_contract_date = props.organization?.new_contract_date
+    ? dayjs(props.organization.new_contract_date).format('YYYY-MM-DD')
+    : dayjs(form.contract_date).add(1, 'year').format('YYYY-MM-DD')
+}
 
 // fee APIからメールアドレスを取得
 const fetchFee = async () => {
@@ -163,15 +186,17 @@ const fetchFee = async () => {
 
 watch(() => props.open, (isOpen) => {
   if (isOpen && props.organization) {
-    errorMessage.value    = ''
-    form.needs_agreement  = false
-    form.contract_date    = props.organization.contract_date
-      ? dayjs(props.organization.contract_date).format('YYYY-MM-DD')
-      : dayjs().format('YYYY-MM-DD')
-    // new_contract_dateが設定済みの場合はその値を使う、nullなら contract_date + 1年
-    form.new_contract_date = props.organization.new_contract_date
-      ? dayjs(props.organization.new_contract_date).format('YYYY-MM-DD')
-      : dayjs(form.contract_date).add(1, 'year').format('YYYY-MM-DD')
+    errorMessage.value = ''
+
+    // 変更点：organization.contract_date が入っているかどうかで
+    // 「再契約」か「新規契約」かを自動判定し、
+    // ボタンクリック時と同じ関数で日付もまとめてセットする。
+    if (props.organization.contract_date) {
+      selectRenewal()
+    } else {
+      selectNewContract()
+    }
+
     fetchFee()
   }
 })

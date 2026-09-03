@@ -41,6 +41,7 @@
             <tr>
               <th class="px-3 py-2.5 w-8"></th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">タイトル</th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">グレード</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">ファイル</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">サイズ</th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">登録日時</th>
@@ -49,7 +50,7 @@
           </thead>
           <tbody>
             <tr v-if="currentDocuments.length === 0">
-              <td colspan="6" class="px-3 py-12 text-center text-muted-foreground">
+              <td colspan="7" class="px-3 py-12 text-center text-muted-foreground">
                 このカテゴリーに資料はありません
               </td>
             </tr>
@@ -75,6 +76,15 @@
                   @keydown.enter="(e) => handleEditDocEnter(e, doc)"
                 />
                 <span v-else class="font-medium">{{ doc.title }}</span>
+              </td>
+              <td class="px-3 py-2.5">
+                <Select v-if="editingId === doc.id" v-model="editForm.required_tier">
+                  <SelectTrigger class="h-8 w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="(label, tier) in tierLabels" :key="tier" :value="Number(tier)">{{ label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Badge v-else variant="outline" class="text-xs">{{ tierLabels[doc.required_tier] ?? '-' }}以上</Badge>
               </td>
               <td class="px-3 py-2.5 text-xs text-muted-foreground">
                 <a :href="doc.file_url" target="_blank" class="hover:underline">
@@ -162,6 +172,18 @@
               <Label class="text-xs text-muted-foreground">タイトル</Label>
               <Input v-model="uploadForm.title" placeholder="資料のタイトル" />
               <p v-if="uploadForm.errors.title" class="text-xs text-destructive">{{ uploadForm.errors.title }}</p>
+            </div>
+
+            <!-- 閲覧可能グレード -->
+            <div class="space-y-1.5">
+              <Label class="text-xs text-muted-foreground">閲覧可能グレード（このグレード以上の先生が閲覧できます）</Label>
+              <Select v-model="uploadForm.required_tier">
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="(label, tier) in tierLabels" :key="tier" :value="Number(tier)">{{ label }}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p v-if="uploadForm.errors.required_tier" class="text-xs text-destructive">{{ uploadForm.errors.required_tier }}</p>
             </div>
 
             <!-- ドラッグ&ドロップ ファイル選択エリア -->
@@ -312,14 +334,17 @@ import AppLayout from '@/Layouts/Admin/AppLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const props = defineProps({
   documents:  { type: Array, default: () => [] },
   categories: { type: Array, default: () => [] },
+  tierLabels: { type: Object, default: () => ({ 1: 'ベーシック', 2: 'アドバンス', 3: 'エキスパート', 4: 'マスター' }) },
 })
 
 const activeCategoryId = ref(props.categories[0]?.id ?? null)
+const tierLabels = props.tierLabels
 
 function documentsInCategory(categoryId) {
   return props.documents.filter(d => d.category_id === categoryId)
@@ -338,6 +363,7 @@ const inlineCategoryFormOpen = ref(false)
 const uploadForm = useForm({
   category_id: null,
   title: '',
+  required_tier: 1,
   document: null,
 })
 
@@ -346,6 +372,7 @@ const canUpload = computed(() => uploadForm.category_id && uploadForm.title.trim
 function openUploadDialog() {
   uploadForm.reset()
   uploadForm.category_id = activeCategoryId.value
+  uploadForm.required_tier = 1
   uploadDialogOpen.value = true
   inlineCategoryFormOpen.value = false
 }
@@ -400,12 +427,13 @@ function upload() {
 // 資料編集（一覧内インライン編集）
 // ──────────────────────────────────────────
 const editingId = ref(null)
-const editForm = reactive({ category_id: null, title: '' })
+const editForm = reactive({ category_id: null, title: '', required_tier: 1 })
 
 function startEdit(doc) {
   editingId.value = doc.id
   editForm.category_id = doc.category_id
   editForm.title = doc.title
+  editForm.required_tier = doc.required_tier
 }
 
 function saveEdit(doc) {

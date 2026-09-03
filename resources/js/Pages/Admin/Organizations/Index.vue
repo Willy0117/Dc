@@ -680,7 +680,7 @@ const issueLicense = async (org) => {
     licensePdfUrl.value     = response.data.url
     licenseDialogOpen.value = true
   } catch (e) {
-    console.error(e.response?.data?.message)
+    alert(e.response?.data?.message ?? '証書の発行に失敗しました。')
   }
 }
 

@@ -279,8 +279,10 @@ class Organization extends Model
             'new_contract_date' => \Carbon\Carbon::parse($this->new_contract_date)->addYear()->toDateString(),
         ];
 
-        // クラウドサインの場合のみ license_issued_at も更新
-        if ($updateLicenseIssuedAt) {
+        // クラウドサインの場合のみ license_issued_at も更新対象になるが、
+        // 既に値が入っている（＝再契約）場合は上書きしない。
+        // 新規契約で初めて値が入る時だけセットする。
+        if ($updateLicenseIssuedAt && !$this->license_issued_at) {
             $updates['license_issued_at'] = $this->new_contract_date;
         }
 
@@ -301,23 +303,43 @@ class Organization extends Model
 
     }
 
+    // ──────────────────────────────────────────
+    // ↓↓↓ 以下、Tier関連（変更点1によりMemberへ移動済み。削除）↓↓↓
+    //
+    // 削除したメソッド：
+    //   - recalculateTier()
+    //   - calculateTierFromCaseCount()
+    //   - addNewTierHistory()
+    //   - syncTierFromHistory()
+    //   - tierHistories()
+    //   - currentTierHistory()
+    //   - getTierLabelAttribute()
+    // 削除した定数：
+    //   - TIER_BASIC / TIER_ADVANCE / TIER_EXPERT / TIER_MASTER
+    //   - TIER_LABELS
+    // これらは全て Member.php に移植済み。
+    // ──────────────────────────────────────────
+
+    // ──────────────────────────────────────────
+    // 契約前e-ラーニング（変更点4）
+    // ──────────────────────────────────────────
+
     /**
-     * 所属する全ての先生がe-ラーニングを受講済みかどうか。
-     * 変更点4：この結果がtrueの場合のみ契約申込メールを送信できる。
-     * memberが1件も居ない場合はfalse（そもそも先生が登録されていない状態で
-     * 契約に進むのはおかしいため）。
+     * 所属する全ての先生が契約前の簡易e-ラーニングを受講済みかどうか。
+     * この結果がtrueの場合のみ契約申込メールを送信できる。
+     * memberが1件も居ない場合はfalse。
      */
     public function allMembersCompletedElearning(): bool
     {
         $members = $this->members;
-    
+
         if ($members->isEmpty()) {
             return false;
         }
-    
+
         return $members->every(fn (\App\Models\Member $member) => $member->hasCompletedElearning());
     }
-    
+
     /**
      * 未受講の先生一覧（管理画面での進捗確認用）
      */
@@ -325,4 +347,5 @@ class Organization extends Model
     {
         return $this->members->reject(fn (\App\Models\Member $member) => $member->hasCompletedElearning());
     }
+
 }

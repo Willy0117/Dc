@@ -83,7 +83,7 @@
                   type="button"
                   class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
                   :class="form.category === 'main' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted'"
-                  @click="form.category = 'main'"
+                  @click="onCategoryChange('main')"
                 >
                   本試験（15問出題）
                 </button>
@@ -91,7 +91,7 @@
                   type="button"
                   class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
                   :class="form.category === 'simple' ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted'"
-                  @click="form.category = 'simple'"
+                  @click="onCategoryChange('simple')"
                 >
                   契約前簡易テスト
                 </button>
@@ -114,15 +114,20 @@
             </div>
 
             <div class="space-y-1.5">
-              <Label class="text-xs text-muted-foreground">正答</Label>
+              <Label class="text-xs text-muted-foreground">
+                正答
+                <span v-if="form.category === 'main'" class="text-[10px] text-primary font-normal ml-1">
+                  （複数選択可）
+                </span>
+              </Label>
               <div class="flex gap-2">
                 <button
                   v-for="letter in ['A', 'B', 'C', 'D']"
                   :key="letter"
                   type="button"
                   class="w-10 h-10 rounded-lg border text-sm font-semibold transition-colors"
-                  :class="form.correct_answer === letter ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted'"
-                  @click="form.correct_answer = letter"
+                  :class="isCorrectAnswerSelected(letter) ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:bg-muted'"
+                  @click="toggleCorrectAnswer(letter)"
                 >
                   {{ letter }}
                 </button>
@@ -188,6 +193,39 @@ function openCreateDialog() {
   form.correct_answer = 'A'
   form.is_active = true
   dialogOpen.value = true
+}
+
+// 変更点：カテゴリー切り替え時、複数選択済みの正答が残らないようリセットする
+function onCategoryChange(category) {
+  form.category = category
+  const current = form.correct_answer ? form.correct_answer.split(',').map(s => s.trim()).filter(Boolean) : []
+  if (category === 'simple' && current.length > 1) {
+    form.correct_answer = current[0] || 'A'
+  }
+}
+
+// 変更点：正答の選択（カテゴリーに応じてトグル/単一選択を切り替える）
+function isCorrectAnswerSelected(letter) {
+  return form.correct_answer.split(',').map(s => s.trim()).includes(letter)
+}
+
+function toggleCorrectAnswer(letter) {
+  if (form.category === 'simple') {
+    // 簡易テストは単一正解のみ（従来通り）
+    form.correct_answer = letter
+    return
+  }
+
+  // 本試験は複数正解可：クリックのたびにON/OFFをトグルする
+  const current = form.correct_answer
+    ? form.correct_answer.split(',').map(s => s.trim()).filter(Boolean)
+    : []
+
+  if (current.includes(letter)) {
+    form.correct_answer = current.filter(l => l !== letter).join(',')
+  } else {
+    form.correct_answer = [...current, letter].sort().join(',')
+  }
 }
 
 function openEditDialog(q) {

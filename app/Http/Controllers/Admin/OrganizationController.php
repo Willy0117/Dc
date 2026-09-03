@@ -292,6 +292,15 @@ class OrganizationController extends Controller
         // というブロックは廃止した。e-ラーニング招待は契約締結・入金確認後に
         // 送信する方式に変更されたため（UserInviteService参照）。
 
+        // 変更点：新規契約（needs_agreementがfalse）の場合、
+        // contract_dateとnew_contract_dateは同じ日付であるべき。
+        // ズレていたら送信をブロックしてエラーを返す。
+        if (!$request->boolean('needs_agreement') && $request->contract_date !== $request->new_contract_date) {
+            return back()->withErrors([
+                'contract_date' => '新規契約の場合、契約日と新契約日は同じ日付にしてください。',
+            ]);
+        }
+
         if ($request->boolean('needs_agreement')) {
             $updates = [
                 'new_contract_date' => $request->new_contract_date,
@@ -301,6 +310,15 @@ class OrganizationController extends Controller
                 'contract_date'     => $request->contract_date,
                 'new_contract_date' => $request->new_contract_date,
             ];
+        }
+
+        // 変更点：ライセンス付与日が未設定（＝本当に初めての契約）の場合、
+        // 新契約日と同じ日付をセットする。新規契約時は
+        // contract_date・new_contract_date・license_issued_atの3つが
+        // 同じ日付で揃うことになる。既に値が入っている（＝再契約）場合は
+        // 変更しない。
+        if (!$organization->license_issued_at) {
+            $updates['license_issued_at'] = $request->new_contract_date;
         }
 
         $organization->update($updates);

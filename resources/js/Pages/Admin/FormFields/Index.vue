@@ -8,7 +8,7 @@
     <div class="p-6 space-y-4">
 
       <!-- 治療部位タブ -->
-      <div class="flex gap-1 border-b">
+      <div class="flex items-center gap-1 border-b flex-wrap">
         <button
           v-for="area in treatmentAreas"
           :key="area"
@@ -19,6 +19,17 @@
             : 'border-transparent text-muted-foreground hover:text-foreground'"
         >
           {{ area }}
+          <span v-if="categoryTierLabel(area)" class="ml-1 text-[10px] text-muted-foreground">
+            ({{ categoryTierLabel(area) }}以上)
+          </span>
+        </button>
+        <button
+          type="button"
+          class="px-3 py-2 text-sm text-muted-foreground hover:text-primary shrink-0"
+          @click="addCategoryDialogOpen = true"
+          title="カテゴリーを追加"
+        >
+          <Plus class="w-4 h-4" />
         </button>
       </div>
 
@@ -138,6 +149,38 @@
         </div>
       </DialogContent>
     </Dialog>
+
+    <!-- カテゴリー（治療部位）追加 Dialog -->
+    <Dialog v-model:open="addCategoryDialogOpen">
+      <DialogContent class="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>カテゴリー（治療部位）を追加</DialogTitle>
+          <DialogDescription>例：肩こり、頭痛</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-3 py-2">
+          <div class="space-y-1.5">
+            <Label>カテゴリー名 <span class="text-destructive">*</span></Label>
+            <Input v-model="newCategory.name" placeholder="例：肩こり" @keydown.enter="submitAddCategory" />
+          </div>
+          <div class="space-y-1.5">
+            <Label>閲覧可能グレード（このグレード以上の先生が選択できます）</Label>
+            <Select v-model="newCategory.required_tier">
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="1">ベーシック</SelectItem>
+                <SelectItem :value="2">アドバンス</SelectItem>
+                <SelectItem :value="3">エキスパート</SelectItem>
+                <SelectItem :value="4">マスター</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <Button variant="outline" @click="addCategoryDialogOpen = false">キャンセル</Button>
+          <Button @click="submitAddCategory" :disabled="!newCategory.name">追加</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   </AppLayout>
 </template>
 
@@ -156,9 +199,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const props = defineProps({
   fields:         Array,
   treatmentAreas: Array,
+  categories:     { type: Array, default: () => [] }, // 追加：{id, name, required_tier}
   fieldTypes:     Array,
   currentArea:    String,
 })
+
+const TIER_LABELS = { 1: 'ベーシック', 2: 'アドバンス', 3: 'エキスパート', 4: 'マスター' }
+
+// タブの「(グレード以上)」表示用。ベーシック(1)は全員閲覧可なので表示しない
+function categoryTierLabel(area) {
+  const cat = props.categories.find(c => c.name === area)
+  if (!cat || cat.required_tier <= 1) return null
+  return TIER_LABELS[cat.required_tier] ?? null
+}
 
 const switchArea = (area) => {
   router.get(route('admin.form-fields.index'), { treatment_area: area }, {
@@ -226,5 +279,26 @@ const toggleOption = (option) => {
 const destroyOption = (option) => {
   if (!confirm(`「${option.label}」を削除しますか？`)) return
   router.delete(route('admin.form-fields.destroy-option', option.id), { preserveState: true })
+}
+
+// ──────────────────────────────────────────
+// カテゴリー（治療部位）追加
+// ──────────────────────────────────────────
+const addCategoryDialogOpen = ref(false)
+const newCategory = reactive({ name: '', required_tier: 1 })
+
+const submitAddCategory = () => {
+  if (!newCategory.name) return
+  router.post(route('admin.case-report-categories.store'), {
+    name:          newCategory.name,
+    required_tier: newCategory.required_tier,
+  }, {
+    preserveState: true,
+    onSuccess: () => {
+      addCategoryDialogOpen.value = false
+      newCategory.name = ''
+      newCategory.required_tier = 1
+    },
+  })
 }
 </script>

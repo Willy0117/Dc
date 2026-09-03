@@ -44,15 +44,38 @@
           <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
         </Link>
         <!-- ここに追加 -->
-        <Link
-          v-if="can('notice.view') || can('notice.edit')"
-          :href="route('admin.notices.index')"
-          class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
-          :class="isActive('admin.notices.index') ? 'bg-gray-200 font-semibold' : ''"
-        >
-          <Megaphone class="w-4 h-4 mr-1"/>
-          お知らせ管理
-        </Link>
+        <!-- お知らせ管理 サブメニュー -->
+        <div v-if="can('notice.view') || can('notice.edit')" class="mt-2">
+          <button
+            @click="toggleSubMenu('notices')"
+            class="flex items-center justify-between w-full py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+          >
+            <div class="flex items-center">
+              <Megaphone class="w-5 h-5"/>
+              <span v-if="!collapsed" class="ml-2">お知らせ管理</span>
+            </div>
+            <svg
+              v-if="!collapsed"
+              :class="{ 'rotate-90': openSubMenu === 'notices' }"
+              class="w-4 h-4 transform transition-transform duration-200"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <transition name="slide-fade">
+            <div v-show="openSubMenu === 'notices' && !collapsed" class="pl-6 mt-1 space-y-1">
+              <Link
+                :href="route('admin.notices.index')"
+                class="flex items-center py-2 px-2 rounded hover:bg-gray-100"
+                :class="isActive('admin.notices.index') ? 'bg-gray-200 font-semibold' : ''"
+              >
+                <Megaphone class="w-4 h-4 mr-1"/>
+                お知らせ管理
+              </Link>
+            </div>
+          </transition>
+        </div>
 
         <!-- Members サブメニュー -->
         <div v-if="canAccessMenu('members')" class="mt-2">
@@ -538,6 +561,7 @@ const can = (permission) => {
 
 // メニューごとに必要なpermissionを定義
 const menuPermissions = {
+  notices:       ['notice.view',       'notice.edit'],
   members:       ['member.view',       'member.edit'],
   organizations: ['organization.view', 'organization.edit'],
   billing:       ['invoice.view',      'invoice.edit', 'stripe.view', 'stripe.edit'],
@@ -576,7 +600,7 @@ const groupMap = {
   elearnings:    'elearnings',
 }
 
-const validMenus = ['members', 'organizations', 'users', 'access', 'billing', 'license_fees', 'admins', 'case_reports', 'references','resources','elearnings']
+const validMenus = ['notices','members', 'organizations', 'users', 'access', 'billing', 'license_fees', 'admins', 'case_reports', 'references','resources','elearnings']
 
 const detectMenu = () => {
   const current = route().current()

@@ -294,7 +294,7 @@ class PdfService
     // 請求書PDF生成
     // ──────────────────────────────────────────
 
-    public function createLicensePdf($organization, string $dueDate, string $displayName = null): string
+     public function createLicensePdf($organization, string $dueDate, string $displayName = null, ?string $issuedDate = null): string
     {
         \Log::info('display_name:', ['value' => $displayName]);
         $pdf = new Fpdi();
@@ -312,9 +312,9 @@ class PdfService
         // 日本語フォント
         $pdf->SetFont('kozminproregular', '', 12);
 
-        // 契約日
+        // 契約日（実態は契約の期限/終了日）
         $pdf->SetXY(168, 153);
-        $pdf->Write(8, $dueDate);
+        $pdf->Write(8, $issuedDate);
 
         // 日本語フォント
         $pdf->SetFont('kozminproregular', '', 21);
@@ -341,7 +341,7 @@ class PdfService
         unlink($tmpPath);
  
         return $fileName;
-    }
+    }    
     // ──────────────────────────────────────────
     // PDF保存（共通）
     // ──────────────────────────────────────────

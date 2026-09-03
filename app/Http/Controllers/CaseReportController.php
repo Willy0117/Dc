@@ -91,7 +91,8 @@ class CaseReportController extends Controller
     // ──────────────────────────────────────────
     public function create()
     {
-        $organization = $this->getOrganization();
+        $organization   = $this->getOrganization();
+        $loggedInMember = $this->getLoggedInMember();
 
         $members = $organization
             ? Member::where('organization_id', $organization->id)
@@ -99,9 +100,21 @@ class CaseReportController extends Controller
                 ->get(['id', 'last_name', 'first_name'])
             : collect([]);
 
+        // 変更点③：治療部位（カテゴリー）を動的に取得。
+        // 先生ログインの場合は、自分のグレード以上のカテゴリーのみに絞り込む。
+        // 病院ログインの場合は、常にベーシック(1)扱いで絞り込む
+        // （①の資料一覧と同じ考え方：グレードは先生個人の実績のため）。
+        $effectiveTier = $loggedInMember?->tier ?? 1;
+
+        $categories = \App\Models\CaseReportCategory::active()
+            ->availableForTier($effectiveTier)
+            ->orderBy('sort_order')
+            ->pluck('name');
+
         return Inertia::render('Reports/Create', [
-            'options' => FormOption::getForForm(),
-            'members' => $members,
+            'options'         => FormOption::getForForm(),
+            'members'         => $members,
+            'treatmentAreas'  => $categories, // 追加：グレードで絞り込み済みの部位一覧
         ]);
     }
 
@@ -121,16 +134,31 @@ class CaseReportController extends Controller
             return redirect()->route('reports.index')->withErrors(['error' => '所属施設が見つかりません。']);
         }
 
+        // 変更点③：治療部位（カテゴリー）は動的なので、ハードコードのinルールではなく、
+        // 現在有効なカテゴリー名の一覧から検証する
+        $validCategoryNames = \App\Models\CaseReportCategory::active()->pluck('name')->toArray();
+
         $validated = $request->validate([
             // 病院ログイン時は必須、先生ログイン時はこの値自体を使わないためnullableのままでよい
             'member_id'          => [$loggedInMember ? 'nullable' : 'required', 'exists:members,id'],
             'patient_gender'     => 'required|in:男性,女性,不明',
             'patient_age_group'  => 'required|string',
-            'treatment_area'     => 'required|in:手,足,肘,肩,膝',
+            'treatment_area'     => ['required', 'string', 'in:' . implode(',', $validCategoryNames)],
             'details'            => 'nullable|array',
             'complication_types' => 'nullable|array',
             'notes'              => 'nullable|string|max:1000',
         ]);
+
+        // 変更点③：先生ログインの場合、自分のグレード未満のカテゴリーを
+        // 直接POSTで送りつけてくる不正な操作を防ぐ（フロントのUI制限だけに頼らない）
+        if ($loggedInMember) {
+            $category = \App\Models\CaseReportCategory::where('name', $validated['treatment_area'])->first();
+            if ($category && $category->required_tier > $loggedInMember->tier) {
+                return back()->withErrors([
+                    'treatment_area' => 'このカテゴリーは、あなたの現在のグレードでは選択できません。',
+                ]);
+            }
+        }
 
         // 先生ログインなら常に自分自身のmember_idを使う（リクエスト値は無視）
         // 病院ログインならバリデーション済みの選択値をそのまま使う

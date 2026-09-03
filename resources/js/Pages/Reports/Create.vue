@@ -76,7 +76,7 @@
 
         <div class="space-y-2">
           <Label>治療部位 <span class="text-destructive">*</span></Label>
-          <div class="grid grid-cols-5 gap-2">
+          <div class="grid grid-cols-7 gap-2">
             <button
               v-for="area in treatmentAreas"
               :key="area"
@@ -161,8 +161,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const props = defineProps({
-  options: { type: Object, default: () => ({}) },
-  members: { type: Array, default: () => [] },
+  options:        { type: Object, default: () => ({}) },
+  members:        { type: Array, default: () => [] },
+  // 変更点③：サーバー側で先生のグレードに応じて絞り込み済みの部位一覧を受け取る
+  treatmentAreas: { type: Array, default: () => [] },
 })
 
 // ログイン種別判定（変更点9・③）：
@@ -174,8 +176,11 @@ const isMemberLogin = computed(() => authUser?.type === 2)
 const currentStep = ref(1)
 const stepLabels  = ['基本情報', '治療詳細', '備考・コメント']
 
-const ageGroups      = ['10代以下', '10代', '20代', '30代', '40代', '50代', '60代', '70代', '80代', '90代以上']
-const treatmentAreas = ['手', '足', '肘', '肩', '膝']
+const ageGroups = ['10代以下', '10代', '20代', '30代', '40代', '50代', '60代', '70代', '80代', '90代以上']
+// 変更点③：治療部位はハードコードをやめ、props.treatmentAreas（サーバー側で
+// グレード絞り込み済み）を使う。テンプレート内は元のまま "treatmentAreas" で参照できるよう
+// computedで橋渡しする
+const treatmentAreas = computed(() => props.treatmentAreas ?? [])
 
 const areaFields = computed(() => props.options?.[form.treatment_area] ?? {})
 

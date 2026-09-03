@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 
 // lucide-vue-next
 import {
-  Home, Users, User, ShieldCheck, Award, ClipboardList,
+  Home, Users, User, ShieldCheck, Award, ClipboardList, MessageSquareText,
   Building2, Menu, KeyRound, UserCog,
   X, Key, GraduationCap, Receipt, Video, Eye,
   FileCheck, Download,
@@ -164,12 +164,19 @@ const showAccessControl = computed(() => {
       <div class="h-14 flex-none lg:hidden"></div>
 
        <nav class="flex-1 overflow-y-auto px-2 py-4 text-sm">
-      <!-- Dashboard -->
+      <!-- Dashboard　Dashboard→HOMEへ名称変更 -->
       <Link :href="route('dashboard')"
             class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
             :class="isActive('dashboard') ? 'bg-gray-300 font-semibold' : ''">
         <Home class="w-5 h-5"/>
-        <span v-if="!collapsed" class="ml-2">{{ t('dashboard') }}</span>
+        <span v-if="!collapsed" class="ml-2">ホーム</span>
+      </Link>
+
+      <Link :href="route('director-message')"
+            class="flex items-center py-2 px-2 rounded hover:bg-gray-200 transition-colors"
+            :class="isActive('director-message') ? 'bg-gray-300 font-semibold' : ''">
+        <MessageSquareText class="w-5 h-5"/>
+        <span v-if="!collapsed" class="ml-2">奥野祐次からのメッセージ</span>
       </Link>
 
       <Link

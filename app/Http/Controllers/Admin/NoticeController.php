@@ -93,31 +93,38 @@ class NoticeController extends Controller
     }
 
     /**
-     * 個別病院選択UI用: 全病院(Tier・都道府県付き)
+     * 個別病院選択UI用: 全病院(都道府県付き)
+     * 【変更点】tierは変更点1でMember側に移動したため、
+     * organizations.tierを参照していたこのメソッドから削除した。
      */
     private function allOrganizations()
     {
         return Organization::with('locationAddress:organization_id,address1')
             ->orderBy('name')
-            ->get(['id', 'name', 'tier'])
+            ->get(['id', 'name'])
             ->map(fn ($o) => [
                 'id' => $o->id,
                 'name' => $o->name,
-                'tier' => $o->tier,
                 'prefecture' => $o->locationAddress?->address1,
             ]);
     }
 
     /**
      * 個別先生選択UI用: 全先生
+     * 【変更点】グレードで絞り込めるよう、tier・tier_labelを追加。
+     * organizationも表示に含める（どの病院の先生か分かりやすくするため）。
      */
     private function allMembers()
     {
-        return Member::orderBy('last_name')
-            ->get(['id', 'last_name', 'first_name'])
+        return Member::with('organization:id,name')
+            ->orderBy('last_name')
+            ->get(['id', 'organization_id', 'last_name', 'first_name', 'tier'])
             ->map(fn ($m) => [
-                'id' => $m->id,
-                'name' => "{$m->last_name} {$m->first_name}",
+                'id'              => $m->id,
+                'name'            => "{$m->last_name} {$m->first_name}",
+                'organization_name' => $m->organization?->name,
+                'tier'            => $m->tier,
+                'tier_label'      => $m->tier_label,
             ]);
     }
 }

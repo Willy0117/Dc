@@ -175,6 +175,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('case-reports', [App\Http\Controllers\Admin\CaseReportController::class, 'index'])->name('case-reports.index');
         Route::get('case-reports/{caseReport}', [App\Http\Controllers\Admin\CaseReportController::class, 'show'])->name('case-reports.show');
         Route::delete('case-reports/{caseReport}', [App\Http\Controllers\Admin\CaseReportController::class, 'destroy'])->name('case-reports.destroy');
+
+        // 症例報告カテゴリー
+        Route::post('case-report-categories', [App\Http\Controllers\Admin\CaseReportCategoryController::class, 'store'])
+            ->name('case-report-categories.store');
+        Route::put('case-report-categories/{caseReportCategory}', [App\Http\Controllers\Admin\CaseReportCategoryController::class, 'update'])
+            ->name('case-report-categories.update');
+        Route::post('case-report-categories/{caseReportCategory}/toggle', [App\Http\Controllers\Admin\CaseReportCategoryController::class, 'toggle'])
+            ->name('case-report-categories.toggle');
+        Route::delete('case-report-categories/{caseReportCategory}', [App\Http\Controllers\Admin\CaseReportCategoryController::class, 'destroy'])
+            ->name('case-report-categories.destroy');
+        Route::post('case-report-categories/reorder', [App\Http\Controllers\Admin\CaseReportCategoryController::class, 'reorder'])
+            ->name('case-report-categories.reorder');
         // ──────────────────────────────────────────
         // 手技動画（管理画面）
         // ──────────────────────────────────────────
@@ -335,6 +347,10 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+    Route::get('director-message', function () {
+        return Inertia::render('DirectorMessage');
+    })->name('director-message');
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // 症例報告

@@ -56,7 +56,7 @@
           </div>
 
           <div v-if="form.target_type === 'members'">
-            <MultiSelect v-model="form.member_ids" :items="allMembers" />
+            <MemberMultiSelect v-model="form.member_ids" :items="allMembers" />
           </div>
         </div>
 
@@ -80,7 +80,7 @@
 import { useForm, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/Admin/AppLayout.vue'
 import OrganizationMultiSelect from '@/Components/Admin/OrganizationMultiSelect.vue'
-import MultiSelect from '@/Components/Admin/MultiSelect.vue'
+import MemberMultiSelect from '@/Components/Admin/MemberMultiSelect.vue'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

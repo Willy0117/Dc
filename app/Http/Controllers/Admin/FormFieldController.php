@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CaseReportCategory;
 use App\Models\FormField;
 use App\Models\FormOption;
 use Illuminate\Http\Request;
@@ -10,15 +11,25 @@ use Inertia\Inertia;
 
 class FormFieldController extends Controller
 {
-    const TREATMENT_AREAS = ['手', '足', '肘', '肩', '膝', '共通'];
-    const FIELD_TYPES     = ['checkbox', 'radio', 'text'];
+    const FIELD_TYPES = ['checkbox', 'radio', 'text'];
+
+    // 「共通」は先生が選ぶ治療部位ではなく、部位を問わない共通項目
+    // （トラブル・合併症等）を管理するための特別な区分。
+    // case_report_categoriesには含めず、ここで固定追加する。
+    const COMMON_AREA = '共通';
 
     // ──────────────────────────────────────────
     // 一覧
+    // 変更点：治療部位の選択肢を、ハードコードではなく
+    // case_report_categoriesから動的に取得する（管理画面から
+    // 追加された「肩こり」「頭痛」等も自動的にここに現れる）。
     // ──────────────────────────────────────────
     public function index(Request $request)
     {
-        $area = $request->input('treatment_area', '手');
+        $categories = CaseReportCategory::orderBy('sort_order')->get(['id', 'name', 'required_tier']);
+        $treatmentAreas = $categories->pluck('name')->push(self::COMMON_AREA)->toArray();
+
+        $area = $request->input('treatment_area', $treatmentAreas[0] ?? '手');
 
         $fields = FormField::with(['options'])
             ->where('treatment_area', $area)
@@ -27,7 +38,8 @@ class FormFieldController extends Controller
 
         return Inertia::render('Admin/FormFields/Index', [
             'fields'         => $fields,
-            'treatmentAreas' => self::TREATMENT_AREAS,
+            'treatmentAreas' => $treatmentAreas,
+            'categories'     => $categories, // 追加：グレード表示・カテゴリー管理用
             'fieldTypes'     => self::FIELD_TYPES,
             'currentArea'    => $area,
         ]);
@@ -38,8 +50,10 @@ class FormFieldController extends Controller
     // ──────────────────────────────────────────
     public function store(Request $request)
     {
+        $validAreas = CaseReportCategory::pluck('name')->push(self::COMMON_AREA)->toArray();
+
         $validated = $request->validate([
-            'treatment_area' => 'required|in:手,足,肘,肩,膝,共通',
+            'treatment_area' => 'required|string|in:' . implode(',', $validAreas),
             'field_name'     => 'required|string|max:50',
             'field_type'     => 'required|in:checkbox,radio,text',
         ]);

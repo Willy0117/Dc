@@ -27,6 +27,16 @@ class CloudSignWebhookController extends Controller
         '52.197.119.179',
     ];
 
+    // 変更点：クラウドサイン公式ドキュメント記載のstatus値の意味。
+    // https://help.cloudsign.jp/ja/articles/9977727
+    // WebhookLog.event_typeに、機械的な"status_2"ではなく
+    // 人が読んで分かるラベルで保存するために使う。
+    private const STATUS_LABELS = [
+        1 => '先方確認中',
+        2 => '締結完了',
+        3 => '取り消し・却下',
+    ];
+
     public function handle(Request $request): Response
     {
         // IP制限
@@ -48,7 +58,10 @@ class CloudSignWebhookController extends Controller
         // 受信内容を記録（管理画面の通知表示用）
         WebhookLog::create([
             'source'     => WebhookLog::SOURCE_CLOUDSIGN,
-            'event_type' => 'status_' . $status,
+            // 変更点：'status_2' ではなく '締結完了' のように、
+            // 管理画面でそのまま表示しても分かるラベルを保存する。
+            // 未知のstatus値が来た場合のフォールバックも残しておく。
+            'event_type' => self::STATUS_LABELS[(int) $status] ?? ('status_' . $status),
             'payload'    => json_encode($request->all()),
             'created_at' => now(),
         ]);

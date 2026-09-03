@@ -12,6 +12,17 @@ use Stripe\Exception\SignatureVerificationException;
 
 class StripeWebhookController extends Controller
 {
+    // 変更点：Stripeのevent->typeは英語の技術的な値のため、
+    // 管理画面でそのまま表示しても分かるよう、日本語ラベルに変換する。
+    // 未知のtypeが来た場合は、念のため元の値のままフォールバックする。
+    private const EVENT_TYPE_LABELS = [
+        'checkout.session.completed'   => '決済完了',
+        'checkout.session.expired'     => '決済リンク期限切れ',
+        'payment_intent.succeeded'     => '支払い成功',
+        'payment_intent.payment_failed' => '支払い失敗',
+        'charge.refunded'              => '返金',
+    ];
+
     public function handle(Request $request)
     {
         $payload   = $request->getContent();
@@ -41,7 +52,7 @@ class StripeWebhookController extends Controller
         // 受信内容を記録（管理画面の通知表示用）
         WebhookLog::create([
             'source'     => WebhookLog::SOURCE_STRIPE,
-            'event_type' => $event->type,
+            'event_type' => self::EVENT_TYPE_LABELS[$event->type] ?? $event->type,
             'payload'    => json_encode($event->toArray()),
             'created_at' => now(),
         ]);

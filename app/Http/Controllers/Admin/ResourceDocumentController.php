@@ -24,6 +24,7 @@ class ResourceDocumentController extends Controller
             'id'                 => $d->id,
             'category_id'        => $d->category_id,
             'title'              => $d->title,
+            'required_tier'      => $d->required_tier, // 追加
             'original_filename'  => $d->original_filename,
             'extension'          => $d->extension,
             'file_size'          => $d->file_size,
@@ -34,6 +35,7 @@ class ResourceDocumentController extends Controller
         return Inertia::render('Admin/ResourceDocuments/Index', [
             'documents'  => $documents,
             'categories' => $categories,
+            'tierLabels' => \App\Models\Member::TIER_LABELS, // 追加
         ]);
     }
 
@@ -43,9 +45,10 @@ class ResourceDocumentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'category_id' => 'required|exists:resource_document_categories,id',
-            'title'       => 'required|string|max:255',
-            'document'    => 'required|file|mimes:pdf,jpg,jpeg,doc,docx|max:51200', // 50MB, PDF/JPEG/Word
+            'category_id'    => 'required|exists:resource_document_categories,id',
+            'title'          => 'required|string|max:255',
+            'required_tier'  => 'required|integer|in:1,2,3,4', // 追加
+            'document'       => 'required|file|mimes:pdf,jpg,jpeg,doc,docx|max:51200', // 50MB, PDF/JPEG/Word
         ]);
 
         $file = $request->file('document');
@@ -56,6 +59,7 @@ class ResourceDocumentController extends Controller
         ResourceDocument::create([
             'category_id'        => $request->category_id,
             'title'              => $request->title,
+            'required_tier'      => $request->required_tier, // 追加
             'file_path'          => $filePath,
             'original_filename'  => $file->getClientOriginalName(),
             'file_size'          => $file->getSize(),
@@ -72,8 +76,9 @@ class ResourceDocumentController extends Controller
     public function update(Request $request, ResourceDocument $resourceDocument)
     {
         $validated = $request->validate([
-            'category_id' => 'required|exists:resource_document_categories,id',
-            'title'       => 'required|string|max:255',
+            'category_id'    => 'required|exists:resource_document_categories,id',
+            'title'          => 'required|string|max:255',
+            'required_tier'  => 'required|integer|in:1,2,3,4', // 追加
         ]);
 
         $resourceDocument->update($validated);

@@ -7,13 +7,16 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 
 const props = defineProps({
-    email: String,
+    username: String,
     token: String,
 });
 
+// 変更点：NewPasswordController側は 'username' というキーで
+// prop・バリデーションどちらも扱っているため、こちらも
+// 'email' ではなく 'username' に統一する。
 const form = useForm({
     token: props.token,
-    email: props.email,
+    username: props.username,
     password: '',
     password_confirmation: '',
 });
@@ -38,17 +41,17 @@ const submit = () => {
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="ID" />
+                <InputLabel for="username" value="ID" />
                 <TextInput
-                    id="email"
-                    v-model="form.email"
-                    type="email"
+                    id="username"
+                    v-model="form.username"
+                    type="text"
                     class="mt-1 block w-full"
                     required
                     autofocus
                     autocomplete="username"
                 />
-                <InputError class="mt-2" :message="form.errors.email" />
+                <InputError class="mt-2" :message="form.errors.username" />
             </div>
 
             <div class="mt-4">
