@@ -100,15 +100,31 @@ class InvoiceService
      * 請求書番号を発行する
      * フォーマット: {西暦4桁}DL-{月2桁}{月内通し番号3桁}
      * 例: 2026年6月の1枚目 → 2026DL-06001
+     *
+     * 変更点：以前はCOUNT（件数）を+1する方式だったため、
+     * 途中の請求書が削除されると番号がズレて重複してしまうバグがあった。
+     * 既存番号の「最大値」を+1する方式に変更し、念のため
+     * 実際に重複していないかも確認してから返す。
      */
     private function generateInvoiceNo(): string
     {
-        $year  = now()->format('Y');
-        $month = now()->format('m');
+        $year   = now()->format('Y');
+        $month  = now()->format('m');
+        $prefix = $year . 'DL-' . $month;
 
-        // 当月の発行済み件数をカウントして通し番号を採番
-        $count = Invoice::where('invoice_no', 'like', $year . 'DL-' . $month . '%')->count() + 1;
+        // 変更点：invoice_noのUNIQUE制約はソフトデリートされたレコードにも
+        // 適用されるため、withTrashed()で削除済みも含めて確認する。
+        $maxSuffix = Invoice::withTrashed()
+            ->where('invoice_no', 'like', $prefix . '%')
+            ->get()
+            ->map(fn ($invoice) => (int) substr($invoice->invoice_no, -3))
+            ->max() ?? 0;
 
-        return sprintf('%sDL-%s%03d', $year, $month, $count);
+        do {
+            $maxSuffix++;
+            $candidate = sprintf('%s%03d', $prefix, $maxSuffix);
+        } while (Invoice::withTrashed()->where('invoice_no', $candidate)->exists());
+
+        return $candidate;
     }
 }

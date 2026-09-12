@@ -46,8 +46,8 @@
           </Select>
 
           <template v-if="selectedIds.length > 0">
-            <Button variant="destructive" size="sm" @click="bulkDelete">
-              <Trash2 class="w-3.5 h-3.5 mr-1" />{{ selectedIds.length }}件削除
+            <Button variant="destructive" size="sm" @click="bulkCancel">
+              <Ban class="w-3.5 h-3.5 mr-1" />{{ selectedIds.length }}件取消
             </Button>
             <Button variant="outline" size="sm" @click="bulkResendEmail">
               <Mail class="w-3.5 h-3.5 mr-1" />{{ selectedIds.length }}件メール再送
@@ -191,9 +191,10 @@
                   <Button
                     variant="ghost" size="icon"
                     class="h-7 w-7 text-destructive hover:text-destructive"
-                    @click="deleteInvoice(invoice)"
+                    title="取消"
+                    @click="cancelInvoice(invoice)"
                   >
-                    <Trash2 class="w-3.5 h-3.5" />
+                    <Ban class="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </td>
@@ -284,7 +285,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import dayjs from 'dayjs'
 import {
-  Search, Trash2, Mail, X, FileText, CreditCard,
+  Search, Ban, Mail, X, FileText, CreditCard,
   CheckCircle2, Send, AlertTriangle,
 } from 'lucide-vue-next'
 
@@ -487,18 +488,19 @@ const bulkResendEmail = () => {
 }
 
 // ──────────────────────────────────────────
-// 削除
+// 取消（変更点：物理削除ではなく取消ステータスへの変更のため、
+// 関数名・確認文言を「削除」から「取消」に統一）
 // ──────────────────────────────────────────
-const deleteInvoice = (invoice) => {
-  if (!confirm(`請求書「${invoice.invoice_no}」を削除しますか？`)) return
+const cancelInvoice = (invoice) => {
+  if (!confirm(`請求書「${invoice.invoice_no}」を取消しますか？`)) return
   router.delete(route('admin.invoices.destroy', invoice.id), {
     preserveState: true,
     onSuccess: () => submitSearch(),
   })
 }
 
-const bulkDelete = () => {
-  if (!confirm(`選択した${selectedIds.value.length}件を削除しますか？`)) return
+const bulkCancel = () => {
+  if (!confirm(`選択した${selectedIds.value.length}件を取消しますか？`)) return
   selectedIds.value.forEach(id => {
     router.delete(route('admin.invoices.destroy', id), { preserveState: true })
   })

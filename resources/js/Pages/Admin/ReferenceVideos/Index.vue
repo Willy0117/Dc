@@ -52,6 +52,7 @@
         >
           {{ cat.name }}
           <span class="ml-1 text-xs opacity-70">({{ documentsInCategory(cat.id).length }})</span>
+          <span v-if="cat.required_tier > 1" class="ml-1 text-[10px] text-primary">（{{ tierLabels[cat.required_tier] }}以上）</span>
         </button>
       </div>
 
@@ -154,16 +155,24 @@
 
           <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
             <!-- 新規追加 -->
-            <div class="flex gap-2">
-              <Input
-                v-model="newCategoryName"
-                placeholder="新しいカテゴリー名"
-                class="flex-1"
-                @keydown.enter="(e) => handleAddCategoryEnter(e)"
-              />
-              <Button type="button" size="sm" :disabled="!newCategoryName.trim()" @click="addCategory">
-                <Plus class="w-3.5 h-3.5" />
-              </Button>
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <Input
+                  v-model="newCategoryName"
+                  placeholder="新しいカテゴリー名"
+                  class="flex-1"
+                  @keydown.enter="(e) => handleAddCategoryEnter(e)"
+                />
+                <Select v-model="newCategoryTier">
+                  <SelectTrigger class="w-28 shrink-0"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="(label, tier) in tierLabels" :key="tier" :value="Number(tier)">{{ label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button type="button" size="sm" :disabled="!newCategoryName.trim()" @click="addCategory">
+                  <Plus class="w-3.5 h-3.5" />
+                </Button>
+              </div>
             </div>
 
             <!-- 一覧（ドラッグ&ドロップ並べ替え） -->
@@ -180,15 +189,23 @@
                 @dragend="draggingCatIndex = null"
               >
                 <GripVertical class="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
-                <Input
-                  v-if="editingCategoryId === cat.id"
-                  v-model="editCategoryName"
-                  class="h-8 flex-1"
-                  @keydown.enter="(e) => handleEditCategoryEnter(e, cat)"
-                />
+                <template v-if="editingCategoryId === cat.id">
+                  <Input
+                    v-model="editCategoryName"
+                    class="h-8 flex-1"
+                    @keydown.enter="(e) => handleEditCategoryEnter(e, cat)"
+                  />
+                  <Select v-model="editCategoryTier">
+                    <SelectTrigger class="h-8 w-28 shrink-0"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="(label, tier) in tierLabels" :key="tier" :value="Number(tier)">{{ label }}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </template>
                 <span v-else class="flex-1 text-sm">
                   {{ cat.name }}
                   <span class="text-xs text-muted-foreground">（{{ cat.videos_count }}件）</span>
+                  <Badge variant="outline" class="text-[10px] ml-1">{{ tierLabels[cat.required_tier] ?? '-' }}以上</Badge>
                 </span>
 
                 <template v-if="editingCategoryId === cat.id">
@@ -238,7 +255,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const props = defineProps({
   videos:     { type: Array, default: () => [] },
   categories: { type: Array, default: () => [] },
+  tierLabels: { type: Object, default: () => ({ 1: 'ベーシック', 2: 'アドバンス', 3: 'エキスパート', 4: 'マスター' }) },
 })
+
+const tierLabels = props.tierLabels
 
 const activeCategoryId = ref(props.categories[0]?.id ?? null)
 
@@ -328,15 +348,23 @@ async function onDrop(targetIndex) {
 
 // ──────────────────────────────────────────
 // カテゴリー管理ダイアログ
+// 変更点：グレード（required_tier）の新規追加・編集に対応
 // ──────────────────────────────────────────
 const categoryDialogOpen = ref(false)
 const newCategoryName = ref('')
+const newCategoryTier = ref(1)
 
 function addCategory() {
   if (!newCategoryName.value.trim()) return
-  router.post(route('admin.reference-video-categories.store'), { name: newCategoryName.value }, {
+  router.post(route('admin.reference-video-categories.store'), {
+    name: newCategoryName.value,
+    required_tier: newCategoryTier.value,
+  }, {
     preserveScroll: true,
-    onSuccess: () => { newCategoryName.value = '' },
+    onSuccess: () => {
+      newCategoryName.value = ''
+      newCategoryTier.value = 1
+    },
   })
 }
 
@@ -347,14 +375,19 @@ function handleAddCategoryEnter(e) {
 
 const editingCategoryId = ref(null)
 const editCategoryName = ref('')
+const editCategoryTier = ref(1)
 
 function startCategoryEdit(cat) {
   editingCategoryId.value = cat.id
   editCategoryName.value = cat.name
+  editCategoryTier.value = cat.required_tier
 }
 
 function saveCategoryEdit(cat) {
-  router.put(route('admin.reference-video-categories.update', cat.id), { name: editCategoryName.value }, {
+  router.put(route('admin.reference-video-categories.update', cat.id), {
+    name: editCategoryName.value,
+    required_tier: editCategoryTier.value,
+  }, {
     preserveScroll: true,
     onSuccess: () => { editingCategoryId.value = null },
   })

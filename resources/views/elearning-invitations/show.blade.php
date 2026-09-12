@@ -13,7 +13,7 @@
         </div>
     @endif
 
-    <h1 class="text-xl md:text-2xl font-bold text-sky-900 mb-2">e-ラーニング受講（契約前）</h1>
+    <h1 class="text-xl md:text-2xl font-bold text-sky-900 mb-2">e-ラーニング受講（契約時）</h1>
     <p class="text-gray-600 mb-1">{{ $memberName }} 先生</p>
 
     @if ($isCompleted)

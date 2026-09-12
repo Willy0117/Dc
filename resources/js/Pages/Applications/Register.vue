@@ -67,8 +67,8 @@
         </div>
 
         <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">市区町村 <span class="text-red-500">*</span></label>
-          <input v-model="form.address2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="千代田区" />
+          <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">市区町村・番地 <span class="text-red-500">*</span></label>
+          <input v-model="form.address2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="千代田区1-1" />
         </div>
 
         <div class="space-y-1.5">
@@ -104,11 +104,11 @@
         </div>
       </div>
 
-      <!-- 契約窓口 -->
+      <!-- 郵送先 -->
       <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <div class="flex items-center justify-between">
           <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-            <User class="w-4 h-4 text-green-500" />契約窓口（郵送先）
+            <User class="w-4 h-4 text-green-500" />郵送先
           </h2>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" v-model="sameAsClinic" @change="copyClinicAddress" class="rounded" />
@@ -117,7 +117,7 @@
         </div>
 
         <div v-if="sameAsClinic" class="flex items-center gap-2 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700">
-          <CheckCircle2 class="w-4 h-4" />病院情報を契約窓口として使用します
+          <CheckCircle2 class="w-4 h-4" />病院情報を郵送先として使用します
         </div>
 
         <template v-else>
@@ -136,8 +136,8 @@
             </div>
           </div>
           <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">市区町村</label>
-            <input v-model="form.contact_address2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="千代田区" />
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">市区町村・番地</label>
+            <input v-model="form.contact_address2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="千代田区1-1" />
           </div>
           <div class="space-y-1.5">
             <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">番地・建物名</label>
@@ -194,20 +194,24 @@
           <div class="space-y-1.5">
             <label class="text-xs font-semibold text-gray-500">姓 <span class="text-red-500">*</span></label>
             <input v-model="license.last_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="山田" />
+            <p v-if="form.errors[`licenses.${index}.last_name`]" class="text-xs text-red-500">{{ form.errors[`licenses.${index}.last_name`] }}</p>
           </div>
           <div class="space-y-1.5">
             <label class="text-xs font-semibold text-gray-500">名 <span class="text-red-500">*</span></label>
             <input v-model="license.first_name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500" placeholder="太郎" />
+            <p v-if="form.errors[`licenses.${index}.first_name`]" class="text-xs text-red-500">{{ form.errors[`licenses.${index}.first_name`] }}</p>
           </div>
         </div>
         <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-gray-500">メールアドレス</label>
+          <label class="text-xs font-semibold text-gray-500">メールアドレス <span class="text-red-500">*</span></label>
           <input
             type="email"
             v-model="license.email"
             class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+            :class="form.errors[`licenses.${index}.email`] ? 'border-red-400 focus:border-red-500' : ''"
             placeholder="example@example.com"
           />
+          <p v-if="form.errors[`licenses.${index}.email`]" class="text-xs text-red-500">{{ form.errors[`licenses.${index}.email`] }}</p>
         </div>
       </div>
     </div>

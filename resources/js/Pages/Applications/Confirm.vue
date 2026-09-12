@@ -69,12 +69,12 @@
         </dl>
       </div>
 
-      <!-- 契約窓口 -->
+      <!-- 郵送先 -->
       <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <User class="w-4 h-4 text-green-500" />
-            <h2 class="text-sm font-bold text-gray-700">契約窓口（郵送先）</h2>
+            <h2 class="text-sm font-bold text-gray-700">郵送先</h2>
           </div>
           <span v-if="data.same_as_clinic" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">病院情報と同じ</span>
         </div>

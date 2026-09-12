@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, toRef } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { User, Mail, MapPin, Building2, Lock, Check } from 'lucide-vue-next'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { PREFECTURES } from '@/composables/useOrganizationForm'
+import { useZipcode } from '@/composables/useZipcode'
 
 const props = defineProps<{
   member: any
@@ -51,6 +60,14 @@ const form = useForm({
     tel:         props.home_address?.tel ?? '',
     fax:         props.home_address?.fax ?? '',
   },
+})
+
+// 変更点：他画面（会員編集・契約先編集・申込みフォーム）と同じComposableを使い、
+// 郵便番号からの住所自動入力を有効にする（今まで一切呼ばれていなかった）。
+useZipcode(toRef(form.home_address, 'postal_code'), {
+  prefecture: toRef(form.home_address, 'address1'),
+  address1:   toRef(form.home_address, 'address2'),
+  address2:   toRef(form.home_address, 'address3'),
 })
 
 function submitProfile() {
@@ -181,20 +198,31 @@ function submitPassword() {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="space-y-1">
             <Label class="text-xs text-muted-foreground">郵便番号</Label>
-            <Input v-model="form.home_address.postal_code" />
+            <Input
+              v-model="form.home_address.postal_code"
+              placeholder="000-0000"
+              @input="form.home_address.postal_code = ($event.target as HTMLInputElement).value
+                .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+                .replace(/[－ー−‐]/g, '-')"
+            />
           </div>
           <div class="space-y-1">
             <Label class="text-xs text-muted-foreground">都道府県</Label>
-            <Input v-model="form.home_address.address1" />
+            <Select v-model="form.home_address.address1">
+              <SelectTrigger><SelectValue placeholder="選択" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="pref in PREFECTURES" :key="pref" :value="pref">{{ pref }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div class="space-y-1">
-          <Label class="text-xs text-muted-foreground">市区町村</Label>
-          <Input v-model="form.home_address.address2" />
+          <Label class="text-xs text-muted-foreground">市区町村・番地</Label>
+          <Input v-model="form.home_address.address2" placeholder="例：新宿区西新宿1-1-1" />
         </div>
         <div class="space-y-1">
-          <Label class="text-xs text-muted-foreground">番地・建物名</Label>
-          <Input v-model="form.home_address.address3" />
+          <Label class="text-xs text-muted-foreground">ビル名・部屋番号</Label>
+          <Input v-model="form.home_address.address3" placeholder="例：山田ビル 3F" />
         </div>
       </div>
 

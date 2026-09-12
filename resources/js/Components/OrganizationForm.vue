@@ -83,7 +83,10 @@ watch(
   () => props.errors,
   (errors) => {
     if (!errors) return
-    const hasAddressError = Object.keys(errors).some(k =>
+    const errorKeys = Object.keys(errors)
+    if (errorKeys.length === 0) return
+
+    const hasAddressError = errorKeys.some(k =>
       k.startsWith('location_address') ||
       k.startsWith('shipping_address') ||
       k.startsWith('billing_address')
@@ -91,8 +94,21 @@ watch(
     if (hasAddressError) activeTab.value = 'address'
 
     // 先生情報にエラーがあれば先生登録タブへ自動遷移
-    const hasMemberError = Object.keys(errors).some(k => k.startsWith('members.'))
+    const hasMemberError = errorKeys.some(k => k.startsWith('members.'))
     if (hasMemberError) activeTab.value = 'members'
+
+    // 変更点：タブ切り替えだけだと、切り替わったタブに気づかず
+    // 「エラーが起きていないように見える」ケースがあったため、
+    // 画面上部にtoastで警告を明示的に表示する。
+    // 変更点：AppLayoutごと再生成される（Toasterも再マウントされる）タイミングと
+    // 重なる可能性があるため、nextTickで描画完了を待ってからtoastを呼ぶ。
+    nextTick(() => {
+      toast.error('入力内容にエラーがあります。ご確認ください。', {
+        description: hasAddressError
+          ? '住所情報タブをご確認ください。'
+          : (hasMemberError ? '先生登録タブをご確認ください。' : '入力内容をご確認ください。'),
+      })
+    })
   },
   { immediate: true }
 )
@@ -175,7 +191,7 @@ watch(
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
               <Label class="text-xs text-muted-foreground">
-                病院名 <span class="text-[10px] text-muted-foreground/60 ml-0.5">abbr</span>
+                施設名 <span class="text-[10px] text-muted-foreground/60 ml-0.5">abbr</span>
               </Label>
               <Input v-model="form.organization.abbr" placeholder="例：山田内科クリニック" maxlength="100" />
             </div>

@@ -45,13 +45,21 @@ class ProfileChangeLog extends Model
     /**
      * 更新前後の配列から、実際に値が変わったフィールドだけの差分を作る
      * 例: ['name' => ['before' => 'A', 'after' => 'B']]
+     *
+     * 変更点：値が配列（例：location_addressのようなネストした住所情報）の
+     * 場合、(string)キャストすると「Array to string conversion」エラーに
+     * なるため、配列同士はjson_encode()して比較するようにした。
      */
     public static function diff(array $before, array $after): array
     {
         $changes = [];
         foreach ($after as $key => $newValue) {
             $oldValue = $before[$key] ?? null;
-            if ((string) $oldValue !== (string) $newValue) {
+
+            $oldComparable = is_array($oldValue) ? json_encode($oldValue) : (string) $oldValue;
+            $newComparable = is_array($newValue) ? json_encode($newValue) : (string) $newValue;
+
+            if ($oldComparable !== $newComparable) {
                 $changes[$key] = ['before' => $oldValue, 'after' => $newValue];
             }
         }

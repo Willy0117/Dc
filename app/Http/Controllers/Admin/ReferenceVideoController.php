@@ -23,6 +23,7 @@ class ReferenceVideoController extends Controller
         return Inertia::render('Admin/ReferenceVideos/Index', [
             'videos'     => $videos,
             'categories' => $categories,
+            'tierLabels' => \App\Models\Member::TIER_LABELS, // 追加：カテゴリーのグレード選択用
         ]);
     }
 

@@ -12,6 +12,7 @@ class ResourceDocument extends Model
     protected $fillable = [
         'category_id',
         'title',
+        'required_tier',
         'file_path',
         'original_filename',
         'file_size',
@@ -20,8 +21,9 @@ class ResourceDocument extends Model
     ];
 
     protected $casts = [
-        'file_size'  => 'integer',
-        'sort_order' => 'integer',
+        'required_tier' => 'integer',
+        'file_size'      => 'integer',
+        'sort_order'     => 'integer',
     ];
 
     public function category(): BelongsTo

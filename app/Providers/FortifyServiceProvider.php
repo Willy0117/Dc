@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\LogoutResponse;
@@ -116,7 +117,12 @@ class FortifyServiceProvider extends ServiceProvider
                 return '/dashboard';
             }
             return route('login');
-        });        
+        });
 
+        // 変更点：パスワードの最低要件を「8文字以上」から
+        // 「8文字以上 + 大文字・小文字・数字を含む」に強化する。
+        Password::defaults(function () {
+            return Password::min(8)->mixedCase()->numbers();
+        });
     }
 }

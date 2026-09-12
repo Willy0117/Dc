@@ -14,14 +14,16 @@ class ReferenceVideoCategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100',
+            'name'          => 'required|string|max:100',
+            'required_tier' => 'nullable|integer|in:1,2,3,4',
         ]);
 
         $maxOrder = ReferenceVideoCategory::max('sort_order') ?? 0;
 
         ReferenceVideoCategory::create([
-            ...$validated,
-            'sort_order' => $maxOrder + 1,
+            'name'          => $validated['name'],
+            'required_tier' => $validated['required_tier'] ?? 1,
+            'sort_order'    => $maxOrder + 1,
         ]);
 
         return redirect()->back()->with('success', 'カテゴリーを追加しました。');
@@ -33,7 +35,8 @@ class ReferenceVideoCategoryController extends Controller
     public function update(Request $request, ReferenceVideoCategory $referenceVideoCategory)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100',
+            'name'          => 'required|string|max:100',
+            'required_tier' => 'required|integer|in:1,2,3,4',
         ]);
 
         $referenceVideoCategory->update($validated);

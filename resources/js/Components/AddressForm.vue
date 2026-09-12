@@ -47,6 +47,7 @@ const tabs = [
         :address="locationAddress"
         :email-required="true"
         :email-error="errors?.['location_address.email']"
+        :address-required="true"
       />
     </div>
 

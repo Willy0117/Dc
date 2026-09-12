@@ -634,9 +634,9 @@ class OrganizationController extends Controller
             'organization.rep_first_name'  => 'required|string|max:100',
 
             'location_address.name'        => 'nullable|string|max:255',
-            'location_address.postal_code' => 'nullable|string|max:20',
-            'location_address.address1'    => 'nullable|string|max:255',
-            'location_address.address2'    => 'nullable|string|max:255',
+            'location_address.postal_code' => 'required|string|max:20',
+            'location_address.address1'    => 'required|string|max:255',
+            'location_address.address2'    => 'required|string|max:255',
             'location_address.address3'    => 'nullable|string|max:255',
             'location_address.tel'         => 'nullable|string|max:30',
             'location_address.fax'         => 'nullable|string|max:30',

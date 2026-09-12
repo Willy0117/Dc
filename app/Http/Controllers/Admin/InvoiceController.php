@@ -132,13 +132,16 @@ class InvoiceController extends Controller
     }
 
     // ──────────────────────────────────────────
-    // 削除
+    // 削除（変更点：物理削除ではなく「取消」ステータスに変更する。
+    // 請求書は会計上の証憑書類のため、レコード自体は残す。
+    // また、invoice_noのUNIQUE制約に影響しないよう、
+    // ステータス変更のみで番号体系を崩さない）
     // ──────────────────────────────────────────
     public function destroy(Invoice $invoice)
     {
-        $invoice->delete();
+        $invoice->update(['status' => Invoice::STATUS_CANCEL]);
 
-        return back()->with('success', '請求書を削除しました。');
+        return back()->with('success', '請求書を取消しました。');
     }
 
     // ──────────────────────────────────────────

@@ -58,7 +58,7 @@ class ApplicationController extends Controller
             'position'       => $m->position,
             'last_name'      => $m->last_name,
             'first_name'     => $m->first_name,
-//            'doctor_number'  => $m->doctor_number,
+            'email'          => $m->email,
         ])->toArray();
 
         // 料金マスタ取得
@@ -127,13 +127,16 @@ class ApplicationController extends Controller
             'licenses.*.last_name'  => 'required|string|max:100',
             'licenses.*.first_name' => 'required|string|max:100',
             'licenses.*.position'   => 'nullable|string|max:50',
-//            'licenses.*.doctor_number'  => 'nullable|digits:6',
+            'licenses.*.email'      => 'required|email|max:255',
             'corporate_fee'         => 'required|integer',
             'personal_fee'          => 'required|integer',
             'subtotal'              => 'required|integer',
             'tax'                   => 'required|integer',
             'total'                 => 'required|integer',
         ]);
+        // 変更点：カスタム属性名（licenses.*.email => '先生のメールアドレス'等）は
+        // lang/ja/validation.php の attributes 配列に一元化したため、
+        // ここでの個別指定は削除した。
 
         $validated = $request->all();
 
@@ -269,7 +272,6 @@ class ApplicationController extends Controller
                             'position'  => $license['position'] ?? null,
                             'email'     => $email,
                             'status_id' => 1,
-//                            'doctor_number'  => $license['doctor_number'] ?: $member->doctor_number,
                         ]);
 
                         // emailがある場合のみ、対応するUserも追随して更新
@@ -292,7 +294,6 @@ class ApplicationController extends Controller
                             'email'           => $email,
                             'status_id'       => 1,
                             'member_number'   => $this->nextMemberNumber($organization),
-//                            'doctor_number'   => $license['doctor_number'] ?? null,
                         ]);
 
                         // emailがある場合のみUserも作成(お知らせできないユーザーは作らない)

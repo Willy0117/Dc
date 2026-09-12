@@ -50,6 +50,7 @@ class Organization extends Model
         'rep_last_name',
         'rep_first_name',
         'new_contract_date',
+        'license_issued_at',
         // 'tier', ← 削除（変更点1：Tierはmemberに移動）
     ];
 
@@ -59,6 +60,7 @@ class Organization extends Model
         'contract_date'   => 'date',
         'payment_method'  => 'integer',
         'new_contract_date' => 'date',
+        'license_issued_at' => 'date',
         // 'tier' => 'integer', ← 削除
     ];
 

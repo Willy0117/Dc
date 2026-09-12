@@ -17,6 +17,7 @@ const props = defineProps<{
   address: OrganizationAddress
   emailRequired?: boolean
   emailError?: string
+  addressRequired?: boolean
 }>()
 
 const zipRef = toRef(props.address, 'postal_code')
@@ -41,6 +42,7 @@ useZipcode(zipRef, {
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">
           郵便番号 <span class="text-[10px] text-muted-foreground/60">postal_code</span>
+          <span v-if="addressRequired" class="text-destructive">*</span>
         </Label>
         <Input
           v-model="address.postal_code"
@@ -54,6 +56,7 @@ useZipcode(zipRef, {
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">
           都道府県 <span class="text-[10px] text-muted-foreground/60">address1</span>
+          <span v-if="addressRequired" class="text-destructive">*</span>
         </Label>
         <Select v-model="address.address1">
           <SelectTrigger><SelectValue placeholder="選択" /></SelectTrigger>
@@ -67,6 +70,7 @@ useZipcode(zipRef, {
     <div class="space-y-1">
       <Label class="text-xs text-muted-foreground">
         市区町村・番地 <span class="text-[10px] text-muted-foreground/60">address2</span>
+        <span v-if="addressRequired" class="text-destructive">*</span>
       </Label>
       <Input v-model="address.address2" placeholder="例：新宿区西新宿1-1-1" maxlength="255" />
     </div>

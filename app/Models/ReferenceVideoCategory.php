@@ -11,11 +11,13 @@ class ReferenceVideoCategory extends Model
 
     protected $fillable = [
         'name',
+        'required_tier',
         'sort_order',
     ];
 
     protected $casts = [
-        'sort_order' => 'integer',
+        'required_tier' => 'integer',
+        'sort_order'    => 'integer',
     ];
 
     public function videos(): HasMany
@@ -26,5 +28,13 @@ class ReferenceVideoCategory extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * 指定したグレード以下の先生でも視聴できるカテゴリーのみ
+     */
+    public function scopeAvailableForTier($query, int $tier)
+    {
+        return $query->where('required_tier', '<=', $tier);
     }
 }

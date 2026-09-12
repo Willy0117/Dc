@@ -20,8 +20,11 @@ class InvitationMail extends Mailable
 
     public function envelope(): Envelope
     {
+        // 変更点：件名がハードコードされており、常に特定の1病院名（テストデータ）が
+        // 表示されてしまうバグがあった。本文（emails.invitation）と同じく
+        // $this->organization->name を使って動的に組み立てるよう修正。
         return new Envelope(
-            subject: '【株式会社Alivio JAPAN / 医療法人社団祐優会N】ライセンス契約お申込みのご案内',
+            subject: '【' . config('mail.from.name') . ' / ' . $this->organization->name . '】ライセンス契約お申込みのご案内',
         );
     }
 

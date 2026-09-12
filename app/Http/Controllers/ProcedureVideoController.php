@@ -14,11 +14,26 @@ class ProcedureVideoController extends Controller
     public function __construct(private FileService $fileService) {}
 
     // ──────────────────────────────────────────
+    // ログイン中のユーザーから所属organization_idを取得
+    // 変更点：病院ログイン(type=1)はuser->organization_idに直接あるが、
+    // 先生ログイン(type=2)はuser->member->organization_idを経由する必要がある。
+    // ──────────────────────────────────────────
+    private function currentOrganizationId(Request $request): ?int
+    {
+        $user = $request->user();
+        return match ((int) $user->type) {
+            1 => $user->organization_id,
+            2 => $user->member?->organization_id,
+            default => null,
+        };
+    }
+
+    // ──────────────────────────────────────────
     // 一覧（アップロード証跡）
     // ──────────────────────────────────────────
     public function index(Request $request)
     {
-        $organizationId = $request->user()->organization_id;
+        $organizationId = $this->currentOrganizationId($request);
 
         $videos = ProcedureVideo::with('member')
             ->where('organization_id', $organizationId)
@@ -91,7 +106,7 @@ class ProcedureVideoController extends Controller
         }
 
         ProcedureVideo::create([
-            'organization_id' => $request->user()->organization_id,
+            'organization_id' => $this->currentOrganizationId($request),
             'member_id'       => $request->member_id,
             'title'           => $request->title,
             'file_path'       => $request->key,

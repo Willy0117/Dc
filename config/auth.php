@@ -103,7 +103,10 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            // 変更点：先生・病院側は実質無期限にしたい、という要望のため、
+            // Laravelには「無期限」という指定方法が無いので、
+            // 非常に大きな値（3ヶ月＝90日分の分数）を設定する。
+            'expire' => 129600,
             'throttle' => 60,
         ],
 
