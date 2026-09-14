@@ -176,7 +176,7 @@ const isMemberLogin = computed(() => authUser?.type === 2)
 const currentStep = ref(1)
 const stepLabels  = ['基本情報', '治療詳細', '備考・コメント']
 
-const ageGroups = ['10代以下', '10代', '20代', '30代', '40代', '50代', '60代', '70代', '80代', '90代以上']
+const ageGroups = ['10歳以下', '10代', '20代', '30代', '40代', '50代', '60代', '70代', '80代', '90代以上']
 // 変更点③：治療部位はハードコードをやめ、props.treatmentAreas（サーバー側で
 // グレード絞り込み済み）を使う。テンプレート内は元のまま "treatmentAreas" で参照できるよう
 // computedで橋渡しする

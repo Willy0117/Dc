@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FormOption extends Model
 {
     protected $fillable = [
+        'form_field_id',
         'treatment_area',
         'field_name',
         'label',
@@ -29,6 +30,14 @@ class FormOption extends Model
     const FIELD_PAIN_LEFT     = '左手疼痛部位';
     const FIELD_TOURNIQUET    = '駆血部位';
     const FIELD_COMPLICATION  = 'トラブル・合併症';
+
+    // ──────────────────────────────────────────
+    // リレーション
+    // ──────────────────────────────────────────
+    public function formField(): BelongsTo
+    {
+        return $this->belongsTo(FormField::class);
+    }
 
     // ──────────────────────────────────────────
     // スコープ
