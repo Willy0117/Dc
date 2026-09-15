@@ -234,6 +234,10 @@
                         <FileText class="w-3.5 h-3.5 mr-2 text-blue-600" />
                         契約書閲覧
                       </DropdownMenuItem>
+                      <DropdownMenuItem @click="openResendMailDialog(org)">
+                        <Mail class="w-3.5 h-3.5 mr-2 text-blue-600" />
+                        パスワード設定メール再送
+                      </DropdownMenuItem>
                       <!-- 「Tier変更」メニューは削除。Tier変更はMember一覧・詳細側で行う -->
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -365,6 +369,37 @@
     />
 
     <!-- Tier変更 Dialog は削除（変更点1：Tierはmember単位。TierUpgradeDialogはMember側で使用） -->
+
+    <!-- ========== PW設定メール再送 確認 Dialog（新規追加） ========== -->
+    <Teleport to="body">
+      <div v-if="resendMailDialogOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="resendMailDialogOpen = false">
+        <div class="w-full max-w-sm bg-white rounded-lg shadow-xl overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b">
+            <h2 class="font-bold text-sm">パスワード設定メール再送</h2>
+            <Button variant="ghost" size="icon" class="h-7 w-7" @click="resendMailDialogOpen = false">
+              <X class="w-4 h-4" />
+            </Button>
+          </div>
+          <div class="p-5 space-y-3 text-sm">
+            <p class="text-muted-foreground">{{ resendMailTarget?.name }}</p>
+            <div class="space-y-1">
+              <p class="text-xs text-muted-foreground">送信先メールアドレス</p>
+              <p v-if="resendMailEmail" class="font-medium">{{ resendMailEmail }}</p>
+              <p v-else class="text-destructive text-xs">
+                ログイン用のメールアドレスが登録されていません。送信できません。
+              </p>
+            </div>
+          </div>
+          <div class="px-5 py-4 border-t flex justify-end gap-2">
+            <Button variant="outline" @click="resendMailDialogOpen = false">キャンセル</Button>
+            <Button :disabled="!resendMailEmail || resendMailLoading" @click="confirmResendMail">
+              <Mail class="w-3.5 h-3.5 mr-1" />
+              {{ resendMailLoading ? '送信中...' : 'この宛先に送信' }}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </AppLayout>
 </template>
 
@@ -682,6 +717,41 @@ const issueLicense = async (org) => {
   } catch (e) {
     alert(e.response?.data?.message ?? '証書の発行に失敗しました。')
   }
+}
+
+// ──────────────────────────────────────────
+// PW設定メール再送（病院側）
+// 変更点：送信先メールアドレスが一覧からは分からないため、
+// 送信前に確認ダイアログで実際の送信先を表示してから送る。
+// ──────────────────────────────────────────
+const resendMailDialogOpen = ref(false)
+const resendMailTarget     = ref(null)
+const resendMailEmail      = ref('')
+const resendMailLoading    = ref(false)
+
+const openResendMailDialog = async (org) => {
+  resendMailTarget.value  = org
+  resendMailEmail.value   = ''
+  resendMailDialogOpen.value = true
+  try {
+    const { data } = await axios.get(route('admin.organizations.loginEmail', org.id))
+    resendMailEmail.value = data.email ?? ''
+  } catch (e) {
+    resendMailEmail.value = ''
+  }
+}
+
+const confirmResendMail = () => {
+  if (!resendMailTarget.value) return
+  resendMailLoading.value = true
+  router.post(route('admin.organizations.resendPasswordMail', resendMailTarget.value.id), {}, {
+    preserveState: true,
+    preserveScroll: true,
+    onFinish: () => {
+      resendMailLoading.value = false
+      resendMailDialogOpen.value = false
+    },
+  })
 }
 
 // ──────────────────────────────────────────

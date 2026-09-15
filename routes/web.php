@@ -106,6 +106,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('members/organizations/search', [\App\Http\Controllers\Admin\MemberController::class, 'searchOrganizations'])->name('members.organizations.search');
         Route::post('members/bulk-delete', [\App\Http\Controllers\Admin\MemberController::class, 'bulkDelete'])->name('members.bulkDelete');
         Route::patch('members/{member}/status', [\App\Http\Controllers\Admin\MemberController::class, 'updateStatus'])->name('members.updateStatus');
+        Route::post('members/{member}/upgrade-tier', [\App\Http\Controllers\Admin\MemberController::class, 'upgradeTier'])->name('members.upgradeTier');
+        Route::post('members/{member}/downgrade-tier', [\App\Http\Controllers\Admin\MemberController::class, 'downgradeTier'])->name('members.downgradeTier');
+        Route::get('members/check-name-match', [\App\Http\Controllers\Admin\MemberController::class, 'checkNameMatch'])->name('members.checkNameMatch');
+        Route::post('members/{member}/upload-document', [\App\Http\Controllers\Admin\MemberController::class, 'uploadDocument'])->name('members.uploadDocument');
+        Route::post('members/{member}/resend-password-mail', [\App\Http\Controllers\Admin\MemberController::class, 'resendPasswordSetupMail'])->name('members.resendPasswordMail');
         Route::resource('members', \App\Http\Controllers\Admin\MemberController::class);
 
         // Organizations
@@ -132,6 +137,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('organizations/invoice', [\App\Http\Controllers\Admin\OrganizationController::class, 'createInvoice'])->name('organizations.invoice');
 
         Route::post('organizations/stripe-payment', [\App\Http\Controllers\Admin\OrganizationController::class, 'createStripePayment'])->name('organizations.stripe_payment');
+        Route::post('organizations/{organization}/resend-password-mail', [\App\Http\Controllers\Admin\OrganizationController::class, 'resendPasswordSetupMail'])
+            ->name('organizations.resendPasswordMail');
+        Route::get('organizations/{organization}/login-email', [\App\Http\Controllers\Admin\OrganizationController::class, 'loginEmail'])
+            ->name('organizations.loginEmail');
+
         //        Route::resource('organizations', \App\Http\Controllers\Admin\OrganizationController::class);
         Route::get('webhook-logs/unread-count', [WebhookLogController::class, 'unreadCount'])->name('webhook_logs.unread_count');
         Route::get('webhook-logs', [WebhookLogController::class, 'index'])->name('webhook_logs.index');
@@ -243,37 +253,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->name('member-name-matches.confirm');
         Route::post('member-name-matches/{candidate}/reject', [AdminMemberNameMatchController::class, 'reject'])
             ->name('member-name-matches.reject');
-
-        Route::prefix('member')->name('member.')->group(function () {
-
-            Route::get('/', [AdminMemberController::class, 'index'])->name('index');
-                Route::get('/check-name-match', [AdminMemberController::class, 'checkNameMatch'])->name('admin.members.check-name-match');
-                Route::get('/pdf/{id}', [AdminMemberController::class, 'pdfPreview'])->name('pdf.preview');
-                Route::get('/{member}', [AdminMemberController::class, 'show'])->name('show');
-                Route::get('/{member}/edit', [AdminMemberController::class, 'edit'])->name('edit');
-                Route::put('/{member}', [AdminMemberController::class, 'update'])->name('update');
-                // routes/admin
-                Route::get('{member}/status/edit', [AdminMemberController::class, 'editStatus'])
-                    ->name('editStatus');
-                Route::post('{member}/upgrade-tier', [AdminMemberController::class, 'upgradeTier'])
-                    ->name('upgrade-tier');
-                Route::post('{member}/tier/downgrade', [AdminMemberController::class, 'downgradeTier'])
-                    ->name('tier.downgrade');
-                Route::post('{member}/downgrade-tier', [AdminMemberController::class, 'downgradeTier'])
-                    ->name('downgrade-tier');
- 
-                Route::put('{member}/status', [AdminMemberController::class, 'updateStatus'])
-                    ->name('updateStatus');
-
-                Route::get('/{member}/progress/edit', [AdminMemberController::class, 'editProgress'])
-                    ->name('editProgress');
-                Route::put('/{member}/progress', [AdminMemberController::class, 'updateProgress'])
-                    ->name('updateProgress');
-                Route::post('/{member}/upload-document', [AdminMemberController::class, 'uploadDocument'])
-                    ->name('uploadDocument');
-                
-            });
-        });
+    });
 });
 
 // 未ログインユーザー用

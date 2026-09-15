@@ -42,15 +42,15 @@ class MemberController extends Controller
             // 追加：受講済みステータス表示用に、直近のe-ラーニング招待をeager load
             ->with(['organization', 'currentTierHistory', 'latestElearningInvitation'])
             ->when($request->keyword, fn($q, $kw) => $q->search($kw))
-            ->when($request->status_id, fn($q, $s) => $q->where('status_id', $s))
+            ->when($request->status_id && $request->status_id !== 'all', fn($q) => $q->where('status_id', $request->status_id))
             ->when($request->organization_id, fn($q, $o) => $q->where('organization_id', $o))
-            ->when($request->member_type, fn($q, $t) => $q->where('member_type', $t))
-            ->when($request->tier, fn($q, $t) => $q->where('tier', $t)) // 追加：グレードで絞り込み
-            ->when($request->elearning_status, function ($q, $status) {
+            ->when($request->member_type && $request->member_type !== 'all', fn($q) => $q->where('member_type', $request->member_type))
+            ->when($request->tier && $request->tier !== 'all', fn($q) => $q->where('tier', $request->tier)) // 追加：グレードで絞り込み
+            ->when($request->elearning_status && $request->elearning_status !== 'all', function ($q) use ($request) {
                 // 追加：受講状況で絞り込み（completed / incomplete）
-                if ($status === 'completed') {
+                if ($request->elearning_status === 'completed') {
                     $q->whereHas('latestElearningInvitation', fn($sub) => $sub->whereNotNull('completed_at'));
-                } elseif ($status === 'incomplete') {
+                } elseif ($request->elearning_status === 'incomplete') {
                     $q->whereDoesntHave('latestElearningInvitation', fn($sub) => $sub->whereNotNull('completed_at'));
                 }
             })
@@ -151,7 +151,7 @@ class MemberController extends Controller
 
         return Inertia::render('Admin/Members/Show', [
             'member'  => $this->formatMember($member),
-            'filters' => $request->only(['keyword', 'status_id', 'per_page', 'sort_by', 'sort_dir', 'page']),
+            'filters' => $request->only(['keyword', 'status_id', 'organization_id', 'member_type', 'tier', 'elearning_status', 'per_page', 'sort_by', 'sort_dir', 'page']),
         ]);
     }
 
@@ -182,7 +182,7 @@ class MemberController extends Controller
             'degrees'         => $member->degrees,
             'roles'           => $member->roles,
             'committees'      => $member->committees,
-            'filters'         => $request->only(['keyword', 'status_id', 'per_page', 'sort_by', 'sort_dir']),
+            'filters'         => $request->only(['keyword', 'status_id', 'organization_id', 'member_type', 'tier', 'elearning_status', 'per_page', 'sort_by', 'sort_dir']),
         ]);
     }
 
@@ -213,6 +213,34 @@ class MemberController extends Controller
 
         return redirect()->route('admin.members.index')
             ->with('success', '会員を削除しました。');
+    }
+
+    // ──────────────────────────────────────────
+    // 簡易e-ラーニング受講完了後のPW設定メールを再送する
+    // （UserInviteService::sendMemberPasswordSetupMailIfEligible()を利用）
+    // ──────────────────────────────────────────
+    public function resendPasswordSetupMail(Member $member)
+    {
+        if (!$member->hasCompletedElearning()) {
+            return back()->withErrors([
+                'error' => 'この先生はまだ簡易e-ラーニングを受講完了していないため、送信できません。',
+            ]);
+        }
+
+        $user = $member->user;
+
+        if (!$user || !$user->email) {
+            return back()->withErrors([
+                'error' => 'この先生にはログイン用のメールアドレスが登録されていません。',
+            ]);
+        }
+
+        // 変更点：パスワード設定済みかどうかのチェックは行わない。
+        // 「一度設定したが忘れてしまった」というケースにも対応するため、
+        // 管理画面からの再送は常に新しいリンクを送る。
+        app(\App\Services\UserInviteService::class)->forceResendPasswordMail($user);
+
+        return back()->with('success', "「{$member->full_name}」にパスワード設定メールを再送しました。");
     }
 
     public function bulkDelete(Request $request)

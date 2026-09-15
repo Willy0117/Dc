@@ -121,4 +121,20 @@ class UserInviteService
         $token = Password::broker()->createToken($user);
         $user->notify(new ResetPasswordNotification($token));
     }
+
+    /**
+     * 【新設】管理画面からの手動再送専用。
+     * password_set_atの有無に関わらず、常にパスワード設定/リセットメールを送る。
+     * 「一度は設定したが忘れてしまった」というケースに対応するため、
+     * 自動送信系（sendPasswordSetupMail / sendMemberPasswordSetupMailIfEligible）
+     * とは異なり、既に設定済みかどうかのガードをかけない。
+     */
+    public function forceResendPasswordMail(User $user): void
+    {
+        $this->forceSendResetLink($user);
+
+        \Log::info('UserInviteService: 管理画面からパスワード設定メールを手動再送', [
+            'user_id' => $user->id,
+        ]);
+    }
 }

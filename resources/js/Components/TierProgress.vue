@@ -1,22 +1,21 @@
 <template>
   <div v-if="member" class="relative">
 
-    <!-- スマホ幅：簡易バッジ（タップで詳細を展開） -->
+    <!-- スマホ幅：円形アイコンのみ（タップで詳細を展開）。文字を無くし最小幅にする -->
     <button
       type="button"
-      class="sm:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold"
+      class="sm:hidden flex items-center justify-center w-7 h-7 rounded-full border"
       :class="toneClass"
       @click="expanded = !expanded"
     >
-      <TierBadge v-if="member.tier > 1" :tier="member.tier" />
-      {{ currentTierLabel }}
-      <ChevronDown class="w-3 h-3 transition-transform" :class="{ 'rotate-180': expanded }" />
+      <TierBadge v-if="member.tier > 1" :tier="member.tier" class="w-4 h-4" />
+      <span v-else class="text-[10px] font-bold">B</span>
     </button>
 
     <!-- スマホ幅：展開時の詳細（ドロップダウン形式） -->
     <div
       v-if="expanded"
-      class="sm:hidden absolute right-0 top-full mt-2 z-50 w-56 rounded-lg border bg-white shadow-lg px-3 py-2.5 text-xs space-y-1"
+      class="sm:hidden absolute right-0 top-full mt-2 z-50 w-64 max-w-[85vw] rounded-lg border bg-white shadow-lg px-3 py-2.5 text-xs space-y-1"
       :class="toneClass"
     >
       <p class="font-semibold flex items-center gap-1">
@@ -59,7 +58,6 @@
 <script setup>
 import { ref, computed } from 'vue'
 import TierBadge from '@/Components/TierBadge.vue'
-import { ChevronDown } from 'lucide-vue-next'
 
 const props = defineProps({
   member: {

@@ -111,9 +111,18 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
+            // 変更点：メール単体のunique判定ではなく、「メール＋会員番号(member_id)」の
+            // 組み合わせで重複判定する。同じメールアドレスでも、member_idが違えば
+            // 許可する仕様のため。
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                Rule::unique('users', 'email')->where(
+                    fn ($query) => $query->where('member_id', $request->member_id)
+                ),
+            ],
             'password' => 'required|string|confirmed|min:8',
-            'username' => 'required|stringt|max:20',
+            // 変更点：'stringt' は 'string' のタイプミス
+            'username' => 'required|string|max:20',
             'member_id' => 'required|integer',
         ]);
 
@@ -124,8 +133,10 @@ class UserController extends Controller
             : $currentUser->tenant_id;
 */
         $user = User::create([
-            'username' => $required->username,
-            'member_id' => $required->member_id,
+            // 変更点：$required は未定義変数（$request のタイプミス）だったため、
+            // このメソッドは呼ばれると必ず致命的エラーになっていた。
+            'username' => $request->username,
+            'member_id' => $request->member_id,
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
@@ -178,7 +189,14 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => "required|string|email|max:255|unique:users,email,{$user->id}",
+            // 変更点：store()と同様、メール＋会員番号の組み合わせで重複判定する。
+            // 自分自身（$user->id）は除外する。
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                Rule::unique('users', 'email')
+                    ->where(fn ($query) => $query->where('member_id', $request->member_id))
+                    ->ignore($user->id),
+            ],
             'password' => 'nullable|string|confirmed|min:4',
             'username' => 'required|string|max:20',
             'member_id' => 'required|integer',

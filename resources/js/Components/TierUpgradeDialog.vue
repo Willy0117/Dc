@@ -2,7 +2,7 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-sm">
       <DialogHeader>
-        <DialogTitle>グレード変更</DialogTitle>
+        <DialogTitle>Tier変更</DialogTitle>
         <DialogDescription>
           {{ member?.full_name }}
           <span v-if="member?.organization?.name" class="text-muted-foreground">
@@ -13,7 +13,7 @@
 
       <div class="space-y-3 py-2">
         <div class="flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">現在のグレード</span>
+          <span class="text-muted-foreground">現在のTier</span>
           <TierBadge :tier="member?.tier" />
         </div>
         <div class="flex items-center justify-between text-sm">
@@ -22,7 +22,7 @@
         </div>
 
         <div class="border-t pt-3 space-y-2">
-          <p class="text-xs text-muted-foreground">変更先のグレードを選択</p>
+          <p class="text-xs text-muted-foreground">変更先のTierを選択</p>
           <div class="grid grid-cols-2 gap-2">
             <Button
               v-for="t in [1, 2, 3, 4]"
@@ -39,7 +39,7 @@
 
         <p v-if="member?.doctor_group_has_others" class="text-xs text-muted-foreground pt-1">
           ※ この会員は複数病院を掛け持ち（氏名名寄せ済み）しているため、
-          紐づく全ての登録に同じグレードが反映されます。
+          紐づく全ての登録に同じTierが反映されます。
         </p>
       </div>
     </DialogContent>
@@ -81,7 +81,7 @@ const changeTier = (tier) => {
 
   loading.value = true
   router.post(
-    route('admin.members.upgrade-tier', props.member.id),
+    route('admin.members.upgradeTier', props.member.id),
     { tier },
     {
       preserveState: true,

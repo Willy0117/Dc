@@ -44,23 +44,23 @@
           キーワード: {{ form.keyword }}
           <button @click="form.keyword = ''; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
-        <Badge v-if="form.status_id" variant="secondary" class="gap-1">
+        <Badge v-if="form.status_id && form.status_id !== 'all'" variant="secondary" class="gap-1">
           状況: {{ statusLabels[form.status_id] }}
-          <button @click="form.status_id = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.status_id = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
-        <Badge v-if="form.member_type" variant="secondary" class="gap-1">
+        <Badge v-if="form.member_type && form.member_type !== 'all'" variant="secondary" class="gap-1">
           種別: {{ form.member_type }}
-          <button @click="form.member_type = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.member_type = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
         <!-- グレード絞り込みバッジ -->
-        <Badge v-if="form.tier" variant="secondary" class="gap-1">
+        <Badge v-if="form.tier && form.tier !== 'all'" variant="secondary" class="gap-1">
           グレード: {{ tierLabels[form.tier] }}
-          <button @click="form.tier = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.tier = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
         <!-- 受講状況絞り込みバッジ（追加） -->
-        <Badge v-if="form.elearning_status" variant="secondary" class="gap-1">
+        <Badge v-if="form.elearning_status && form.elearning_status !== 'all'" variant="secondary" class="gap-1">
           受講状況: {{ form.elearning_status === 'completed' ? '受講済み' : '未受講' }}
-          <button @click="form.elearning_status = ''; submitSearch()"><X class="w-3 h-3" /></button>
+          <button @click="form.elearning_status = 'all'; submitSearch()"><X class="w-3 h-3" /></button>
         </Badge>
       </div>
 
@@ -164,6 +164,17 @@
               </td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-center gap-1">
+                  <!-- PW設定メール再送ボタン（受講済みの先生のみ表示） -->
+                  <Button
+                    v-if="member.elearning_completed"
+                    variant="ghost"
+                    size="icon"
+                    class="h-7 w-7 text-blue-600"
+                    title="パスワード設定メールを再送"
+                    @click="resendPasswordMail(member)"
+                  >
+                    <Mail class="w-3.5 h-3.5" />
+                  </Button>
                   <!-- グレード変更ボタン -->
                   <Button
                     variant="ghost"
@@ -175,7 +186,7 @@
                     <TrendingUp class="w-3.5 h-3.5" />
                   </Button>
                   <Button variant="ghost" size="icon" class="h-7 w-7" as-child>
-                    <Link :href="route('admin.members.edit', { id: member.id, ...persistQuery() })">
+                    <Link :href="route('admin.members.edit', { member: member.id, ...persistQuery() })">
                       <Pencil class="w-3.5 h-3.5" />
                     </Link>
                   </Button>
@@ -205,67 +216,69 @@
     <Teleport to="body">
       <div v-if="openDrawer" class="fixed inset-0 z-40">
         <div class="absolute inset-0 bg-black/30" @click="openDrawer = false" />
-        <aside class="absolute top-0 right-0 h-full w-80 bg-background shadow-xl z-50 flex flex-col">
+        <aside class="absolute top-0 left-64 right-0 bg-background shadow-xl z-50 flex flex-col max-h-[80vh]">
           <div class="flex items-center justify-between px-5 py-4 border-b">
             <h2 class="font-bold">検索</h2>
             <Button variant="ghost" size="icon" @click="openDrawer = false">
               <X class="w-4 h-4" />
             </Button>
           </div>
-          <div class="flex-1 overflow-y-auto p-5 space-y-4">
+          <div class="overflow-y-auto p-5 space-y-4">
             <div class="space-y-1.5">
-              <Label>キーワード（氏名・かな・メール・会員番号）</Label>
+              <Label>キーワード <span class="text-xs text-muted-foreground font-normal">（氏名・かな・メール・会員番号）</span></Label>
               <Input v-model="form.keyword" placeholder="検索ワードを入力" />
             </div>
-            <div class="space-y-1.5">
-              <Label>会員状況</Label>
-              <Select v-model="form.status_id">
-                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">すべて</SelectItem>
-                  <SelectItem v-for="(label, id) in statusLabels" :key="id" :value="Number(id)">{{ label }}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div class="space-y-1.5">
-              <Label>会員種別</Label>
-              <Select v-model="form.member_type">
-                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">すべて</SelectItem>
-                  <SelectItem value="regular">正会員</SelectItem>
-                  <SelectItem value="student">学生会員</SelectItem>
-                  <SelectItem value="honorary">名誉会員</SelectItem>
-                  <SelectItem value="supporting">賛助会員</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <!-- グレード絞り込み（表記変更） -->
-            <div class="space-y-1.5">
-              <Label>グレード</Label>
-              <Select v-model="form.tier">
-                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">すべて</SelectItem>
-                  <SelectItem v-for="(label, id) in tierLabels" :key="id" :value="Number(id)">{{ label }}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <!-- 受講状況絞り込み（追加） -->
-            <div class="space-y-1.5">
-              <Label>受講状況（簡易e-ラーニング）</Label>
-              <Select v-model="form.elearning_status">
-                <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">すべて</SelectItem>
-                  <SelectItem value="completed">受講済み</SelectItem>
-                  <SelectItem value="incomplete">未受講</SelectItem>
-                </SelectContent>
-              </Select>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="space-y-1.5">
+                <Label>会員状況</Label>
+                <Select v-model="form.status_id">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem v-for="(label, id) in statusLabels" :key="id" :value="Number(id)">{{ label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-1.5">
+                <Label>会員種別</Label>
+                <Select v-model="form.member_type">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem value="regular">正会員</SelectItem>
+                    <SelectItem value="student">学生会員</SelectItem>
+                    <SelectItem value="honorary">名誉会員</SelectItem>
+                    <SelectItem value="supporting">賛助会員</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <!-- グレード絞り込み（表記変更） -->
+              <div class="space-y-1.5">
+                <Label>グレード</Label>
+                <Select v-model="form.tier">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem v-for="(label, id) in tierLabels" :key="id" :value="Number(id)">{{ label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <!-- 受講状況絞り込み（追加） -->
+              <div class="space-y-1.5">
+                <Label>受講状況</Label>
+                <Select v-model="form.elearning_status">
+                  <SelectTrigger><SelectValue placeholder="すべて" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem value="completed">受講済み</SelectItem>
+                    <SelectItem value="incomplete">未受講</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-          <div class="px-5 py-4 border-t flex gap-2">
-            <Button class="flex-1" @click="submitSearch(); openDrawer = false">
+          <div class="px-5 py-4 border-t flex gap-2 justify-end">
+            <Button size="sm" variant="outline" class="bg-[#0C447C] hover:bg-[#185FA5] text-white border-[#0C447C]" @click="submitSearch(); openDrawer = false">
               <Search class="w-3.5 h-3.5 mr-1" />検索
             </Button>
             <Button variant="outline" @click="resetSearch">リセット</Button>
@@ -309,7 +322,7 @@ import { Link, router, usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import {
-  Search, Plus, Trash2, Pencil, Eye, X, Upload, Users, TrendingUp, CheckCircle2
+  Search, Plus, Trash2, Pencil, Eye, X, Upload, Users, TrendingUp, CheckCircle2, Mail
 } from 'lucide-vue-next'
 
 import AppLayout        from '@/Layouts/Admin/AppLayout.vue'
@@ -352,18 +365,22 @@ const props = defineProps({
 // ──────────────────────────────────────────
 const form = reactive({
   keyword:         props.filters.keyword       ?? '',
-  status_id:       props.filters.status_id     ?? '',
-  member_type:     props.filters.member_type   ?? '',
+  status_id:       props.filters.status_id     || 'all',
+  member_type:     props.filters.member_type   || 'all',
   organization_id: props.filters.organization_id ?? '',
-  tier:            props.filters.tier          ?? '',
-  elearning_status: props.filters.elearning_status ?? '', // 追加
+  tier:            props.filters.tier          || 'all',
+  elearning_status: props.filters.elearning_status || 'all', // 追加
   per_page:        props.filters.per_page      ?? 20,
   sort_by:         props.filters.sort_by       ?? 'created_at',
   sort_dir:        props.filters.sort_dir      ?? 'desc',
 })
 
 const hasActiveFilters = computed(() =>
-  form.keyword || form.status_id || form.member_type || form.tier || form.elearning_status
+  form.keyword ||
+  (form.status_id && form.status_id !== 'all') ||
+  (form.member_type && form.member_type !== 'all') ||
+  (form.tier && form.tier !== 'all') ||
+  (form.elearning_status && form.elearning_status !== 'all')
 )
 
 // ──────────────────────────────────────────
@@ -410,10 +427,10 @@ const submitSearch = () => {
 
 const resetSearch = () => {
   form.keyword = ''
-  form.status_id = ''
-  form.member_type = ''
-  form.tier = ''
-  form.elearning_status = '' // 追加
+  form.status_id = 'all'
+  form.member_type = 'all'
+  form.tier = 'all'
+  form.elearning_status = 'all' // 追加
   submitSearch()
   openDrawer.value = false
 }
@@ -484,6 +501,17 @@ const tierTarget     = ref(null)
 const openTierDialog = (member) => {
   tierTarget.value     = member
   tierDialogOpen.value = true
+}
+
+// ──────────────────────────────────────────
+// PW設定メール再送
+// ──────────────────────────────────────────
+const resendPasswordMail = (member) => {
+  if (!confirm(`「${member.full_name}」にパスワード設定メールを再送しますか？`)) return
+  router.post(route('admin.members.resendPasswordMail', member.id), {}, {
+    preserveState: true,
+    preserveScroll: true,
+  })
 }
 
 // ──────────────────────────────────────────

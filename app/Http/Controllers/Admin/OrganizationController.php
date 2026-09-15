@@ -887,6 +887,43 @@ class OrganizationController extends Controller
     }
 
     // ──────────────────────────────────────────
+    // 病院側のPW設定メールを再送する
+    // password_set_atの有無に関わらず、常に新しいリンクを送信する
+    // （「一度設定したが忘れた」ケースにも対応するため）
+    // ──────────────────────────────────────────
+    public function resendPasswordSetupMail(Organization $organization)
+    {
+        $user = User::where('organization_id', $organization->id)
+            ->where('type', 1)
+            ->first();
+
+        if (!$user || !$user->email) {
+            return back()->withErrors([
+                'error' => 'この病院にはログイン用のメールアドレスが登録されていません。',
+            ]);
+        }
+
+        app(\App\Services\UserInviteService::class)->forceResendPasswordMail($user);
+
+        return back()->with('success', "「{$organization->name}」にパスワード設定メールを再送しました。");
+    }
+
+    // ──────────────────────────────────────────
+    // 病院側のログイン用メールアドレスを取得する
+    // （再送前に、送信先を確認するダイアログ表示用）
+    // ──────────────────────────────────────────
+    public function loginEmail(Organization $organization)
+    {
+        $user = User::where('organization_id', $organization->id)
+            ->where('type', 1)
+            ->first();
+
+        return response()->json([
+            'email' => $user?->email,
+        ]);
+    }
+
+    // ──────────────────────────────────────────
     // Private: 料金マスタ取得
     // ──────────────────────────────────────────
 
