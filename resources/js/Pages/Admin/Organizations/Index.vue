@@ -29,15 +29,15 @@
               <Bell class="w-3.5 h-3.5 mr-1" />
               {{ selectedIds.length }}件 リマインダー送信
             </Button>
+            <Button variant="destructive" size="sm" @click="bulkDelete">
+              <Trash2 class="w-3.5 h-3.5 mr-1" />
+              {{ selectedIds.length }}件削除
+            </Button>
             <!-- 以下将来用コメントアウト -->
             <!--
             <Button variant="outline" size="sm" @click="bulkSendInvitation">
               <Mail class="w-3.5 h-3.5 mr-1" />
               {{ selectedIds.length }}件 申込メール送信
-            </Button>
-            <Button variant="destructive" size="sm" @click="bulkDelete">
-              <Trash2 class="w-3.5 h-3.5 mr-1" />
-              {{ selectedIds.length }}件削除
             </Button>
             <Button variant="outline" size="sm" @click="openInvoiceForSelected">
               <FileText class="w-3.5 h-3.5 mr-1" />

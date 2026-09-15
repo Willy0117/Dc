@@ -15,6 +15,7 @@ use App\Models\Organization;
 use App\Models\OrganizationAddress;
 use App\Models\LicenseFeeMaster;
 use App\Models\User;
+use App\Models\Member;
 use App\Models\OrganizationContract;
 
 use App\Services\FileService;
@@ -256,12 +257,47 @@ class OrganizationController extends Controller
     // 削除
     // ──────────────────────────────────────────
 
+    // ──────────────────────────────────────────
+    // 変更点：契約先削除時、所属する先生（Member）・
+    // 病院/先生のログインアカウント（User）も一緒に完全削除する。
+    // DB側に外部キーのON DELETE CASCADEが設定されていないため、
+    // アプリ側で手動でカスケード削除する。
+    // ──────────────────────────────────────────
+    private function cascadeDeleteOrganization(Organization $organization): void
+    {
+        DB::transaction(function () use ($organization) {
+            $memberIds = Member::where('organization_id', $organization->id)->pluck('id');
+
+            // 先生のログインアカウントを削除
+            User::whereIn('member_id', $memberIds)->delete();
+            // 病院のログインアカウントを削除
+            User::where('organization_id', $organization->id)->delete();
+
+            // 先生本体を削除
+            Member::where('organization_id', $organization->id)->delete();
+
+            // 契約先本体を削除
+            $organization->delete();
+        });
+    }
+
     public function destroy(Organization $organization)
     {
-        $organization->delete();
+        try {
+            $this->cascadeDeleteOrganization($organization);
+        } catch (\Throwable $e) {
+            \Log::error('OrganizationController::destroy: 削除に失敗しました', [
+                'organization_id' => $organization->id,
+                'message'         => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'error' => '削除に失敗しました。この契約先に紐づく症例報告等のデータが残っている可能性があります。',
+            ]);
+        }
 
         return redirect()->route('admin.organizations.index')
-            ->with('success', '契約を削除しました。');
+            ->with('success', '契約先・所属する先生・ログインアカウントを削除しました。');
     }
 
     public function bulkDelete(Request $request)
@@ -271,10 +307,25 @@ class OrganizationController extends Controller
             'ids.*' => 'exists:organizations,id',
         ]);
 
-        Organization::whereIn('id', $request->ids)->delete();
+        $organizations = Organization::whereIn('id', $request->ids)->get();
+
+        try {
+            foreach ($organizations as $organization) {
+                $this->cascadeDeleteOrganization($organization);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('OrganizationController::bulkDelete: 削除に失敗しました', [
+                'ids'     => $request->ids,
+                'message' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'error' => '削除に失敗しました。紐づく症例報告等のデータが残っている契約先が含まれている可能性があります。',
+            ]);
+        }
 
         return redirect()->route('admin.organizations.index')
-            ->with('success', '選択した契約を削除しました。');
+            ->with('success', '選択した契約先・所属する先生・ログインアカウントを削除しました。');
     }
     // ──────────────────────────────────────────
     // 契約申込メール送信（1件）
