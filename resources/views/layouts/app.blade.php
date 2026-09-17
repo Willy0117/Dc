@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', '動注ライセンス講習・症例報告サイト')</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/js/app.js'])
 </head>
 <body class="bg-gradient-to-b from-sky-50 to-white text-gray-900 flex flex-col min-h-screen">
 
