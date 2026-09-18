@@ -32,7 +32,7 @@ function markViewed(notice) {
                 class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 transition-colors text-sm"
             >
                 <AlertTriangle class="w-4 h-4 text-amber-700 shrink-0" />
-                <span class="text-amber-900 font-medium">未視聴の必須動画が{{ unwatchedRequiredCount }}本あります</span>
+                <span class="text-amber-900 font-medium">未視聴の必須動画が{{ unwatchedRequiredCount }}本あります。すべてご視聴の上、「視聴済み」ボタンをクリックしてください。</span>
                 <span class="text-amber-700">動注治療の必須動画をご視聴ください</span>
                 <ChevronRight class="w-4 h-4 text-amber-700 shrink-0 ml-auto" />
             </Link>

@@ -50,8 +50,8 @@
           />
         </div>
 
-        <!-- Tenant（SuperAdminのみ） -->
-        <div v-if="isSuperAdmin" class="space-y-1.5">
+        <!-- Tenant（tenants配列が渡されている場合のみ表示） -->
+        <div v-if="canSelectTenant" class="space-y-1.5">
           <Label for="tenant_id">{{ t('tenant') }}</Label>
           <Select v-model="form.tenant_id">
             <SelectTrigger id="tenant_id">
@@ -100,7 +100,7 @@
 
 <script setup>
 import { computed, watch } from 'vue'
-import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { Link, useForm } from '@inertiajs/vue3'
 import { useI18n } from 'vue-i18n'
 import { Loader2 } from 'lucide-vue-next'
 
@@ -119,12 +119,11 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
-const { props: pageProps } = usePage()
 
-const user = pageProps.auth?.admin ?? pageProps.auth?.user
-const isSuperAdmin = computed(() =>
-  user?.roles?.some(r => ['super_admin', 'admin'].includes(r))
-)
+// 変更点：ロール名（super_admin等）ではなく、バックエンドが渡すtenants配列の有無で判定する。
+// AdminController側で「$currentUser->tenant_id が null のときだけ tenants を渡す」設計に
+// 統一したため、フロントもそれに合わせてテナント選択欄の表示可否を判断する。
+const canSelectTenant = computed(() => props.tenants.length > 0)
 
 const form = useForm({
   name:                  props.admin?.name      ?? '',
@@ -135,17 +134,20 @@ const form = useForm({
   tenant_id:             props.admin?.tenant_id ?? 'none',
 })
 
-// tenant_idに応じてroleを絞り込む(SuperAdmin以外はtenant選択自体がないので全roleのまま)
+// tenant_idに応じてroleを絞り込む
+// (テナント選択権限がない場合、rolesはバックエンド側ですでに自テナント分のみに
+//  絞られて渡ってくるため、そのまま使えばよい)
 const filteredRoles = computed(() => {
-  if (!isSuperAdmin.value) return props.roles
+  if (!canSelectTenant.value) return props.roles
 
   const tid = form.tenant_id === 'none' ? null : form.tenant_id
   return props.roles.filter(r => r.tenant_id === tid)
 })
 
-// tenant_idが変わったら、role_idが新しいtenantに属していなければリセット(SuperAdminのみ対象)
+// tenant_idが変わったら、role_idが新しいtenantに属していなければリセット
+// (テナント選択欄がある場合のみ意味を持つ処理)
 watch(() => form.tenant_id, () => {
-  if (!isSuperAdmin.value) return
+  if (!canSelectTenant.value) return
 
   const tid = form.tenant_id === 'none' ? null : form.tenant_id
   const stillValid = props.roles.some(r => r.id === form.role_id && r.tenant_id === tid)

@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Route;
+
 use Illuminate\Validation\Rules\Password;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
@@ -54,9 +56,13 @@ class FortifyServiceProvider extends ServiceProvider
         // 管理者専用のログインページを表示
         Fortify::loginView(function () {
             if (request()->is('admin/login')) {
-                return Inertia::render('Admin/Login'); // コピーしたVue
+                return Inertia::render('Admin/Login');
             }
-            return Inertia::render('Auth/Login');
+
+            return Inertia::render('Auth/Login', [
+                'canResetPassword' => Route::has('password.request'),
+                'status' => request()->session()->get('status'),
+            ]);
         });
 
         RateLimiter::for('login', function (Request $request) {

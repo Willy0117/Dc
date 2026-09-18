@@ -4,14 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', '動注ライセンス講習・症例報告サイト')</title>
+    <title>@yield('title', '動注ライセンス講習サイト')</title>
     @vite(['resources/js/app.js'])
 </head>
 <body class="bg-gradient-to-b from-sky-50 to-white text-gray-900 flex flex-col min-h-screen">
 
     <header class="bg-white border-b border-gray-200">
         <div class="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
-            <span class="text-sm md:text-base font-bold text-sky-900">動注ライセンス講習・症例報告サイト</span>
+            <span class="text-sm md:text-base font-bold text-sky-900">動注ライセンス講習サイト</span>
         </div>
     </header>
 

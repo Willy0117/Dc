@@ -19,9 +19,24 @@ class NewPasswordController extends Controller
 {
     public function create(Request $request): Response
     {
+        $username = $request->username;
+        $token = $request->route('token');
+
+        $user = User::where('username', $username)->first();
+
+        // ユーザーが存在しない、またはトークンが無効(期限切れ・使用済み含む)ならエラー扱いにする
+        if (!$user || !Password::broker('users')->getRepository()->exists($user, $token)) {
+            return Inertia::render('Auth/ResetPassword', [
+                'username'    => $username,
+                'token'       => $token,
+                'tokenInvalid' => true,
+            ]);
+        }
+
         return Inertia::render('Auth/ResetPassword', [
-            'username' => $request->username,
-            'token'    => $request->route('token'),
+            'username'     => $username,
+            'token'        => $token,
+            'tokenInvalid' => false,
         ]);
     }
 

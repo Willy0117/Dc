@@ -25,12 +25,10 @@ class AdminController extends Controller
         $currentUser = auth('admin')->user();
 
         $query = Admin::with(['roles']);
-
-        // テナント絞り込み（super_admin / Admin は全件）
-        if (! $currentUser->hasRole(['super_admin', 'admin'])) {
+        // テナント絞り込み：自身がテナントに所属していなければ全件、所属していれば自テナントのみ
+        if ($currentUser->tenant_id) {
             $query->where('tenant_id', $currentUser->tenant_id);
         }
-
         // 検索条件
         if ($name = $request->input('name')) {
             $query->where('name', 'like', "%{$name}%");
@@ -85,9 +83,9 @@ class AdminController extends Controller
     {
         $currentUser = auth('admin')->user();
 
-        $roles = $currentUser->hasRole('super_admin')
-            ? Role::all()
-            : Role::where('tenant_id', $currentUser->tenant_id)->get();
+        $roles = $currentUser->tenant_id
+            ? Role::where('tenant_id', $currentUser->tenant_id)->get()
+            : Role::all();
 
         $tenants = Tenant::all()->keyBy('id');
 
@@ -98,9 +96,9 @@ class AdminController extends Controller
             return $role;
         });
 
-        $availableTenants = $currentUser->hasRole('super_admin')
-            ? Tenant::all()
-            : [];
+        $availableTenants = $currentUser->tenant_id
+            ? []
+            : Tenant::all();
 
         return Inertia::render('Admin/Admins/Edit', [
             'admin' => null,
@@ -149,9 +147,9 @@ class AdminController extends Controller
 
         $rolesQuery = Role::where('guard_name', 'admin');
 
-        $roles = $currentUser->hasRole('super_admin', 'admin')
-            ? $rolesQuery->get()
-            : $rolesQuery->where('tenant_id', $currentUser->tenant_id)->get();
+        $roles = $currentUser->tenant_id
+            ? $rolesQuery->where('tenant_id', $currentUser->tenant_id)->get()
+            : $rolesQuery->get();
 
         $tenants = Tenant::all()->keyBy('id');
 
@@ -162,9 +160,9 @@ class AdminController extends Controller
             return $role;
         });
 
-        $availableTenants = $currentUser->hasRole('super_admin', 'admin')
-            ? Tenant::all()
-            : [];
+        $availableTenants = $currentUser->tenant_id
+            ? []
+            : Tenant::all();
 
         return Inertia::render('Admin/Admins/Edit', [
             'admin' => $admin,
