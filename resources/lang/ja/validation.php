@@ -4,6 +4,14 @@ return [
 
     'required' => ':attribute が未入力または形式が間違っています。',
     'required_if' => ':attribute が未入力またはファイルが選択されていません。',
+    
+    'password' => [
+        'letters' => ':attributeは半角英字を1文字以上含めてください。',
+        'mixed' => ':attributeは半角英大文字・小文字を両方含めてください。',
+        'numbers' => ':attributeは半角数字を1文字以上含めてください。',
+        'symbols' => ':attributeは記号を1文字以上含めてください。',
+        'uncompromised' => 'この:attributeは過去の情報漏洩リストに含まれているため使用できません。別の:attributeを指定してください。',
+    ],
 
     'attributes' => [
         'corp_name'     => '法人名',

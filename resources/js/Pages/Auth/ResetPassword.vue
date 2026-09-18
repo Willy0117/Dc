@@ -57,7 +57,7 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel for="password" value="新しいパスワード" />
                 <p class="text-xs text-gray-500 mt-1 mb-1">
-                    ※ パスワードは8文字以上でご設定ください。
+                    ※ パスワードは8文字以上、半角英大文字・小文字・数字をすべて含めてご設定ください。
                 </p>
                 <TextInput
                     id="password"
