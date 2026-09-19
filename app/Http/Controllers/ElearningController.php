@@ -34,8 +34,15 @@ class ElearningController extends Controller
         $recentAttempts = ElearningAttempt::where('member_id', $member->id)
             ->inPeriod($periodKey)
             ->orderByDesc('id')
-            ->get(['id', 'correct_count', 'total_questions', 'is_passed', 'submitted_at']);
-
+            ->get(['id', 'correct_count', 'total_questions', 'is_passed', 'submitted_at'])
+            ->map(fn($a) => [
+                'id'              => $a->id,
+                'correct_count'   => $a->correct_count,
+                'total_questions' => $a->total_questions,
+                'is_passed'       => $a->is_passed,
+                'submitted_at'    => $a->submitted_at?->format('Y-m-d H:i'),
+            ]);
+            
         return Inertia::render('Elearning/Index', [
             'isEligible'     => true,
             'isPassed'       => $isPassed,

@@ -196,6 +196,14 @@ class MemberController extends Controller
 
         DB::transaction(function () use ($member, $validated) {
             $member->update($validated['member']);
+
+            // ログイン用Userのメールアドレスも同期
+            if ($member->user && !empty($validated['member']['email'])) {
+                $member->user->update([
+                    'email' => $validated['member']['email'],
+                ]);
+            }
+
             $this->syncRelatedData($member, $validated);
         });
 
