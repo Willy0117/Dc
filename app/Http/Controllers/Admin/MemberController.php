@@ -190,26 +190,35 @@ class MemberController extends Controller
     // 更新
     // ──────────────────────────────────────────
 
-    public function update(Request $request, Member $member)
-    {
-        $validated = $this->validateMember($request, $member->id);
+        public function update(Request $request, Member $member)
+        {
+            try {
+                $validated = $this->validateMember($request, $member->id);
 
-        DB::transaction(function () use ($member, $validated) {
-            $member->update($validated['member']);
+                DB::transaction(function () use ($member, $validated) {
+                    $member->update($validated['member']);
 
-            // ログイン用Userのメールアドレスも同期
-            if ($member->user && !empty($validated['member']['email'])) {
-                $member->user->update([
-                    'email' => $validated['member']['email'],
-                ]);
+                    // ログイン用Userのメールアドレスも同期
+                    if ($member->user && !empty($validated['member']['email'])) {
+                        $member->user->update([
+                            'email' => $validated['member']['email'],
+                        ]);
+                    }
+
+                    $this->syncRelatedData($member, $validated);
+                });
+
+                return redirect()->route('admin.members.index')
+                    ->with('success', '会員情報を更新しました。');
+
+            } catch (\Throwable $e) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'error' => $e->getMessage(),
+                    ]);
             }
-
-            $this->syncRelatedData($member, $validated);
-        });
-
-        return redirect()->route('admin.members.index')
-            ->with('success', '会員情報を更新しました。');
-    }
+        }
 
     // ──────────────────────────────────────────
     // 削除
