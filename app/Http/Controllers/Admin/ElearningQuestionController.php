@@ -68,14 +68,19 @@ class ElearningQuestionController extends Controller
     private function validateQuestion(Request $request): array
     {
         return $request->validate([
-            // 追加：'main'(本試験) or 'simple'(契約前簡易テスト)
             'category'       => 'required|in:main,simple',
             'question'       => 'required|string|max:1000',
             'choice_a'       => 'required|string|max:255',
             'choice_b'       => 'required|string|max:255',
             'choice_c'       => 'required|string|max:255',
             'choice_d'       => 'required|string|max:255',
-            'correct_answer' => 'required|in:A,B,C,D',
+            'correct_answer' => [
+                'required',
+                'string',
+                $request->input('category') === 'simple'
+                    ? 'in:A,B,C,D'
+                    : 'regex:/^[ABCD](,[ABCD]){0,3}$/',
+            ],
             'explanation'    => 'nullable|string|max:2000',
             'is_active'      => 'boolean',
         ]);
