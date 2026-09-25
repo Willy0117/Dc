@@ -43,10 +43,10 @@ class Member extends Model
     const TIER_MASTER   = 4;
 
     const TIER_LABELS = [
-        self::TIER_BASIC   => 'ベーシック',
-        self::TIER_ADVANCE => 'アドバンス',
-        self::TIER_EXPERT  => 'エキスパート',
-        self::TIER_MASTER  => 'マスター',
+        self::TIER_BASIC   => 'ベーシック（グレード4）',
+        self::TIER_ADVANCE => 'アドバンス（グレード3）',
+        self::TIER_EXPERT  => 'エキスパート（グレード2）',
+        self::TIER_MASTER  => 'マスター（グレード1）',
     ];
 
     // ──────────────────────────────────────────
@@ -263,13 +263,12 @@ class Member extends Model
     {
         return self::GENDER_LABELS[$this->gender] ?? '';
     }
-
-    /**
-     * Tierラベル（変更点1：Organizationから移動）
+   /**
+     * グレードラベル（例：マスター（グレード1））
      */
     public function getTierLabelAttribute(): string
     {
-        return self::TIER_LABELS[$this->tier] ?? 'ベーシック';
+        return self::TIER_LABELS[$this->tier] ?? self::TIER_LABELS[self::TIER_BASIC];
     }
 
     // ──────────────────────────────────────────

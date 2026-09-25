@@ -2,7 +2,7 @@
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="max-w-sm">
       <DialogHeader>
-        <DialogTitle>Tier変更</DialogTitle>
+        <DialogTitle>グレード変更</DialogTitle>
         <DialogDescription>
           {{ member?.full_name }}
           <span v-if="member?.organization?.name" class="text-muted-foreground">
@@ -13,7 +13,7 @@
 
       <div class="space-y-3 py-2">
         <div class="flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">現在のTier</span>
+          <span class="text-muted-foreground">現在のグレード</span>
           <TierBadge :tier="member?.tier" />
         </div>
         <div class="flex items-center justify-between text-sm">
@@ -22,24 +22,25 @@
         </div>
 
         <div class="border-t pt-3 space-y-2">
-          <p class="text-xs text-muted-foreground">変更先のTierを選択</p>
+          <p class="text-xs text-muted-foreground">変更先のグレードを選択</p>
           <div class="grid grid-cols-2 gap-2">
+            <!-- グレード1（マスター）から順に表示するため、DB値は 4→1 の順で並べる -->
             <Button
-              v-for="t in [1, 2, 3, 4]"
+              v-for="t in [4, 3, 2, 1]"
               :key="t"
               variant="outline"
               :class="member?.tier === t ? 'border-primary bg-primary/10 font-semibold' : ''"
               :disabled="loading || member?.tier === t"
               @click="changeTier(t)"
             >
-              {{ tierLabels[t] }}（Tier{{ t }}）
+              {{ tierLabels[t] }}
             </Button>
           </div>
         </div>
 
         <p v-if="member?.doctor_group_has_others" class="text-xs text-muted-foreground pt-1">
           ※ この会員は複数病院を掛け持ち（氏名名寄せ済み）しているため、
-          紐づく全ての登録に同じTierが反映されます。
+          紐づく全ての登録に同じグレードが反映されます。
         </p>
       </div>
     </DialogContent>
@@ -68,7 +69,15 @@ const emit = defineEmits(['update:open', 'done'])
 
 const loading = ref(false)
 
-const tierLabels = { 1: 'ベーシック', 2: 'アドバンス', 3: 'エキスパート', 4: 'マスター' }
+// キーはDB上のtier値（1=ベーシック〜4=マスター）。
+// 表示のグレード番号はDB値と逆順（マスター=グレード1）。
+// Member.php の TIER_LABELS と同じ表記に揃えている。
+const tierLabels = {
+  1: 'ベーシック（グレード4）',
+  2: 'アドバンス（グレード3）',
+  3: 'エキスパート（グレード2）',
+  4: 'マスター（グレード1）',
+}
 
 // 通算症例報告数(バックエンドから渡される想定。無ければ今期のみの値にフォールバック)
 // 変更点8：doctor_group単位の合算件数が total_case_count に入る想定
@@ -77,7 +86,7 @@ const totalCaseCount = computed(() =>
 )
 
 const changeTier = (tier) => {
-  if (!confirm(`${props.member.full_name} を ${tierLabels[tier]}（Tier${tier}）に変更しますか？`)) return
+  if (!confirm(`${props.member.full_name} を ${tierLabels[tier]} に変更しますか？`)) return
 
   loading.value = true
   router.post(
