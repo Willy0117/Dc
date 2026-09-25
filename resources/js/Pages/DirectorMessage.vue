@@ -14,7 +14,7 @@
         </div>
 
         <section class="space-y-3">
-          <h3 class="text-lg font-bold text-primary">3年間の歩み</h3>
+          <h3 class="text-lg font-bold text-primary">4年間の歩み</h3>
           <p>
             動注治療のライセンス制度を開始してから、4年が経過しました。2026年8月現在までに、全国189のクリニック・病院・大学病院で動注治療が導入されています。
           </p>
