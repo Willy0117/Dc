@@ -37,7 +37,7 @@ class OrganizationController extends Controller
 
         // 'tier' を削除（変更点1：Tierはmemberに移動したため、organization一覧の
         // ソート対象から除外。先生ごとのTierはMember一覧側で確認する）
-        $allowedSorts = ['id', 'name', 'contract_no', 'contract_status', 'contract_date', 'tel', 'payment_method'];
+        $allowedSorts = ['id', 'name', 'abbr', 'contract_no', 'contract_status', 'contract_date', 'tel', 'payment_method'];
         if (!in_array($sortBy, $allowedSorts)) $sortBy = 'contract_date';
 
         $organizations = Organization::query()

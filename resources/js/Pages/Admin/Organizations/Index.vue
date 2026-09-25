@@ -107,6 +107,10 @@
                 組織名
                 <SortIcon field="name" :current="form.sort_by" :dir="form.sort_dir" />
               </th>
+              <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer hover:text-foreground transition-colors" @click="sortBy('abbr')">
+                略称
+                <SortIcon field="abbr" :current="form.sort_by" :dir="form.sort_dir" />
+              </th>
               <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 所在地
               </th>
@@ -134,7 +138,7 @@
           </thead>
           <tbody>
             <tr v-if="organizations.data.length === 0">
-              <td colspan="8" class="px-3 py-12 text-center text-muted-foreground">
+              <td colspan="10" class="px-3 py-12 text-center text-muted-foreground">
                 <Building2 class="w-8 h-8 mx-auto mb-2 opacity-30" />
                 契約先が見つかりません
               </td>
@@ -163,6 +167,9 @@
                    class="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5">
                   <ExternalLink class="w-3 h-3" />{{ org.url }}
                 </a>
+              </td>
+              <td class="px-3 py-2.5 text-sm">
+                {{ org.abbr || '-' }}
               </td>
               <td class="px-3 py-2.5 text-sm text-muted-foreground">
                 <template v-if="org.location_address">
