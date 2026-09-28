@@ -34,14 +34,33 @@
           />
         </div>
 
-        <!-- 契約日 -->
-        <div class="space-y-1.5">
+        <!-- 契約日（新規契約のみ） -->
+        <div v-if="!form.needs_agreement" class="space-y-1.5">
           <Label for="invitation-contract-date">契約日 <span class="text-destructive">*</span></Label>
           <Input
             id="invitation-contract-date"
             v-model="form.contract_date"
             type="date"
           />
+        </div>
+
+        <!-- 当初契約日（再契約のみ）：合意書に「旧契約」の日付として印字される -->
+        <div v-else class="space-y-1.5">
+          <Label for="invitation-license-issued-at">
+            当初契約日（旧契約） <span class="text-destructive">*</span>
+          </Label>
+          <Input
+            id="invitation-license-issued-at"
+            v-model="form.license_issued_at"
+            type="date"
+            :disabled="hasLicenseIssuedAt"
+          />
+          <p v-if="hasLicenseIssuedAt" class="text-xs text-muted-foreground">
+            合意書に旧契約の日付として印字されます。変更は契約先の編集画面から行ってください。
+          </p>
+          <p v-else class="text-xs text-amber-600">
+            未登録です。最初に契約した日を入力してください。合意書に旧契約の日付として印字されます。
+          </p>
         </div>
 
         <!-- 新契約日 -->
@@ -52,7 +71,11 @@
             v-model="form.new_contract_date"
             type="date"
           />
-          <p class="text-xs text-muted-foreground">次回更新日（通常は契約日の1年後）</p>
+          <p class="text-xs text-muted-foreground">
+            {{ form.needs_agreement
+              ? '今回の再契約の開始日です（契約書・合意書の署名日として印字されます）'
+              : '新規契約の場合は契約日と同じ日付にしてください' }}
+          </p>
         </div>
 
         <!-- 契約種別 -->
@@ -97,7 +120,7 @@
         <Button variant="outline" @click="$emit('update:open', false)" :disabled="loading">
           キャンセル
         </Button>
-        <Button variant="default" @click="submit" :disabled="loading || !form.email || !form.contract_date">
+        <Button variant="default" @click="submit" :disabled="loading || !canSubmit">
           <Loader2 v-if="loading" class="w-4 h-4 mr-1.5 animate-spin" />
           <Mail v-else class="w-4 h-4 mr-1.5" />
           申込メールを送信
@@ -108,7 +131,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import dayjs from 'dayjs'
@@ -144,7 +167,18 @@ const form = reactive({
   contract_date:     dayjs().format('YYYY-MM-DD'),
   new_contract_date: dayjs().format('YYYY-MM-DD'),
   needs_agreement:   false,
+  license_issued_at: '', // 再契約時の当初契約日
 })
+
+// 当初契約日が登録済みか（登録済みならダイアログでは変更させない）
+const hasLicenseIssuedAt = computed(() => !!props.organization?.license_issued_at)
+
+// 送信可否：新規は契約日、再契約は当初契約日が必須
+const canSubmit = computed(() =>
+  !!form.email &&
+  !!form.new_contract_date &&
+  (form.needs_agreement ? !!form.license_issued_at : !!form.contract_date)
+)
 
 // 変更点：新規/再契約の切り替え（ボタンクリック時・ダイアログを開いた時の
 // 自動判定時、どちらからも呼ぶ共通関数）。
@@ -167,6 +201,10 @@ function selectRenewal() {
   form.new_contract_date = props.organization?.new_contract_date
     ? dayjs(props.organization.new_contract_date).format('YYYY-MM-DD')
     : dayjs(form.contract_date).add(1, 'year').format('YYYY-MM-DD')
+  // 当初契約日：登録済みならその値、未登録なら空（入力してもらう）
+  form.license_issued_at = props.organization?.license_issued_at
+    ? dayjs(props.organization.license_issued_at).format('YYYY-MM-DD')
+    : ''
 }
 
 // fee APIからメールアドレスを取得
@@ -202,7 +240,7 @@ watch(() => props.open, (isOpen) => {
 })
 
 const submit = () => {
-  if (!form.email || !form.contract_date) return
+  if (!canSubmit.value) return
 
   loading.value      = true
   errorMessage.value = ''
@@ -214,6 +252,10 @@ const submit = () => {
       contract_date:     form.contract_date,
       new_contract_date: form.new_contract_date,
       needs_agreement:   form.needs_agreement,
+      // 再契約で当初契約日が未登録の場合のみ送る（登録済みの値は上書きしない）
+      license_issued_at: form.needs_agreement && !hasLicenseIssuedAt.value
+        ? form.license_issued_at
+        : null,
     },
     {
       preserveState: true,

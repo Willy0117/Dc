@@ -145,9 +145,11 @@ class PdfService
         $tpl = $pdf->importPage(1);
         $pdf->useTemplate($tpl);
  
-        // 合意日（contract_dateを使用）
-        $contractDate = $organization->contract_date
-            ? Carbon::parse($organization->contract_date)->format('Y年n月j日')
+        // 旧契約の契約日（当初契約日 = license_issued_at を使用）
+        // license_issued_at が未設定の場合は、現在のサイクル開始日 contract_date で代用
+        $originalContractDate = $organization->license_issued_at ?? $organization->contract_date;
+        $contractDate = $originalContractDate
+            ? Carbon::parse($originalContractDate)->format('Y年n月j日')
             : now()->format('Y年n月j日');
 
         $text = '医療法人社団祐優会（以下「甲」という。）、' . $organization->name 

@@ -337,6 +337,7 @@ class OrganizationController extends Controller
             'contract_date'     => 'required|date',
             'new_contract_date' => 'required|date',
             'needs_agreement'   => 'boolean',
+            'license_issued_at' => 'nullable|date', // 再契約時：当初契約日（未登録の組織のみ入力される）
         ]);
 
         // 【撤廃済み】変更点4の「未受講の先生がいると契約申込メールを送信できない」
@@ -352,10 +353,28 @@ class OrganizationController extends Controller
             ]);
         }
 
+        // 再契約（合意書あり）の場合、合意書に「旧契約」の日付として当初契約日
+        // （license_issued_at）を印字する。
+        // ・登録済みの組織：既存値をそのまま使う（ダイアログからは変更させない）
+        // ・未登録の組織　：ダイアログで入力された値を保存する。未入力ならブロック。
         if ($request->boolean('needs_agreement')) {
             $updates = [
                 'new_contract_date' => $request->new_contract_date,
             ];
+
+            if (!$organization->license_issued_at) {
+                if (!$request->license_issued_at) {
+                    return back()->withErrors([
+                        'license_issued_at' => '再契約の場合は、当初契約日（最初に契約した日）を入力してください。',
+                    ]);
+                }
+                if ($request->license_issued_at >= $request->new_contract_date) {
+                    return back()->withErrors([
+                        'license_issued_at' => '当初契約日は新契約日より前の日付にしてください。',
+                    ]);
+                }
+                $updates['license_issued_at'] = $request->license_issued_at;
+            }
         } else {
             $updates = [
                 'contract_date'     => $request->contract_date,
@@ -368,7 +387,8 @@ class OrganizationController extends Controller
         // contract_date・new_contract_date・license_issued_atの3つが
         // 同じ日付で揃うことになる。既に値が入っている（＝再契約）場合は
         // 変更しない。
-        if (!$organization->license_issued_at) {
+        // ※再契約の場合は上で処理済みのため、新規契約のときだけ実行する。
+        if (!$request->boolean('needs_agreement') && !$organization->license_issued_at) {
             $updates['license_issued_at'] = $request->new_contract_date;
         }
 
@@ -679,6 +699,7 @@ class OrganizationController extends Controller
             'organization.url'             => 'nullable|url|max:255',
             'organization.contract_status' => 'required|integer|in:0,1,2,3,4,5',
             'organization.contract_date'   => 'nullable|date',
+            'organization.license_issued_at' => 'nullable|date', // 当初契約日（合意書の「旧契約」の日付）
             'organization.payment_method'  => 'nullable|integer|in:1,2',
             'organization.rep_position'    => 'nullable|string|max:50',
             'organization.rep_last_name'   => 'required|string|max:100',
@@ -888,6 +909,8 @@ class OrganizationController extends Controller
 
             'contract_status'  => $organization->contract_status,
             'contract_date'    => $organization->contract_date?->format('Y-m-d'),
+            'new_contract_date' => $organization->new_contract_date?->format('Y-m-d'),
+            'license_issued_at' => $organization->license_issued_at?->format('Y-m-d'), // 当初契約日
             'status_label'     => $organization->contract_status_label,
             'billable'         => $organization->billable,
             'location_address' => $locationAddress,
