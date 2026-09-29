@@ -250,7 +250,35 @@ class OrganizationController extends Controller
             $organization->update($validated['organization']);
             $this->syncAddresses($organization, $validated);
             $this->syncMembers($organization, $validated);
+
+            // 病院側MyPageユーザー：無ければ作成、あれば名前とメールを同期。
+            // 旧データ（住所・メール未登録のまま作られた契約先など）で病院ユーザーが
+            // 存在しない場合、編集画面で保存し直すだけで補完されるようにする。
+            // ※パスワードは既存ユーザーの場合は変更しない。
+            $user = User::firstOrNew([
+                'organization_id' => $organization->id,
+                'type'            => 1, // 1:病院(organization)
+            ]);
+
+            if (!$user->exists) {
+                $user->fill([
+                    'tenant_id' => 1,
+                    'username'  => $organization->code,
+                    'password'  => Hash::make(Str::random(32)),
+                    'status'    => 1,
+                ]);
+                \Log::info('契約先更新: 病院ユーザーが存在しないため作成しました', [
+                    'organization_id' => $organization->id,
+                ]);
+            }
+
+            $user->fill([
+                'name'  => $organization->name,
+                'email' => $validated['location_address']['email'] ?? $user->email,
+            ])->save();
         });
+
+        return redirect()->back()->with('success', '契約先を更新しました。');
     }
 
     // ──────────────────────────────────────────
