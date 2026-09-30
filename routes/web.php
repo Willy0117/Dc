@@ -81,7 +81,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/logout', [\App\Http\Controllers\Admin\AuthController::class, 'logout'])
             ->name('logout');
 
-        Route::get('/dashboard', fn () => inertia('Admin/Dashboard'))
+        // routes/web.php:84
+        Route::get('/dashboard', fn () => redirect()->route('admin.notices.index'))
             ->name('dashboard');
         
         Route::resource('notices', \App\Http\Controllers\Admin\NoticeController::class);
