@@ -82,8 +82,12 @@ export function useMemberForm(props: MemberEditProps) {
     (form.member.email ?? '').trim() !== ''
   )
 
+  // 自宅 → 送付先へコピー
+  // id・type など識別用の項目まで上書きすると、保存時に自宅のレコードを
+  // 上書きしてしまう恐れがあるため、住所の項目だけをコピーする。
   function copyHomeToShipping() {
-    Object.assign(form.shipping_address, { ...form.home_address })
+    const { postal_code, address1, address2, address3, tel, fax } = form.home_address
+    Object.assign(form.shipping_address, { postal_code, address1, address2, address3, tel, fax })
   }
 
   // degrees

@@ -120,15 +120,22 @@ console.log('form.organization:', form.organization)
   }
 
   // 所在地 → 郵送先 or 請求先 へコピー
+  // id・type など識別用の項目まで上書きすると、保存時に所在地のレコードを
+  // 上書きしてしまう恐れがあるため、住所の項目だけをコピーする。
   function copyOrgAddress(to: 'shipping_address' | 'billing_address') {
-    Object.assign(form[to], { ...form.location_address })
+    const { name, postal_code, address1, address2, address3, tel, fax, email } = form.location_address
+    Object.assign(form[to], { name, postal_code, address1, address2, address3, tel, fax, email })
   }
 
   function copyMemberAddress(memberIndex: number, from: MemberAddressType, to: MemberAddressType) {
     const m = form.members[memberIndex]
     const src = m.addresses.find(a => a.type === from)
     const dst = m.addresses.find(a => a.type === to)
-    if (src && dst) Object.assign(dst, { ...src, type: to })
+    // id・type など識別用の項目はコピーしない（保存時に自宅のレコードを上書きしないように）
+    if (src && dst) {
+      const { postal_code, address1, address2, address3, tel, fax } = src
+      Object.assign(dst, { postal_code, address1, address2, address3, tel, fax })
+    }
   }
 
   return { form, isValid, addMember, removeMember, copyOrgAddress, copyMemberAddress }

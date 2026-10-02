@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { toast } from 'vue-sonner'
 import {
   Building2, FileText, MapPin, Stethoscope, Plus, Check, ArrowLeft,
 } from 'lucide-vue-next'
@@ -17,9 +18,7 @@ import {
 } from '@/composables/useOrganizationForm'
 import type { OrganizationEditProps, OrganizationFormData } from '@/types'
 
-console.log('OrganizationForm setup start')
 const props = defineProps<OrganizationEditProps>()
-console.log('OrganizationForm props:', props)
 
 const emit = defineEmits<{
   (e: 'submit', data: OrganizationFormData): void

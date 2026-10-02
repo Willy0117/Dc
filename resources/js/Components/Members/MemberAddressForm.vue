@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, toRef } from 'vue'
+import { ref, toRef, type Ref } from 'vue'
 import { Copy } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,9 +34,26 @@ function addressOf(type: MemberAddressType) {
   return props.addresses.find(a => a.type === type)!
 }
 
+// 郵便番号検索は「人が郵便番号欄に入力したとき」だけ動かす。
+// postal_code を直接監視させると「自宅からコピー」でも検索が走り、
+// コピーした住所が検索結果で上書きされてしまうため、
+// 入力イベントでだけ更新する専用の ref を useZipcode に渡す。
+const zipInputs: Record<MemberAddressType, Ref<string | null>> = {
+  1: ref<string | null>(null),
+  2: ref<string | null>(null),
+}
+
+function onZipInput(type: MemberAddressType, event: Event) {
+  const value = (event.target as HTMLInputElement).value
+    .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+    .replace(/[－ー−‐]/g, '-')
+  addressOf(type).postal_code = value
+  zipInputs[type].value = value
+}
+
 // 自宅の郵便番号連動
 const home = addressOf(1)
-useZipcode(toRef(home, 'postal_code'), {
+useZipcode(zipInputs[1], {
   prefecture: toRef(home, 'address1'),
   address1:   toRef(home, 'address2'),
   address2:   toRef(home, 'address3'),
@@ -44,7 +61,7 @@ useZipcode(toRef(home, 'postal_code'), {
 
 // 送付先の郵便番号連動
 const shipping = addressOf(2)
-useZipcode(toRef(shipping, 'postal_code'), {
+useZipcode(zipInputs[2], {
   prefecture: toRef(shipping, 'address1'),
   address1:   toRef(shipping, 'address2'),
   address2:   toRef(shipping, 'address3'),
@@ -94,6 +111,7 @@ useZipcode(toRef(shipping, 'postal_code'), {
               v-model="addressOf(tab.type).postal_code"
               placeholder="000-0000"
               maxlength="20"
+              @input="onZipInput(tab.type, $event)"
             />
           </div>
           <div class="space-y-1">

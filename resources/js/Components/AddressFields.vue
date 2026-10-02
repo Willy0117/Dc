@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { toRef } from 'vue'
+import { ref, toRef } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -20,9 +20,22 @@ const props = defineProps<{
   addressRequired?: boolean
 }>()
 
-const zipRef = toRef(props.address, 'postal_code')
+// 郵便番号検索は「人が郵便番号欄に入力したとき」だけ動かす。
+// address.postal_code を直接監視させると、「所在地からコピー」などで
+// プログラムから値が変わったときにも検索が走り、コピーした住所が
+// 検索結果で上書きされてしまうため、入力イベントでだけ更新する
+// 専用の ref を useZipcode に渡す。
+const zipInput = ref<string | null>(null)
 
-useZipcode(zipRef, {
+function onZipInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+    .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+    .replace(/[－ー−‐]/g, '-')
+  props.address.postal_code = value
+  zipInput.value = value
+}
+
+useZipcode(zipInput, {
   prefecture: toRef(props.address, 'address1'),
   address1:   toRef(props.address, 'address2'),
   address2:   toRef(props.address, 'address3'),
@@ -48,9 +61,7 @@ useZipcode(zipRef, {
           v-model="address.postal_code"
           placeholder="000-0000"
           maxlength="20"
-          @input="address.postal_code = ($event.target as HTMLInputElement).value
-            .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-            .replace(/[－ー−‐]/g, '-')"
+          @input="onZipInput"
         />
       </div>
       <div class="space-y-1">
