@@ -70,6 +70,7 @@ class HandleInertiaRequests extends Middleware
                                     'tier'                  => $member->tier,
                                     'tier_label'            => $member->tier_label,
                                     'current_tier_history'  => $member->currentTierHistory,
+                                    'total_case_count'      => $member->getTotalCaseCountForDoctorGroup(),
                                 ];
                             })()
                             : null,
