@@ -37,6 +37,8 @@ class Member extends Model
     ];
 
     // Tier定数（変更点1：Organizationから移動）
+    // ※DB値（1〜4）は自動昇格の大小比較に使っているため変更しない。
+    //   画面表示のグレード番号は DB値と逆順（マスター=グレード1）。
     const TIER_BASIC    = 1;
     const TIER_ADVANCE  = 2;
     const TIER_EXPERT   = 3;
@@ -263,7 +265,8 @@ class Member extends Model
     {
         return self::GENDER_LABELS[$this->gender] ?? '';
     }
-   /**
+
+    /**
      * グレードラベル（例：マスター（グレード1））
      */
     public function getTierLabelAttribute(): string
@@ -319,12 +322,27 @@ class Member extends Model
     // ──────────────────────────────────────────
 
     /**
+     * 同じ先生グループ（名寄せ済みの同一医師）に属する member_id の一覧。
+     *
+     * 【重要】doctor_group_id が NULL（未名寄せ）の場合は自分自身のみを返す。
+     * Laravel の where('doctor_group_id', null) は「IS NULL」になるため、
+     * そのまま検索すると「未名寄せの全ての先生」を同一グループとして扱ってしまい、
+     * 症例件数の合算やグレードの同期がシステム全体に波及していた。
+     */
+    public function doctorGroupMemberIds(): \Illuminate\Support\Collection
+    {
+        return $this->doctor_group_id
+            ? static::where('doctor_group_id', $this->doctor_group_id)->pluck('id')
+            : collect([$this->id]);
+    }
+
+    /**
      * 自分と同じ doctor_group_id を持つ全member（名寄せグループ）。
-     * 掛け持ちなしの場合は自分1件のみを返す。
+     * 掛け持ちなし・未名寄せの場合は自分1件のみを返す。
      */
     public function doctorGroupMembers()
     {
-        return static::where('doctor_group_id', $this->doctor_group_id)->get();
+        return static::whereIn('id', $this->doctorGroupMemberIds())->get();
     }
 
     /**
@@ -374,13 +392,11 @@ class Member extends Model
     /**
      * 変更点8：同一doctor_group_id（＝名寄せ済みの同一医師）に属する
      * 全memberの症例報告を合算してカウントする。
+     * 未名寄せ（doctor_group_id が NULL）の場合は自分の症例のみ。
      */
-    private function getTotalCaseCountForDoctorGroup(): int
+    public function getTotalCaseCountForDoctorGroup(): int
     {
-        $memberIds = static::where('doctor_group_id', $this->doctor_group_id)
-            ->pluck('id');
-
-        return \App\Models\CaseReport::whereIn('member_id', $memberIds)->count();
+        return \App\Models\CaseReport::whereIn('member_id', $this->doctorGroupMemberIds())->count();
     }
 
     /**
@@ -412,7 +428,12 @@ class Member extends Model
      */
     public function syncTierFromHistory(): void
     {
-        $currentHistory = $this->tierHistories()->first();
+        // 今の契約期間の履歴を更新する。
+        // （以前は tierHistories()->first() で「一番古い期間」の履歴を更新していた）
+        // period_end が未設定の履歴は currentTierHistory の条件に当たらないため、
+        // その場合は一番新しい期間の履歴を使う。
+        $currentHistory = $this->currentTierHistory()->first()
+            ?? $this->tierHistories()->reorder('period_start', 'desc')->first();
 
         if (!$currentHistory) {
             return;
@@ -433,7 +454,8 @@ class Member extends Model
         }
 
         // doctor_group内の他memberにもTierを同期
-        static::where('doctor_group_id', $this->doctor_group_id)
+        // （未名寄せの場合は自分のみのため、他memberへの同期は発生しない）
+        static::whereIn('id', $this->doctorGroupMemberIds())
             ->where('id', '!=', $this->id)
             ->where('tier', '<', $calculatedTier)
             ->update(['tier' => $calculatedTier]);
@@ -455,9 +477,6 @@ class Member extends Model
     }
 
     /**
-     * 受講済みかどうか（直近の案内が完了しているか）
-     */
-    /**
      * 受講済みかどうか。
      * 変更点：自分自身の履歴だけでなく、doctor_group_id（氏名名寄せで統合済みの
      * 同一先生グループ）全体のいずれかが受講済みであればtrueとする。
@@ -468,14 +487,7 @@ class Member extends Model
      */
     public function hasCompletedElearning(): bool
     {
-        if ($this->doctor_group_id) {
-            $memberIds = static::where('doctor_group_id', $this->doctor_group_id)->pluck('id');
-        } else {
-            // 未名寄せ（単独）の場合は自分自身のみで判定
-            $memberIds = [$this->id];
-        }
-
-        return ElearningInvitation::whereIn('member_id', $memberIds)
+        return ElearningInvitation::whereIn('member_id', $this->doctorGroupMemberIds())
             ->whereNotNull('completed_at')
             ->exists();
     }
